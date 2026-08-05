@@ -1,0 +1,8 @@
+{
+  "name": "0805111Remix 坐哪儿 - Cinema Simulator",
+  "description": "按城市浏览 IMAX、杜比影院与精选巨幕，并从真实座位视角体验银幕大小、视线角度与 3D 影厅氛围。",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
