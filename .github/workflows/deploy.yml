@@ -37,7 +37,7 @@ jobs:
           static_site_generator: next
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci || npm install
 
       - name: Build Next.js app
         run: npm run build
