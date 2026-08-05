@@ -6,7 +6,8 @@ const basePath = isExport ? (process.env.NEXT_PUBLIC_BASE_PATH || '') : '';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: isExport ? 'export' : 'standalone',
-  ...(basePath ? { basePath, assetPrefix: basePath } : {}),
+  basePath: basePath || undefined,
+  trailingSlash: true,
   eslint: {
     ignoreDuringBuilds: true,
   },
