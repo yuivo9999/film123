@@ -1,7 +1,7 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import Link from "next/link";
+import { CinemaScene } from "./CinemaScene";
 import {
   ArrowLeft,
   ArrowsIn,
@@ -45,19 +45,6 @@ import {
   getSeatMetrics,
   type Seat,
 } from "./cinema-data";
-
-const CinemaScene = dynamic(
-  () => import("./CinemaScene").then((module) => module.CinemaScene),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="scene-loading" role="status" aria-live="polite">
-        <div className="scene-loading-screen" />
-        <span>正在搭建影厅</span>
-      </div>
-    ),
-  },
-);
 
 const idleViewCommand = { yaw: 0, pitch: 0, token: 0 };
 type MobilePanelTab = "seats" | "info";
@@ -111,6 +98,12 @@ export function CinemaExperience({
   const [mobilePanelTab, setMobilePanelTab] =
     useState<MobilePanelTab>("seats");
   const [isMobile, setIsMobile] = useState(false);
+
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Local video & player state
   const [videoSrc, setVideoSrc] = useState<string>("");
@@ -257,22 +250,29 @@ export function CinemaExperience({
           onClick={resetControlsTimer}
           onMouseMove={resetControlsTimer}
         >
-          <CinemaScene
-            auditorium={auditorium}
-            seats={seats}
-            selectedSeat={selectedSeat}
-            filmMode={filmMode}
-            playing={playing}
-            playbackToken={playbackToken}
-            viewCommand={idleViewCommand}
-            isMobile={isMobile}
-            videoSrc={videoSrc}
-            playbackRate={playbackRate}
-            fitMode={fitMode}
-            audioMode={audioMode}
-            seekTime={seekTime}
-            onTimeUpdate={handleTimeUpdate}
-          />
+          {isMounted ? (
+            <CinemaScene
+              auditorium={auditorium}
+              seats={seats}
+              selectedSeat={selectedSeat}
+              filmMode={filmMode}
+              playing={playing}
+              playbackToken={playbackToken}
+              viewCommand={idleViewCommand}
+              isMobile={isMobile}
+              videoSrc={videoSrc}
+              playbackRate={playbackRate}
+              fitMode={fitMode}
+              audioMode={audioMode}
+              seekTime={seekTime}
+              onTimeUpdate={handleTimeUpdate}
+            />
+          ) : (
+            <div className="scene-loading" role="status" aria-live="polite">
+              <div className="scene-loading-screen" />
+              <span>正在搭建影厅</span>
+            </div>
+          )}
 
           <button
             className="scene-seat-status"
