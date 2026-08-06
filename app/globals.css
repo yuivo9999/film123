@@ -2413,6 +2413,41 @@ a:focus-visible {
   background: rgba(255, 255, 255, 0.2);
 }
 
+.hud-fullscreen-exit-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 12px;
+  width: 100%;
+}
+
+.fullscreen-exit-badge-centered {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 18px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--radius-round);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  pointer-events: auto;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  transition: all 180ms ease;
+  cursor: pointer;
+}
+
+.fullscreen-exit-badge-centered:hover {
+  background: rgba(255, 215, 0, 0.25);
+  border-color: rgba(255, 215, 0, 0.85);
+  color: #FFD700;
+  transform: translateY(-1px);
+}
+
 /* Fullscreen Top Status Bar (Device Time & Battery) */
 .fullscreen-top-status-bar {
   position: absolute;

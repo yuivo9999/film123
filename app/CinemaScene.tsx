@@ -597,12 +597,8 @@ const screenFitFragmentShader = `
   varying vec2 vUv;
 
   void main() {
-    vec2 st = (vUv - uOffset) / uScale;
-    if (st.x < 0.0 || st.x > 1.0 || st.y < 0.0 || st.y > 1.0) {
-      gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-    } else {
-      gl_FragColor = texture2D(uMap, st);
-    }
+    vec2 st = vUv * uScale + uOffset;
+    gl_FragColor = texture2D(uMap, st);
   }
 `;
 
@@ -751,18 +747,18 @@ function VideoSurface({
 
             // Compressor node to prevent digital clipping at high gain
             const compressor = ctx.createDynamicsCompressor();
-            compressor.threshold.setValueAtTime(-12, ctx.currentTime);
-            compressor.knee.setValueAtTime(30, ctx.currentTime);
+            compressor.threshold.setValueAtTime(-18, ctx.currentTime);
+            compressor.knee.setValueAtTime(24, ctx.currentTime);
             compressor.ratio.setValueAtTime(12, ctx.currentTime);
             compressor.attack.setValueAtTime(0.003, ctx.currentTime);
-            compressor.release.setValueAtTime(0.25, ctx.currentTime);
+            compressor.release.setValueAtTime(0.2, ctx.currentTime);
             compressorRef.current = compressor;
 
             if (ctx.createStereoPanner) {
               const lPanner = ctx.createStereoPanner();
-              lPanner.pan.value = -0.75;
+              lPanner.pan.setValueAtTime(-0.6, ctx.currentTime);
               const rPanner = ctx.createStereoPanner();
-              rPanner.pan.value = 0.75;
+              rPanner.pan.setValueAtTime(0.6, ctx.currentTime);
 
               leftPannerRef.current = lPanner;
               rightPannerRef.current = rPanner;
@@ -799,17 +795,28 @@ function VideoSurface({
           ) {
             const lPanner = leftPannerRef.current;
             const rPanner = rightPannerRef.current;
+            try {
+              lPanner.disconnect();
+              rPanner.disconnect();
+            } catch {
+              // Ignore if not connected
+            }
+
+            // Split gain (0.5x) to prevent dual-path summation clipping/crackling on mobile speakers
+            const splitGain = ctx.createGain();
+            splitGain.gain.setValueAtTime(0.5, ctx.currentTime);
 
             const lDelay = ctx.createDelay();
-            lDelay.delayTime.value = 0.006;
+            lDelay.delayTime.setValueAtTime(0.003, ctx.currentTime);
             const rDelay = ctx.createDelay();
-            rDelay.delayTime.value = 0.006;
+            rDelay.delayTime.setValueAtTime(0.003, ctx.currentTime);
 
-            compressor.connect(lDelay);
+            compressor.connect(splitGain);
+            splitGain.connect(lDelay);
             lDelay.connect(lPanner);
             lPanner.connect(ctx.destination);
 
-            compressor.connect(rDelay);
+            splitGain.connect(rDelay);
             rDelay.connect(rPanner);
             rPanner.connect(ctx.destination);
           } else {
@@ -882,7 +889,7 @@ function VideoSurface({
     };
   }, [active, onReady, playing, texture]);
 
-  // Mapping scale & offset for 4 Screen Fit Modes: contain, fill, height, vertical
+  // Mapping scale & offset for 5 Screen Fit Modes: contain, fill, cover, height, vertical
   const screenAspect = auditorium.screenWidth / auditorium.screenHeight;
 
   const [uniforms] = useState(() => ({
@@ -891,36 +898,60 @@ function VideoSurface({
     uOffset: { value: [0.0, 0.0] as [number, number] },
   }));
 
+  const meshScale = useMemo<[number, number, number]>(() => {
+    if (fitMode === "vertical") {
+      return [0.42, 1.18, 1.0];
+    }
+    return [1, 1, 1];
+  }, [fitMode]);
+
   useEffect(() => {
     uniforms.uMap.value = texture;
   }, [texture, uniforms]);
 
   useEffect(() => {
-    let effectiveAspect = videoAspect;
-    if (fitMode === "vertical") {
-      effectiveAspect = 9 / 16;
-    }
+    const vAspect = videoAspect || 16 / 9;
+    const sAspect = screenAspect;
 
     let scaleX = 1.0;
     let scaleY = 1.0;
 
-    if (fitMode === "fill" || fitMode === "cover") {
+    if (fitMode === "fill") {
+      // 100% Stretch to fill screen surface with zero black borders
       scaleX = 1.0;
       scaleY = 1.0;
-    } else if (fitMode === "height" || fitMode === "align_height") {
-      scaleY = 1.0;
-      scaleX = effectiveAspect / screenAspect;
-    } else if (fitMode === "vertical") {
-      scaleY = 1.0;
-      scaleX = (9 / 16) / screenAspect;
-    } else {
-      // contain / aspect_fit (原始比例)
-      if (effectiveAspect > screenAspect) {
-        scaleX = 1.0;
-        scaleY = screenAspect / effectiveAspect;
-      } else {
+    } else if (fitMode === "cover") {
+      // Cover full screen surface uniformly without black borders (crop overflow)
+      if (vAspect > sAspect) {
+        scaleX = sAspect / vAspect;
         scaleY = 1.0;
-        scaleX = effectiveAspect / screenAspect;
+      } else {
+        scaleX = 1.0;
+        scaleY = vAspect / sAspect;
+      }
+    } else if (fitMode === "height" || fitMode === "align_height") {
+      // 2.39:1 Cinematic Ultrawide Format
+      const targetAspect = 2.39;
+      if (sAspect > targetAspect) {
+        scaleX = sAspect / targetAspect;
+        scaleY = 1.0;
+      } else {
+        scaleX = 1.0;
+        scaleY = targetAspect / sAspect;
+      }
+    } else if (fitMode === "vertical") {
+      // 9:16 Vertical Short-Video Screen
+      scaleX = 1.0;
+      scaleY = 1.0;
+    } else {
+      // "contain" - Native 16:9 Screen Format
+      const targetAspect = 1.777;
+      if (sAspect > targetAspect) {
+        scaleX = sAspect / targetAspect;
+        scaleY = 1.0;
+      } else {
+        scaleX = 1.0;
+        scaleY = targetAspect / sAspect;
       }
     }
 
@@ -950,6 +981,7 @@ function VideoSurface({
   return (
     <mesh
       visible={active}
+      scale={meshScale}
       position={[
         0,
         auditorium.screenBottom + auditorium.screenHeight / 2,

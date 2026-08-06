@@ -492,18 +492,6 @@ export function CinemaExperience({
                     <BatteryHigh size={16} />
                   )}
                 </div>
-                <button
-                  type="button"
-                  className="fullscreen-exit-badge"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFullscreen();
-                  }}
-                  title="按 Esc 或点击退出全屏"
-                >
-                  <CornersIn size={14} />
-                  <span>退出全屏</span>
-                </button>
               </div>
             </div>
           )}
@@ -589,6 +577,23 @@ export function CinemaExperience({
                 </button>
               </div>
             </div>
+
+            {isFullscreen && (
+              <div className="hud-fullscreen-exit-row">
+                <button
+                  type="button"
+                  className="fullscreen-exit-badge-centered"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFullscreen();
+                  }}
+                  title="按 Esc 或点击退出全屏"
+                >
+                  <CornersIn size={14} />
+                  <span>退出全屏</span>
+                </button>
+              </div>
+            )}
 
             <div className="hud-timeline-row gold-white-timeline">
               <span className="timeline-time-num time-current">{formatTime(currentTime)}</span>
@@ -736,10 +741,11 @@ export function CinemaExperience({
               <div className="hud-pills-group">
                 <span className="hud-pill-label">画面尺寸:</span>
                 {[
-                  { id: "contain", label: "原始 (Contain)" },
-                  { id: "fill", label: "填满 (Fill)" },
-                  { id: "height", label: "高度对齐 (Height)" },
-                  { id: "vertical", label: "9:16竖屏 (Vertical)" },
+                  { id: "contain", label: "原始 16:9" },
+                  { id: "fill", label: "拉伸填满 (Fill)" },
+                  { id: "cover", label: "裁切无黑边 (Cover)" },
+                  { id: "height", label: "2.39:1 宽银幕" },
+                  { id: "vertical", label: "9:16 竖屏" },
                 ].map((mode) => (
                   <button
                     key={mode.id}
