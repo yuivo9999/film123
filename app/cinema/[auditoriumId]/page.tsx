@@ -5,8 +5,10 @@ import { auditoriums, getAuditoriumById } from "../../cinema-data";
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return auditoriums.map((auditorium) => ({
-    auditoriumId: auditorium.id,
+  const ids = new Set(auditoriums.map((a) => a.id));
+  ids.add("cnfm-imax");
+  return Array.from(ids).map((id) => ({
+    auditoriumId: id,
   }));
 }
 

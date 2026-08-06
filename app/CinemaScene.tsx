@@ -630,8 +630,9 @@ function VideoSurface({
     if (!video) return;
     const targetSrc =
       videoSrc || `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/imax-countdown.mp4`;
-    if (video.src !== targetSrc) {
-      video.src = targetSrc;
+    const currentAttr = video.getAttribute("src");
+    if (currentAttr !== targetSrc && video.src !== targetSrc) {
+      video.setAttribute("src", targetSrc);
       video.load();
     }
   }, [videoSrc]);
