@@ -50,6 +50,8 @@ type ViewCommand = {
   token: number;
 };
 
+type FitMode = "contain" | "fill" | "height" | "vertical" | "aspect_fit" | "cover" | "align_height";
+
 type CinemaSceneProps = {
   auditorium: Auditorium;
   seats: Seat[];
@@ -61,8 +63,9 @@ type CinemaSceneProps = {
   isMobile: boolean;
   videoSrc?: string;
   playbackRate?: number;
-  fitMode?: "aspect_fit" | "cover" | "align_height";
+  fitMode?: FitMode;
   audioMode?: "original" | "cinema_spatial";
+  volume?: number;
   seekTime?: number | null;
   onTimeUpdate?: (currentTime: number, duration: number) => void;
 };
@@ -579,14 +582,41 @@ function ScreenSurface({
   );
 }
 
+const screenFitVertexShader = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const screenFitFragmentShader = `
+  uniform sampler2D uMap;
+  uniform vec2 uScale;
+  uniform vec2 uOffset;
+  varying vec2 vUv;
+
+  void main() {
+    vec2 st = (vUv - uOffset) / uScale;
+    if (st.x < 0.0 || st.x > 1.0 || st.y < 0.0 || st.y > 1.0) {
+      gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    } else {
+      gl_FragColor = texture2D(uMap, st);
+    }
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+  }
+`;
+
 function VideoSurface({
   auditorium,
   active,
   playing,
   videoSrc,
   playbackRate = 1.0,
-  fitMode = "aspect_fit",
+  fitMode = "contain",
   audioMode = "original",
+  volume = 1.0,
   seekTime,
   onTimeUpdate,
   onReady,
@@ -598,6 +628,7 @@ function VideoSurface({
   | "playbackRate"
   | "fitMode"
   | "audioMode"
+  | "volume"
   | "seekTime"
   | "onTimeUpdate"
 > & {
@@ -607,6 +638,8 @@ function VideoSurface({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const compressorRef = useRef<DynamicsCompressorNode | null>(null);
   const leftPannerRef = useRef<StereoPannerNode | null>(null);
   const rightPannerRef = useRef<StereoPannerNode | null>(null);
   const [videoAspect, setVideoAspect] = useState<number>(16 / 9);
@@ -617,12 +650,17 @@ function VideoSurface({
     video.loop = true;
     video.playsInline = true;
     video.preload = "auto";
-    videoRef.current = video;
 
     const nextTexture = new VideoTexture(video);
     nextTexture.colorSpace = SRGBColorSpace;
     return nextTexture;
   }, []);
+
+  useEffect(() => {
+    if (texture?.image) {
+      videoRef.current = texture.image as HTMLVideoElement;
+    }
+  }, [texture]);
 
   // Set initial or updated video src
   useEffect(() => {
@@ -682,7 +720,15 @@ function VideoSurface({
     }
   }, [seekTime]);
 
-  // Audio mode (Web Audio API for Cinema Spatial Sound)
+  // Update Web Audio volume dynamically (0.0 to 2.0 = 0% to 200%)
+  useEffect(() => {
+    if (gainNodeRef.current && audioContextRef.current) {
+      const ctx = audioContextRef.current;
+      gainNodeRef.current.gain.setTargetAtTime(volume, ctx.currentTime, 0.02);
+    }
+  }, [volume]);
+
+  // Audio mode & Web Audio API graph setup (0-200% gain + DynamicsCompressor protection)
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -699,6 +745,20 @@ function VideoSurface({
             audioContextRef.current = ctx;
             const source = ctx.createMediaElementSource(video);
             audioSourceRef.current = source;
+
+            // Gain node for 0-200% volume
+            const gainNode = ctx.createGain();
+            gainNode.gain.value = volume;
+            gainNodeRef.current = gainNode;
+
+            // Compressor node to prevent digital clipping at high gain
+            const compressor = ctx.createDynamicsCompressor();
+            compressor.threshold.setValueAtTime(-12, ctx.currentTime);
+            compressor.knee.setValueAtTime(30, ctx.currentTime);
+            compressor.ratio.setValueAtTime(12, ctx.currentTime);
+            compressor.attack.setValueAtTime(0.003, ctx.currentTime);
+            compressor.release.setValueAtTime(0.25, ctx.currentTime);
+            compressorRef.current = compressor;
 
             if (ctx.createStereoPanner) {
               const lPanner = ctx.createStereoPanner();
@@ -721,9 +781,19 @@ function VideoSurface({
 
       const ctx = audioContextRef.current;
       const source = audioSourceRef.current;
-      if (ctx && source) {
+      const gainNode = gainNodeRef.current;
+      const compressor = compressorRef.current;
+
+      if (ctx && source && gainNode && compressor) {
         try {
           source.disconnect();
+          gainNode.disconnect();
+          compressor.disconnect();
+
+          // Connect source -> gainNode -> compressor
+          source.connect(gainNode);
+          gainNode.connect(compressor);
+
           if (
             audioMode === "cinema_spatial" &&
             leftPannerRef.current &&
@@ -737,22 +807,22 @@ function VideoSurface({
             const rDelay = ctx.createDelay();
             rDelay.delayTime.value = 0.006;
 
-            source.connect(lDelay);
+            compressor.connect(lDelay);
             lDelay.connect(lPanner);
             lPanner.connect(ctx.destination);
 
-            source.connect(rDelay);
+            compressor.connect(rDelay);
             rDelay.connect(rPanner);
             rPanner.connect(ctx.destination);
           } else {
-            source.connect(ctx.destination);
+            compressor.connect(ctx.destination);
           }
         } catch {
-          // Ignore connection errors if node disconnected
+          // Ignore connection errors
         }
       }
     }
-  }, [active, audioMode, playing]);
+  }, [active, audioMode, playing, volume]);
 
   // Clean up
   useEffect(() => {
@@ -814,38 +884,54 @@ function VideoSurface({
     };
   }, [active, onReady, playing, texture]);
 
-  // Mapping texture repeat and offset according to fitMode
+  // Mapping scale & offset for 4 Screen Fit Modes: contain, fill, height, vertical
   const screenAspect = auditorium.screenWidth / auditorium.screenHeight;
 
+  const [uniforms] = useState(() => ({
+    uMap: { value: texture },
+    uScale: { value: [1.0, 1.0] as [number, number] },
+    uOffset: { value: [0.0, 0.0] as [number, number] },
+  }));
+
   useEffect(() => {
-    if (fitMode === "cover") {
-      if (videoAspect > screenAspect) {
-        const repeatX = screenAspect / videoAspect;
-        texture.repeat.set(1 / repeatX, 1);
-        texture.offset.set((1 - 1 / repeatX) / 2, 0);
-      } else {
-        const repeatY = videoAspect / screenAspect;
-        texture.repeat.set(1, 1 / repeatY);
-        texture.offset.set(0, (1 - 1 / repeatY) / 2);
-      }
-    } else if (fitMode === "align_height") {
-      const scaleX = videoAspect / screenAspect;
-      texture.repeat.set(scaleX, 1);
-      texture.offset.set((1 - scaleX) / 2, 0);
+    uniforms.uMap.value = texture;
+  }, [texture, uniforms]);
+
+  useEffect(() => {
+    let effectiveAspect = videoAspect;
+    if (fitMode === "vertical") {
+      effectiveAspect = 9 / 16;
+    }
+
+    let scaleX = 1.0;
+    let scaleY = 1.0;
+
+    if (fitMode === "fill" || fitMode === "cover") {
+      scaleX = 1.0;
+      scaleY = 1.0;
+    } else if (fitMode === "height" || fitMode === "align_height") {
+      scaleY = 1.0;
+      scaleX = effectiveAspect / screenAspect;
+    } else if (fitMode === "vertical") {
+      scaleY = 1.0;
+      scaleX = (9 / 16) / screenAspect;
     } else {
-      // aspect_fit (原始)
-      if (videoAspect > screenAspect) {
-        const visibleWidth = screenAspect / videoAspect;
-        texture.repeat.set(visibleWidth, 1);
-        texture.offset.set((1 - visibleWidth) / 2, 0);
+      // contain / aspect_fit (原始比例)
+      if (effectiveAspect > screenAspect) {
+        scaleX = 1.0;
+        scaleY = screenAspect / effectiveAspect;
       } else {
-        const visibleHeight = videoAspect / screenAspect;
-        texture.repeat.set(1, visibleHeight);
-        texture.offset.set(0, (1 - visibleHeight) / 2);
+        scaleY = 1.0;
+        scaleX = effectiveAspect / screenAspect;
       }
     }
-    texture.needsUpdate = true;
-  }, [fitMode, screenAspect, texture, videoAspect]);
+
+    const offsetX = (1.0 - scaleX) * 0.5;
+    const offsetY = (1.0 - scaleY) * 0.5;
+
+    uniforms.uScale.value = [scaleX, scaleY];
+    uniforms.uOffset.value = [offsetX, offsetY];
+  }, [fitMode, screenAspect, uniforms, videoAspect]);
 
   const geometry = useMemo(
     () =>
@@ -873,7 +959,11 @@ function VideoSurface({
       ]}
     >
       <primitive object={geometry} attach="geometry" />
-      <meshBasicMaterial map={texture} color="#ffffff" toneMapped={false} />
+      <shaderMaterial
+        vertexShader={screenFitVertexShader}
+        fragmentShader={screenFitFragmentShader}
+        uniforms={uniforms}
+      />
     </mesh>
   );
 }
@@ -886,6 +976,7 @@ function Screen({
   playbackRate,
   fitMode,
   audioMode,
+  volume,
   seekTime,
   onTimeUpdate,
   onFilmReady,
@@ -898,6 +989,7 @@ function Screen({
   | "playbackRate"
   | "fitMode"
   | "audioMode"
+  | "volume"
   | "seekTime"
   | "onTimeUpdate"
 > & { onFilmReady: () => void }) {
@@ -957,12 +1049,13 @@ function Screen({
       <ScreenSurface auditorium={auditorium} blackout={filmMode} />
       <VideoSurface
         auditorium={auditorium}
-        active={filmMode && playing}
+        active={playing}
         playing={playing}
         videoSrc={videoSrc}
         playbackRate={playbackRate}
         fitMode={fitMode}
         audioMode={audioMode}
+        volume={volume}
         seekTime={seekTime}
         onTimeUpdate={onTimeUpdate}
         onReady={onFilmReady}
@@ -1658,6 +1751,7 @@ function SceneContents(
         playbackRate={props.playbackRate}
         fitMode={props.fitMode}
         audioMode={props.audioMode}
+        volume={props.volume}
         seekTime={props.seekTime}
         onTimeUpdate={props.onTimeUpdate}
         onFilmReady={props.onFilmReady}
@@ -1690,7 +1784,7 @@ export function CinemaScene(props: CinemaSceneProps) {
     () => setReadyPlaybackToken(props.playbackToken),
     [props.playbackToken],
   );
-  const screenMediaActive = props.filmMode && props.playing;
+  const screenMediaActive = props.playing;
   const initialCameraPosition: [number, number, number] = [
     props.selectedSeat.x,
     getSeatEyeY(props.selectedSeat),

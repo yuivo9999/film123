@@ -10,12 +10,17 @@ import {
   CaretLeft,
   CaretRight,
   CaretUp,
+  CornersIn,
+  CornersOut,
   FastForward,
   FilmStrip,
   Lightbulb,
   Pause,
   Play,
   Rewind,
+  SpeakerHigh,
+  SpeakerLow,
+  SpeakerSlash,
   Upload,
 } from "@phosphor-icons/react";
 import {
@@ -26,6 +31,15 @@ import {
   useState,
   type CSSProperties,
 } from "react";
+import {
+  auditoriums,
+  buildSeats,
+  cinemas,
+  getAuditoriumById,
+  getSeatMetrics,
+  type Auditorium,
+  type Seat,
+} from "./cinema-data";
 
 function formatTime(seconds: number): string {
   if (isNaN(seconds) || seconds < 0) return "00:00";
@@ -37,17 +51,10 @@ function formatTime(seconds: number): string {
   }
   return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
-import {
-  auditoriums,
-  buildSeats,
-  cinemas,
-  getAuditoriumById,
-  getSeatMetrics,
-  type Seat,
-} from "./cinema-data";
 
 const idleViewCommand = { yaw: 0, pitch: 0, token: 0 };
 type MobilePanelTab = "seats" | "info";
+type FitMode = "contain" | "fill" | "height" | "vertical";
 
 function getPreferredAuditorium(initialAuditoriumId?: string) {
   const requestedAuditorium =
@@ -80,6 +87,145 @@ function getDefaultSeatId(auditoriumId: string) {
   return centerSeat.id;
 }
 
+function TopSeatPicker({
+  auditorium,
+  cinemaAuditoriums,
+  seats,
+  selectedSeat,
+  metrics,
+  onSelectAuditorium,
+  onSelectSeat,
+}: {
+  auditorium: Auditorium;
+  cinemaAuditoriums: Auditorium[];
+  seats: Seat[];
+  selectedSeat: Seat;
+  metrics: ReturnType<typeof getSeatMetrics>;
+  onSelectAuditorium: (id: string) => void;
+  onSelectSeat: (seat: Seat) => void;
+}) {
+  const [activeRow, setActiveRow] = useState<number | null>(null);
+  const [isExpanded, setIsExpanded] = useState<boolean>(true);
+
+  const rows = useMemo(() => {
+    const map = new Map<number, Seat[]>();
+    seats.forEach((seat) => {
+      const list = map.get(seat.row) || [];
+      list.push(seat);
+      map.set(seat.row, list);
+    });
+    return Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
+  }, [seats]);
+
+  const currentSeatRow = selectedSeat.row;
+  const currentSeatsInRow = useMemo(
+    () => seats.filter((s) => s.row === (activeRow ?? currentSeatRow)),
+    [activeRow, currentSeatRow, seats],
+  );
+
+  return (
+    <div className="top-seat-picker-bar" data-dbd-zone="top-seat-picker">
+      <div className="top-seat-picker-header">
+        <div className="top-seat-left-group">
+          <span className="top-seat-label">顶部选座:</span>
+          {cinemaAuditoriums.length > 1 ? (
+            <select
+              className="top-auditorium-select"
+              value={auditorium.id}
+              onChange={(e) => onSelectAuditorium(e.target.value)}
+            >
+              {cinemaAuditoriums.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="top-auditorium-name">{auditorium.name}</span>
+          )}
+          <span className="top-seat-badge">
+            {selectedSeat.rowLabel}排{selectedSeat.number}座 ({metrics.verdict})
+          </span>
+        </div>
+
+        <div className="top-seat-metrics-group">
+          <span>
+            视角: <strong>{metrics.horizontalFov.toFixed(0)}°</strong>
+          </span>
+          <span>
+            仰角: <strong>{metrics.verticalAngle.toFixed(0)}°</strong>
+          </span>
+          <span>
+            距银幕: <strong>{metrics.distance.toFixed(1)}m</strong>
+          </span>
+          <button
+            type="button"
+            className="top-seat-toggle-btn"
+            onClick={() => setIsExpanded((prev) => !prev)}
+          >
+            {isExpanded ? "收起选座" : "展开选座"}
+            {isExpanded ? <CaretUp size={14} /> : <CaretDown size={14} />}
+          </button>
+        </div>
+      </div>
+
+      {isExpanded && (
+        <div className="top-seat-picker-content">
+          <div className="top-screen-indicator">▲ 银幕方向 ( SCREEN ) ▲</div>
+
+          <div className="top-row-pills">
+            {rows.map(([rowNum, rowSeats]) => {
+              const rowLabel = rowSeats[0]?.rowLabel || `${rowNum + 1}`;
+              const isCurrentRow = (activeRow ?? currentSeatRow) === rowNum;
+              const hasSelected = selectedSeat.row === rowNum;
+              return (
+                <button
+                  key={rowNum}
+                  type="button"
+                  className={`top-row-pill ${isCurrentRow ? "is-active" : ""} ${
+                    hasSelected ? "has-selected" : ""
+                  }`}
+                  onClick={() => setActiveRow(rowNum)}
+                >
+                  {rowLabel}排
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="top-seats-strip">
+            <span className="top-strip-row-label">
+              {(activeRow ?? currentSeatRow) + 1}排座位:
+            </span>
+            <div className="top-seats-list">
+              {currentSeatsInRow.map((seat) => {
+                const isSelected = seat.id === selectedSeat.id;
+                const isOccupied = seat.status === "occupied";
+                return (
+                  <button
+                    key={seat.id}
+                    type="button"
+                    disabled={isOccupied}
+                    className={`top-seat-btn ${isSelected ? "is-selected" : ""} ${
+                      isOccupied ? "is-occupied" : ""
+                    }`}
+                    onClick={() => onSelectSeat(seat)}
+                    title={`${seat.rowLabel}排${seat.number}座 ${
+                      isOccupied ? "(已占)" : ""
+                    }`}
+                  >
+                    {seat.number}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function CinemaExperience({
   initialAuditoriumId,
 }: {
@@ -102,7 +248,8 @@ export function CinemaExperience({
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
+    const timer = setTimeout(() => setIsMounted(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Local video & player state
@@ -112,14 +259,53 @@ export function CinemaExperience({
   const [duration, setDuration] = useState<number>(0);
   const [seekTime, setSeekTime] = useState<number | null>(null);
   const [playbackRate, setPlaybackRate] = useState<number>(1.0);
-  const [fitMode, setFitMode] = useState<"aspect_fit" | "cover" | "align_height">("aspect_fit");
+  const [fitMode, setFitMode] = useState<FitMode>("contain");
   const [audioMode, setAudioMode] = useState<"original" | "cinema_spatial">("original");
+  const [volume, setVolume] = useState<number>(1.0); // 0.0 to 2.0 (0% - 200%)
+  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const prevVolumeRef = useRef<number>(1.0);
+
   const [isControlsVisible, setIsControlsVisible] = useState<boolean>(true);
   const [isLandscapeMode, setIsLandscapeMode] = useState<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
   const seatMapRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Fullscreen change listener
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {
+        setIsLandscapeMode((prev) => !prev);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => undefined);
+      }
+    }
+  }, []);
+
+  const toggleMute = () => {
+    if (isMuted) {
+      setIsMuted(false);
+      setVolume(prevVolumeRef.current || 1.0);
+    } else {
+      prevVolumeRef.current = volume;
+      setIsMuted(true);
+      setVolume(0);
+    }
+  };
 
   const resetControlsTimer = useCallback(() => {
     setIsControlsVisible(true);
@@ -135,12 +321,17 @@ export function CinemaExperience({
 
   useEffect(() => {
     if (playing) {
-      resetControlsTimer();
+      const timer = setTimeout(() => {
+        setIsControlsVisible(false);
+      }, 3500);
+      return () => clearTimeout(timer);
     } else {
-      setIsControlsVisible(true);
-      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+      const timer = setTimeout(() => {
+        setIsControlsVisible(true);
+      }, 0);
+      return () => clearTimeout(timer);
     }
-  }, [playing, resetControlsTimer]);
+  }, [playing]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -241,15 +432,39 @@ export function CinemaExperience({
       <section
         className={`experience-layout ${
           isSeatPanelCollapsed ? "is-panel-collapsed" : ""
-        } ${isLandscapeMode ? "is-landscape-mode" : ""}`}
+        } ${isLandscapeMode ? "is-landscape-mode" : ""} ${
+          isFullscreen ? "is-fullscreen" : ""
+        }`}
         data-dbd-zone="cinema-workspace"
       >
+        <TopSeatPicker
+          auditorium={auditorium}
+          cinemaAuditoriums={cinemaAuditoriums}
+          seats={seats}
+          selectedSeat={selectedSeat}
+          metrics={metrics}
+          onSelectAuditorium={switchAuditorium}
+          onSelectSeat={selectSeat}
+        />
+
         <div
           className="scene-shell"
           data-dbd-zone="cinema-scene"
           onClick={resetControlsTimer}
           onMouseMove={resetControlsTimer}
         >
+          {isFullscreen && (
+            <button
+              type="button"
+              className="fullscreen-exit-badge"
+              onClick={toggleFullscreen}
+              title="按 Esc 或点击退出全屏"
+            >
+              <CornersIn size={14} />
+              <span>退出全屏 (Esc)</span>
+            </button>
+          )}
+
           {isMounted ? (
             <CinemaScene
               auditorium={auditorium}
@@ -264,6 +479,7 @@ export function CinemaExperience({
               playbackRate={playbackRate}
               fitMode={fitMode}
               audioMode={audioMode}
+              volume={isMuted ? 0 : volume}
               seekTime={seekTime}
               onTimeUpdate={handleTimeUpdate}
             />
@@ -359,10 +575,26 @@ export function CinemaExperience({
                   type="button"
                   className="hud-btn-file-upload"
                   onClick={() => {
+                    toggleFullscreen();
+                    resetControlsTimer();
+                  }}
+                  title={isFullscreen ? "退出全屏观影" : "全屏沉浸观影"}
+                >
+                  {isFullscreen ? (
+                    <CornersIn size={14} />
+                  ) : (
+                    <CornersOut size={14} />
+                  )}
+                  <span>{isFullscreen ? "退出全屏" : "全屏观影"}</span>
+                </button>
+                <button
+                  type="button"
+                  className="hud-btn-file-upload"
+                  onClick={() => {
                     setIsLandscapeMode((prev) => !prev);
                     resetControlsTimer();
                   }}
-                  title="切换手机横屏 / 全屏视界"
+                  title="切换手机横屏 / 满屏视界"
                 >
                   {isLandscapeMode ? (
                     <ArrowsIn size={14} />
@@ -440,6 +672,46 @@ export function CinemaExperience({
                 </button>
               </div>
 
+              {/* 0-200% Volume Control with Web Audio Compressor */}
+              <div className="hud-volume-control">
+                <button
+                  type="button"
+                  className="hud-pill-btn px-1 text-white"
+                  onClick={toggleMute}
+                  title={isMuted ? "取消静音" : "静音"}
+                >
+                  {isMuted || volume === 0 ? (
+                    <SpeakerSlash size={14} className="text-red-400 inline mr-1" />
+                  ) : volume > 1.0 ? (
+                    <SpeakerHigh size={14} className="text-amber-400 inline mr-1" />
+                  ) : (
+                    <SpeakerLow size={14} className="inline mr-1" />
+                  )}
+                </button>
+                <input
+                  type="range"
+                  className="hud-volume-slider"
+                  min={0}
+                  max={2}
+                  step={0.01}
+                  value={isMuted ? 0 : volume}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    setVolume(val);
+                    if (val > 0 && isMuted) setIsMuted(false);
+                    resetControlsTimer();
+                  }}
+                />
+                <span className="hud-volume-val">
+                  {Math.round((isMuted ? 0 : volume) * 100)}%
+                </span>
+                {volume > 1.0 && !isMuted && (
+                  <span className="hud-boost-badge" title="Web Audio API 增益压限防护">
+                    2x 防爆音
+                  </span>
+                )}
+              </div>
+
               <div className="hud-pills-group">
                 <span className="hud-pill-label">灯光:</span>
                 <button
@@ -469,6 +741,30 @@ export function CinemaExperience({
               </div>
 
               <div className="hud-pills-group">
+                <span className="hud-pill-label">画面尺寸:</span>
+                {[
+                  { id: "contain", label: "原始 (Contain)" },
+                  { id: "fill", label: "填满 (Fill)" },
+                  { id: "height", label: "高度对齐 (Height)" },
+                  { id: "vertical", label: "9:16竖屏 (Vertical)" },
+                ].map((mode) => (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    className={`hud-pill-btn ${
+                      fitMode === mode.id ? "is-active" : ""
+                    }`}
+                    onClick={() => {
+                      setFitMode(mode.id as FitMode);
+                      resetControlsTimer();
+                    }}
+                  >
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="hud-pills-group">
                 <span className="hud-pill-label">倍速:</span>
                 {[0.1, 0.5, 1.0, 1.5, 2.0, 5.0].map((rate) => (
                   <button
@@ -488,30 +784,7 @@ export function CinemaExperience({
               </div>
 
               <div className="hud-pills-group">
-                <span className="hud-pill-label">画面:</span>
-                {[
-                  { id: "aspect_fit", label: "原始" },
-                  { id: "cover", label: "填满" },
-                  { id: "align_height", label: "高度对齐" },
-                ].map((mode) => (
-                  <button
-                    key={mode.id}
-                    type="button"
-                    className={`hud-pill-btn ${
-                      fitMode === mode.id ? "is-active" : ""
-                    }`}
-                    onClick={() => {
-                      setFitMode(mode.id as any);
-                      resetControlsTimer();
-                    }}
-                  >
-                    {mode.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="hud-pills-group">
-                <span className="hud-pill-label">声音:</span>
+                <span className="hud-pill-label">声音模式:</span>
                 <button
                   type="button"
                   className={`hud-pill-btn ${
