@@ -6,8 +6,6 @@ import {
   ArrowLeft,
   ArrowsIn,
   ArrowsOut,
-  BatteryCharging,
-  BatteryHigh,
   CaretDown,
   CaretLeft,
   CaretRight,
@@ -482,15 +480,10 @@ export function CinemaExperience({
                 <span className="fullscreen-device-time">{deviceTimeStr}</span>
               </div>
               <div className="fullscreen-status-right">
-                <div className="fullscreen-battery-info">
-                  <span className="fullscreen-battery-level">
-                    {batteryLevel !== null ? `${batteryLevel}%` : "88%"}
-                  </span>
-                  {isCharging ? (
-                    <BatteryCharging size={16} className="text-amber-400" />
-                  ) : (
-                    <BatteryHigh size={16} />
-                  )}
+                <div className="fullscreen-video-time" title="播放进度">
+                  <span className="time-played">{formatTime(currentTime)}</span>
+                  <span className="time-divider"> / </span>
+                  <span className="time-total">{formatTime(duration)}</span>
                 </div>
               </div>
             </div>
@@ -577,23 +570,6 @@ export function CinemaExperience({
                 </button>
               </div>
             </div>
-
-            {isFullscreen && (
-              <div className="hud-fullscreen-exit-row">
-                <button
-                  type="button"
-                  className="fullscreen-exit-badge-centered"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFullscreen();
-                  }}
-                  title="按 Esc 或点击退出全屏"
-                >
-                  <CornersIn size={14} />
-                  <span>退出全屏</span>
-                </button>
-              </div>
-            )}
 
             <div className="hud-timeline-row gold-white-timeline">
               <span className="timeline-time-num time-current">{formatTime(currentTime)}</span>

@@ -2487,18 +2487,40 @@ a:focus-visible {
   gap: 14px;
 }
 
-.fullscreen-battery-info {
+.fullscreen-video-time {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 2px;
   font-size: 13px;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 4px 12px;
+  border-radius: var(--radius-round);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25), inset 0 0 8px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  user-select: none;
+}
+
+.fullscreen-video-time .time-played {
+  color: #38bdf8;
+  text-shadow: 0 0 8px rgba(56, 189, 248, 0.9), 0 0 16px rgba(56, 189, 248, 0.5);
+  font-weight: 700;
+}
+
+.fullscreen-video-time .time-divider {
+  color: #ffffff;
+  opacity: 0.75;
+  margin: 0 2px;
+  font-weight: 400;
+}
+
+.fullscreen-video-time .time-total {
+  color: #ffffff;
+  opacity: 0.95;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.85);
-  font-family: ui-monospace, SFMono-Regular, monospace;
-  background: rgba(0, 0, 0, 0.4);
-  padding: 3px 8px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 /* Gold & White Combined Video Progress Bar */
