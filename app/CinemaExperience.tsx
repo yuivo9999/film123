@@ -6,6 +6,8 @@ import {
   ArrowLeft,
   ArrowsIn,
   ArrowsOut,
+  BatteryCharging,
+  BatteryHigh,
   CaretDown,
   CaretLeft,
   CaretRight,
@@ -268,6 +270,40 @@ export function CinemaExperience({
   const [isLandscapeMode, setIsLandscapeMode] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
+  // Mobile system time and battery for full-screen mode
+  const [deviceTimeStr, setDeviceTimeStr] = useState<string>("");
+  const [batteryLevel, setBatteryLevel] = useState<number | null>(88);
+  const [isCharging, setIsCharging] = useState<boolean>(false);
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, "0");
+      const mins = String(now.getMinutes()).padStart(2, "0");
+      setDeviceTimeStr(`${hours}:${mins}`);
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (typeof navigator !== "undefined" && "getBattery" in navigator) {
+      (navigator as any)
+        .getBattery()
+        .then((battery: any) => {
+          const updateBattery = () => {
+            setBatteryLevel(Math.round(battery.level * 100));
+            setIsCharging(battery.charging);
+          };
+          updateBattery();
+          battery.addEventListener("levelchange", updateBattery);
+          battery.addEventListener("chargingchange", updateBattery);
+        })
+        .catch(() => {});
+    }
+  }, []);
+
   const seatMapRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -338,7 +374,6 @@ export function CinemaExperience({
     const objectUrl = URL.createObjectURL(file);
     setVideoSrc(objectUrl);
     setVideoTitle(file.name);
-    setFilmMode(true);
     setPlaying(true);
     setPlaybackToken((prev) => prev + 1);
     resetControlsTimer();
@@ -436,31 +471,41 @@ export function CinemaExperience({
         }`}
         data-dbd-zone="cinema-workspace"
       >
-        <TopSeatPicker
-          auditorium={auditorium}
-          cinemaAuditoriums={cinemaAuditoriums}
-          seats={seats}
-          selectedSeat={selectedSeat}
-          metrics={metrics}
-          onSelectAuditorium={switchAuditorium}
-          onSelectSeat={selectSeat}
-        />
-
         <div
           className="scene-shell"
           data-dbd-zone="cinema-scene"
           onClick={() => setIsControlsVisible((prev) => !prev)}
         >
           {isFullscreen && (
-            <button
-              type="button"
-              className="fullscreen-exit-badge"
-              onClick={toggleFullscreen}
-              title="按 Esc 或点击退出全屏"
-            >
-              <CornersIn size={14} />
-              <span>退出全屏 (Esc)</span>
-            </button>
+            <div className="fullscreen-top-status-bar">
+              <div className="fullscreen-status-left">
+                <span className="fullscreen-device-time">{deviceTimeStr}</span>
+              </div>
+              <div className="fullscreen-status-right">
+                <div className="fullscreen-battery-info">
+                  <span className="fullscreen-battery-level">
+                    {batteryLevel !== null ? `${batteryLevel}%` : "88%"}
+                  </span>
+                  {isCharging ? (
+                    <BatteryCharging size={16} className="text-amber-400" />
+                  ) : (
+                    <BatteryHigh size={16} />
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="fullscreen-exit-badge"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFullscreen();
+                  }}
+                  title="按 Esc 或点击退出全屏"
+                >
+                  <CornersIn size={14} />
+                  <span>退出全屏</span>
+                </button>
+              </div>
+            </div>
           )}
 
           {isMounted ? (
@@ -487,65 +532,6 @@ export function CinemaExperience({
               <span>正在搭建影厅</span>
             </div>
           )}
-
-          <button
-            className="scene-seat-status"
-            type="button"
-            onClick={() => showMobilePanelTab("seats")}
-            aria-live="polite"
-            aria-label={`打开座位图，当前为 ${selectedSeat.rowLabel} 排 ${selectedSeat.number} 座`}
-            aria-controls="mobile-seat-panel"
-            aria-expanded={
-              isMobile
-                ? isMobilePanelOpen && mobilePanelTab === "seats"
-                : undefined
-            }
-            tabIndex={isMobile ? 0 : -1}
-          >
-            {selectedSeat.rowLabel} 排 {selectedSeat.number} 座
-          </button>
-
-          <div className="scene-controls">
-            <button
-              className="film-picker film-play-control"
-              type="button"
-              data-dbd-component="button"
-              data-dbd-variant="secondary"
-              data-dbd-pattern="film-player"
-              onClick={togglePlayback}
-              aria-pressed={playing}
-              aria-label={`${playing ? "暂停影片" : "播放影片"}：${videoTitle}`}
-              title={`${playing ? "暂停影片" : "播放影片"}：${videoTitle}`}
-            >
-              {playing ? (
-                <Pause size={18} weight="fill" />
-              ) : (
-                <Play size={18} weight="fill" />
-              )}
-              <strong>
-                {playing ? "暂停" : "播放"}：{videoTitle}
-              </strong>
-            </button>
-
-            <button
-              className={`scene-light-toggle ${filmMode ? "is-dark" : ""}`}
-              type="button"
-              data-dbd-component="button"
-              data-dbd-variant="icon-only"
-              onClick={toggleFilmMode}
-              aria-pressed={filmMode}
-              aria-label={lightActionLabel}
-              title={lightActionLabel}
-            >
-              <Lightbulb
-                size={20}
-                weight={filmMode ? "regular" : "fill"}
-                aria-hidden="true"
-              />
-            </button>
-          </div>
-
-          <p className="gesture-hint">拖动观察银幕，视点固定在当前座位</p>
 
           {/* Auto-Hiding Navigation Bar & Video Control HUD */}
           <div
@@ -604,23 +590,32 @@ export function CinemaExperience({
               </div>
             </div>
 
-            <div className="hud-timeline-row">
-              <span>{formatTime(currentTime)}</span>
-              <input
-                type="range"
-                className="hud-slider"
-                min={0}
-                max={duration || 100}
-                step={0.1}
-                value={currentTime}
-                onChange={(e) => {
-                  const val = parseFloat(e.target.value);
-                  setSeekTime(val);
-                  setCurrentTime(val);
-                  resetControlsTimer();
-                }}
-              />
-              <span>{formatTime(duration)}</span>
+            <div className="hud-timeline-row gold-white-timeline">
+              <span className="timeline-time-num time-current">{formatTime(currentTime)}</span>
+              <div className="hud-slider-wrapper">
+                <input
+                  type="range"
+                  className="hud-slider gold-white-slider"
+                  min={0}
+                  max={duration || 100}
+                  step={0.1}
+                  value={currentTime}
+                  style={{
+                    background: `linear-gradient(to right, #FFD700 0%, #E2B857 ${
+                      ((currentTime / (duration || 1)) * 100).toFixed(2)
+                    }%, rgba(255, 255, 255, 0.25) ${
+                      ((currentTime / (duration || 1)) * 100).toFixed(2)
+                    }%, rgba(255, 255, 255, 0.25) 100%)`,
+                  }}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    setSeekTime(val);
+                    setCurrentTime(val);
+                    resetControlsTimer();
+                  }}
+                />
+              </div>
+              <span className="timeline-time-num time-duration">{formatTime(duration)}</span>
             </div>
 
             <div className="hud-controls-row">
