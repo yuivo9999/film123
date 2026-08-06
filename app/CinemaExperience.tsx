@@ -105,7 +105,7 @@ function TopSeatPicker({
   onSelectSeat: (seat: Seat) => void;
 }) {
   const [activeRow, setActiveRow] = useState<number | null>(null);
-  const [isExpanded, setIsExpanded] = useState<boolean>(true);
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
   const rows = useMemo(() => {
     const map = new Map<number, Seat[]>();
@@ -127,7 +127,6 @@ function TopSeatPicker({
     <div className="top-seat-picker-bar" data-dbd-zone="top-seat-picker">
       <div className="top-seat-picker-header">
         <div className="top-seat-left-group">
-          <span className="top-seat-label">顶部选座:</span>
           {cinemaAuditoriums.length > 1 ? (
             <select
               className="top-auditorium-select"
@@ -149,21 +148,19 @@ function TopSeatPicker({
         </div>
 
         <div className="top-seat-metrics-group">
-          <span>
+          <span className="hidden sm:inline">
             视角: <strong>{metrics.horizontalFov.toFixed(0)}°</strong>
           </span>
-          <span>
-            仰角: <strong>{metrics.verticalAngle.toFixed(0)}°</strong>
-          </span>
-          <span>
+          <span className="hidden md:inline">
             距银幕: <strong>{metrics.distance.toFixed(1)}m</strong>
           </span>
           <button
             type="button"
             className="top-seat-toggle-btn"
             onClick={() => setIsExpanded((prev) => !prev)}
+            title="快捷更换座位"
           >
-            {isExpanded ? "收起选座" : "展开选座"}
+            <span>{isExpanded ? "收起选座" : "选座"}</span>
             {isExpanded ? <CaretUp size={14} /> : <CaretDown size={14} />}
           </button>
         </div>
@@ -209,7 +206,9 @@ function TopSeatPicker({
                     className={`top-seat-btn ${isSelected ? "is-selected" : ""} ${
                       isOccupied ? "is-occupied" : ""
                     }`}
-                    onClick={() => onSelectSeat(seat)}
+                    onClick={() => {
+                      onSelectSeat(seat);
+                    }}
                     title={`${seat.rowLabel}排${seat.number}座 ${
                       isOccupied ? "(已占)" : ""
                     }`}
@@ -450,8 +449,7 @@ export function CinemaExperience({
         <div
           className="scene-shell"
           data-dbd-zone="cinema-scene"
-          onClick={resetControlsTimer}
-          onMouseMove={resetControlsTimer}
+          onClick={() => setIsControlsVisible((prev) => !prev)}
         >
           {isFullscreen && (
             <button
