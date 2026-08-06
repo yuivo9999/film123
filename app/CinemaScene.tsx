@@ -603,8 +603,6 @@ const screenFitFragmentShader = `
     } else {
       gl_FragColor = texture2D(uMap, st);
     }
-    #include <tonemapping_fragment>
-    #include <colorspace_fragment>
   }
 `;
 
@@ -963,6 +961,7 @@ function VideoSurface({
         vertexShader={screenFitVertexShader}
         fragmentShader={screenFitFragmentShader}
         uniforms={uniforms}
+        toneMapped={false}
       />
     </mesh>
   );
