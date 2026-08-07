@@ -479,6 +479,20 @@ export function CinemaExperience({
               <div className="fullscreen-status-left">
                 <span className="fullscreen-device-time">{deviceTimeStr}</span>
               </div>
+              <div className="fullscreen-status-center">
+                <button
+                  type="button"
+                  className="fullscreen-exit-btn-center"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFullscreen();
+                  }}
+                  title="按 Esc 或点击退出全屏"
+                >
+                  <CornersIn size={14} />
+                  <span>退出全屏</span>
+                </button>
+              </div>
               <div className="fullscreen-status-right">
                 <div className="fullscreen-video-time" title="播放进度">
                   <span className="time-played">{formatTime(currentTime)}</span>
