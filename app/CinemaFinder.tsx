@@ -226,9 +226,22 @@ export function CinemaFinder() {
   >("idle");
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [preferencesReady, setPreferencesReady] = useState(false);
+  const [sceneStyle, setSceneStyle] = useState<"classic" | "snowy_greek">("classic");
 
   const city =
     citySummaries.find((item) => item.name === cityName) ?? defaultCity;
+
+  useEffect(() => {
+    const savedStyle = window.localStorage.getItem("zuonaar-cinema-theme-style");
+    if (savedStyle === "snowy_greek" || savedStyle === "classic") {
+      setSceneStyle(savedStyle);
+    }
+  }, []);
+
+  const handleSelectStyle = (style: "classic" | "snowy_greek") => {
+    setSceneStyle(style);
+    window.localStorage.setItem("zuonaar-cinema-theme-style", style);
+  };
 
   useEffect(() => {
     const savedCityName = window.localStorage.getItem(cityStorageKey);
@@ -366,6 +379,26 @@ export function CinemaFinder() {
           <p>
             按城市查看已收录的 IMAX、杜比影院与精选巨幕，比较银幕与放映技术，再进入真实比例的 3D 影厅。
           </p>
+        </div>
+
+        <div className="theme-style-picker-bar">
+          <span className="theme-picker-title">选择 3D 影场风格：</span>
+          <div className="theme-picker-pills">
+            <button
+              type="button"
+              className={`theme-pill ${sceneStyle === "classic" ? "is-active" : ""}`}
+              onClick={() => handleSelectStyle("classic")}
+            >
+              🏛️ 经典现代影厅
+            </button>
+            <button
+              type="button"
+              className={`theme-pill ${sceneStyle === "snowy_greek" ? "is-active" : ""}`}
+              onClick={() => handleSelectStyle("snowy_greek")}
+            >
+              ❄️ 古希腊雪山露天影院
+            </button>
+          </div>
         </div>
       </section>
 

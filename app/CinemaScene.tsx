@@ -57,6 +57,7 @@ type CinemaSceneProps = {
   seats: Seat[];
   selectedSeat: Seat;
   filmMode: boolean;
+  sceneStyle?: "classic" | "snowy_greek";
   playing: boolean;
   playbackToken: number;
   viewCommand: ViewCommand;
@@ -1002,6 +1003,7 @@ function VideoSurface({
 function Screen({
   auditorium,
   filmMode,
+  sceneStyle = "classic",
   playing,
   videoSrc,
   playbackRate,
@@ -1015,6 +1017,7 @@ function Screen({
   CinemaSceneProps,
   | "auditorium"
   | "filmMode"
+  | "sceneStyle"
   | "playing"
   | "videoSrc"
   | "playbackRate"
@@ -1031,8 +1034,14 @@ function Screen({
   const bulbMaterialRefs = useRef<Array<MeshBasicMaterial | null>>([]);
   const filmBounceRef = useRef<PointLight>(null);
   const screenSurroundMaterialRef = useRef<MeshPhysicalMaterial>(null);
-  const screenSurroundLitColor = useMemo(() => new Color("#111315"), []);
-  const screenSurroundDarkColor = useMemo(() => new Color("#000000"), []);
+  const screenSurroundLitColor = useMemo(
+    () => new Color(sceneStyle === "snowy_greek" ? "#1e293b" : "#111315"),
+    [sceneStyle],
+  );
+  const screenSurroundDarkColor = useMemo(
+    () => new Color(sceneStyle === "snowy_greek" ? "#0f172a" : "#000000"),
+    [sceneStyle],
+  );
   const [initialHouseLights] = useState(() => (filmMode ? 0 : 1));
 
   useFrame((_, delta) => {
@@ -1164,10 +1173,110 @@ function Screen({
   );
 }
 
+function SnowMountainBackdrop({ auditorium }: { auditorium: Auditorium }) {
+  const starPositions = useMemo(() => {
+    const count = 180;
+    const positions = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 160;
+      positions[i * 3 + 1] = Math.random() * 60 + 12;
+      positions[i * 3 + 2] = auditorium.screenZ - 30 - Math.random() * 40;
+    }
+    return positions;
+  }, [auditorium.screenZ]);
+
+  const baseZ = auditorium.screenZ;
+
+  return (
+    <group>
+      {/* Alpine Night Sky Stars */}
+      <points>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            args={[starPositions, 3]}
+          />
+        </bufferGeometry>
+        <pointsMaterial
+          size={0.65}
+          color="#f8fafc"
+          transparent
+          opacity={0.85}
+          sizeAttenuation
+        />
+      </points>
+
+      {/* Alpine Glow Moon */}
+      <mesh position={[22, 36, baseZ - 38]}>
+        <sphereGeometry args={[3.2, 32, 32]} />
+        <meshBasicMaterial color="#ffffff" toneMapped={false} />
+      </mesh>
+      {/* Moon Halo Glow */}
+      <mesh position={[22, 36, baseZ - 38.5]}>
+        <sphereGeometry args={[4.8, 24, 24]} />
+        <meshBasicMaterial
+          color="#93c5fd"
+          transparent
+          opacity={0.25}
+          toneMapped={false}
+        />
+      </mesh>
+
+      {/* Center Mountain Peak */}
+      <group position={[0, 16, baseZ - 48]}>
+        <mesh>
+          <coneGeometry args={[34, 46, 8]} />
+          <meshStandardMaterial color="#1e293b" roughness={0.85} />
+        </mesh>
+        <mesh position={[0, 12, 0]}>
+          <coneGeometry args={[26, 22, 8]} />
+          <meshStandardMaterial
+            color="#f8fafc"
+            roughness={0.6}
+            emissive="#e0f2fe"
+            emissiveIntensity={0.2}
+          />
+        </mesh>
+      </group>
+
+      {/* Left Mountain Peak */}
+      <group position={[-34, 11, baseZ - 40]}>
+        <mesh>
+          <coneGeometry args={[26, 34, 7]} />
+          <meshStandardMaterial color="#1e293b" roughness={0.9} />
+        </mesh>
+        <mesh position={[0, 9, 0]}>
+          <coneGeometry args={[19, 16, 7]} />
+          <meshStandardMaterial color="#f1f5f9" roughness={0.65} />
+        </mesh>
+      </group>
+
+      {/* Right Mountain Peak */}
+      <group position={[36, 13, baseZ - 44]}>
+        <mesh>
+          <coneGeometry args={[28, 38, 7]} />
+          <meshStandardMaterial color="#1e293b" roughness={0.9} />
+        </mesh>
+        <mesh position={[0, 10, 0]}>
+          <coneGeometry args={[21, 18, 7]} />
+          <meshStandardMaterial color="#f1f5f9" roughness={0.65} />
+        </mesh>
+      </group>
+
+      {/* Distant Snow Hills background row */}
+      <mesh position={[0, 2, baseZ - 32]}>
+        <boxGeometry args={[160, 14, 12]} />
+        <meshStandardMaterial color="#cbd5e1" roughness={0.9} />
+      </mesh>
+    </group>
+  );
+}
+
 function AuditoriumArchitecture({
   auditorium,
   filmMode,
-}: Pick<CinemaSceneProps, "auditorium" | "filmMode">) {
+  sceneStyle = "classic",
+}: Pick<CinemaSceneProps, "auditorium" | "filmMode" | "sceneStyle">) {
   const [aisleLightMaterial] = useState(
     () =>
       new MeshBasicMaterial({
@@ -1202,6 +1311,82 @@ function AuditoriumArchitecture({
       smoothFactor(delta),
     );
   });
+
+  if (sceneStyle === "snowy_greek") {
+    return (
+      <group>
+        {/* Snowy Ground Terrain */}
+        <mesh position={[0, -0.5, roomCenterZ]} receiveShadow>
+          <boxGeometry args={[roomWidth * 2.8, 1, roomDepth * 2.8]} />
+          <meshStandardMaterial color="#f1f5f9" roughness={0.8} metalness={0.05} />
+        </mesh>
+
+        {/* Ancient Greek Stone Terraces (Amphitheater Steps) */}
+        {Array.from({ length: auditorium.rowCount }, (_, row) => {
+          const y =
+            cinemaSeatGeometry.rowFloorBaseY + row * auditorium.rowRise;
+          const z = auditorium.firstRowZ + row * auditorium.rowSpacing;
+          return (
+            <mesh key={row} position={[0, y - 0.37, z + 0.1]} receiveShadow>
+              <boxGeometry
+                args={[platformWidth + 2, 0.72, auditorium.rowSpacing + 0.08]}
+              />
+              <meshStandardMaterial color="#cbd5e1" roughness={0.7} metalness={0.02} />
+            </mesh>
+          );
+        })}
+
+        {/* Screen Frame: Greek Marble Columns Flanking the Screen */}
+        {[-1, 1].map((dir) => {
+          const colX = (auditorium.screenWidth / 2 + 1.4) * dir;
+          const colY = auditorium.screenBottom + auditorium.screenHeight / 2;
+          const colHeight = auditorium.screenHeight + 1.8;
+          return (
+            <group key={dir} position={[colX, colY, auditorium.screenZ + 0.2]}>
+              {/* Main Column */}
+              <mesh>
+                <cylinderGeometry args={[0.55, 0.6, colHeight, 24]} />
+                <meshStandardMaterial color="#f8fafc" roughness={0.4} metalness={0.05} />
+              </mesh>
+              {/* Capital Top */}
+              <mesh position={[0, colHeight / 2 + 0.2, 0]}>
+                <boxGeometry args={[1.5, 0.4, 1.5]} />
+                <meshStandardMaterial color="#e2e8f0" roughness={0.45} />
+              </mesh>
+              {/* Base Bottom */}
+              <mesh position={[0, -colHeight / 2 - 0.2, 0]}>
+                <boxGeometry args={[1.6, 0.4, 1.6]} />
+                <meshStandardMaterial color="#cbd5e1" roughness={0.5} />
+              </mesh>
+            </group>
+          );
+        })}
+
+        {/* Greek Marble Pedestal under screen */}
+        <mesh position={[0, auditorium.screenBottom - 0.5, auditorium.screenZ + 0.1]}>
+          <boxGeometry args={[auditorium.screenWidth + 3.8, 1.1, 1.3]} />
+          <meshStandardMaterial color="#e2e8f0" roughness={0.55} />
+        </mesh>
+
+        {/* Ancient Greek Stone Torch Braziers on the flanks */}
+        {[-halfRoomWidth - 2, halfRoomWidth + 2].map((x, idx) => (
+          <group key={idx} position={[x, 1.0, auditorium.firstRowZ + 2]}>
+            <mesh>
+              <cylinderGeometry args={[0.45, 0.55, 2.2, 16]} />
+              <meshStandardMaterial color="#94a3b8" roughness={0.75} />
+            </mesh>
+            <pointLight
+              position={[0, 1.4, 0]}
+              color="#ff8c00"
+              intensity={filmMode ? 80 : 180}
+              distance={16}
+              decay={2}
+            />
+          </group>
+        ))}
+      </group>
+    );
+  }
 
   return (
     <group>
@@ -1286,9 +1471,10 @@ function Seats({
   seats,
   selectedSeat,
   filmMode,
+  sceneStyle = "classic",
 }: Pick<
   CinemaSceneProps,
-  "seats" | "selectedSeat" | "filmMode"
+  "seats" | "selectedSeat" | "filmMode" | "sceneStyle"
 >) {
   const cushionRef = useRef<InstancedMesh>(null);
   const backRef = useRef<InstancedMesh>(null);
@@ -1321,24 +1507,43 @@ function Seats({
     [],
   );
   const seatColors = useMemo(
-    () => ({
-      available: {
-        upholstery: new Color("#b52b52"),
-        shell: new Color("#8f1e3e"),
-        panel: new Color("#781832"),
-      },
-      selected: {
-        upholstery: new Color("#df5274"),
-        shell: new Color("#ad3152"),
-        panel: new Color("#922542"),
-      },
-      occupied: {
-        upholstery: new Color("#65162f"),
-        shell: new Color("#4f1025"),
-        panel: new Color("#420c1e"),
-      },
-    }),
-    [],
+    () =>
+      sceneStyle === "snowy_greek"
+        ? {
+            available: {
+              upholstery: new Color("#cbd5e1"),
+              shell: new Color("#e2e8f0"),
+              panel: new Color("#94a3b8"),
+            },
+            selected: {
+              upholstery: new Color("#38bdf8"),
+              shell: new Color("#0284c7"),
+              panel: new Color("#7dd3fc"),
+            },
+            occupied: {
+              upholstery: new Color("#64748b"),
+              shell: new Color("#475569"),
+              panel: new Color("#334155"),
+            },
+          }
+        : {
+            available: {
+              upholstery: new Color("#b52b52"),
+              shell: new Color("#8f1e3e"),
+              panel: new Color("#781832"),
+            },
+            selected: {
+              upholstery: new Color("#df5274"),
+              shell: new Color("#ad3152"),
+              panel: new Color("#922542"),
+            },
+            occupied: {
+              upholstery: new Color("#65162f"),
+              shell: new Color("#4f1025"),
+              panel: new Color("#420c1e"),
+            },
+          },
+    [sceneStyle],
   );
 
   useLayoutEffect(() => {
@@ -1662,19 +1867,38 @@ function Seats({
 function SceneLighting({
   filmMode,
   isMobile,
-}: Pick<CinemaSceneProps, "filmMode" | "isMobile">) {
+  sceneStyle = "classic",
+}: Pick<CinemaSceneProps, "filmMode" | "isMobile" | "sceneStyle">) {
   const backgroundRef = useRef<Color>(null);
   const fogRef = useRef<Fog>(null);
   const ambientRef = useRef<AmbientLight>(null);
   const hemisphereRef = useRef<HemisphereLight>(null);
   const houseSpotRefs = useRef<Array<SpotLight | null>>([]);
   const housePointRef = useRef<PointLight>(null);
-  const litBackground = useMemo(() => new Color("#111317"), []);
-  const darkBackground = useMemo(() => new Color("#07080a"), []);
-  const litFog = useMemo(() => new Color("#15171b"), []);
-  const darkFog = useMemo(() => new Color("#08090b"), []);
-  const litAmbient = useMemo(() => new Color("#d7c7b8"), []);
-  const darkAmbient = useMemo(() => new Color("#75808a"), []);
+  const litBackground = useMemo(
+    () => new Color(sceneStyle === "snowy_greek" ? "#0a1128" : "#111317"),
+    [sceneStyle],
+  );
+  const darkBackground = useMemo(
+    () => new Color(sceneStyle === "snowy_greek" ? "#060b1b" : "#07080a"),
+    [sceneStyle],
+  );
+  const litFog = useMemo(
+    () => new Color(sceneStyle === "snowy_greek" ? "#0c1535" : "#15171b"),
+    [sceneStyle],
+  );
+  const darkFog = useMemo(
+    () => new Color(sceneStyle === "snowy_greek" ? "#070d22" : "#08090b"),
+    [sceneStyle],
+  );
+  const litAmbient = useMemo(
+    () => new Color(sceneStyle === "snowy_greek" ? "#cbd5e1" : "#d7c7b8"),
+    [sceneStyle],
+  );
+  const darkAmbient = useMemo(
+    () => new Color(sceneStyle === "snowy_greek" ? "#64748b" : "#75808a"),
+    [sceneStyle],
+  );
   const [initialHouseLights] = useState(() => (filmMode ? 0 : 1));
 
   useFrame((_, delta) => {
@@ -1714,28 +1938,50 @@ function SceneLighting({
       <color
         ref={backgroundRef}
         attach="background"
-        args={[initialHouseLights ? "#111317" : "#07080a"]}
+        args={[
+          initialHouseLights
+            ? sceneStyle === "snowy_greek"
+              ? "#0a1128"
+              : "#111317"
+            : sceneStyle === "snowy_greek"
+              ? "#060b1b"
+              : "#07080a",
+        ]}
       />
       <fog
         ref={fogRef}
         attach="fog"
         args={[
-          initialHouseLights ? "#15171b" : "#08090b",
+          initialHouseLights
+            ? sceneStyle === "snowy_greek"
+              ? "#0c1535"
+              : "#15171b"
+            : sceneStyle === "snowy_greek"
+              ? "#070d22"
+              : "#08090b",
           20,
-          isMobile ? 60 : 78,
+          isMobile ? 60 : 85,
         ]}
       />
       <ambientLight
         ref={ambientRef}
-        intensity={initialHouseLights ? 0.92 : 0.16}
-        color={initialHouseLights ? "#d7c7b8" : "#75808a"}
+        intensity={initialHouseLights ? 0.92 : 0.22}
+        color={
+          initialHouseLights
+            ? sceneStyle === "snowy_greek"
+              ? "#cbd5e1"
+              : "#d7c7b8"
+            : sceneStyle === "snowy_greek"
+              ? "#64748b"
+              : "#75808a"
+        }
       />
       <hemisphereLight
         ref={hemisphereRef}
         args={[
-          "#aeb8c0",
-          "#3b211e",
-          initialHouseLights ? 0.58 : 0.13,
+          sceneStyle === "snowy_greek" ? "#e0f2fe" : "#aeb8c0",
+          sceneStyle === "snowy_greek" ? "#1e293b" : "#3b211e",
+          initialHouseLights ? 0.58 : 0.18,
         ]}
       />
       {[-12, 12].map((x, index) => (
@@ -1750,14 +1996,14 @@ function SceneLighting({
           penumbra={0.9}
           intensity={820 * initialHouseLights}
           distance={54}
-          color="#f0c6a7"
+          color={sceneStyle === "snowy_greek" ? "#e0f2fe" : "#f0c6a7"}
           castShadow={!isMobile}
         />
       ))}
       <pointLight
         ref={housePointRef}
         position={[0, 12, 12]}
-        color="#f3c7a6"
+        color={sceneStyle === "snowy_greek" ? "#bae6fd" : "#f3c7a6"}
         intensity={260 * initialHouseLights}
         distance={48}
         decay={1.7}
@@ -1769,14 +2015,22 @@ function SceneLighting({
 function SceneContents(
   props: CinemaSceneProps & { onFilmReady: () => void },
 ) {
-  const { auditorium, filmMode, isMobile } = props;
+  const { auditorium, filmMode, isMobile, sceneStyle = "classic" } = props;
 
   return (
     <>
-      <SceneLighting filmMode={filmMode} isMobile={isMobile} />
+      <SceneLighting
+        filmMode={filmMode}
+        isMobile={isMobile}
+        sceneStyle={sceneStyle}
+      />
+      {sceneStyle === "snowy_greek" && (
+        <SnowMountainBackdrop auditorium={auditorium} />
+      )}
       <Screen
         auditorium={auditorium}
         filmMode={filmMode}
+        sceneStyle={sceneStyle}
         playing={props.playing}
         videoSrc={props.videoSrc}
         playbackRate={props.playbackRate}
@@ -1790,11 +2044,13 @@ function SceneContents(
       <AuditoriumArchitecture
         auditorium={auditorium}
         filmMode={filmMode}
+        sceneStyle={sceneStyle}
       />
       <Seats
         seats={props.seats}
         selectedSeat={props.selectedSeat}
         filmMode={filmMode}
+        sceneStyle={sceneStyle}
       />
       <CameraRig
         auditorium={auditorium}

@@ -272,6 +272,19 @@ export function CinemaExperience({
   const [deviceTimeStr, setDeviceTimeStr] = useState<string>("");
   const [batteryLevel, setBatteryLevel] = useState<number | null>(88);
   const [isCharging, setIsCharging] = useState<boolean>(false);
+  const [sceneStyle, setSceneStyle] = useState<"classic" | "snowy_greek">("classic");
+
+  useEffect(() => {
+    const savedStyle = window.localStorage.getItem("zuonaar-cinema-theme-style");
+    if (savedStyle === "snowy_greek" || savedStyle === "classic") {
+      setSceneStyle(savedStyle);
+    }
+  }, []);
+
+  const handleSelectSceneStyle = (style: "classic" | "snowy_greek") => {
+    setSceneStyle(style);
+    window.localStorage.setItem("zuonaar-cinema-theme-style", style);
+  };
 
   useEffect(() => {
     const updateTime = () => {
@@ -459,6 +472,26 @@ export function CinemaExperience({
             {cinema.city} · {cinema.name}
           </strong>
         </Link>
+
+        <div className="topbar-style-switcher">
+          <span className="topbar-style-label hidden sm:inline">影厅风格:</span>
+          <button
+            type="button"
+            className={`topbar-style-btn ${sceneStyle === "classic" ? "is-active" : ""}`}
+            onClick={() => handleSelectSceneStyle("classic")}
+            title="切换为 经典现代影厅"
+          >
+            🏛️ 经典影厅
+          </button>
+          <button
+            type="button"
+            className={`topbar-style-btn ${sceneStyle === "snowy_greek" ? "is-active" : ""}`}
+            onClick={() => handleSelectSceneStyle("snowy_greek")}
+            title="切换为 古希腊雪山露天影院"
+          >
+            ❄️ 雪山露天影院
+          </button>
+        </div>
       </header>
 
       <section
@@ -479,20 +512,6 @@ export function CinemaExperience({
               <div className="fullscreen-status-left">
                 <span className="fullscreen-device-time">{deviceTimeStr}</span>
               </div>
-              <div className="fullscreen-status-center">
-                <button
-                  type="button"
-                  className="fullscreen-exit-btn-center"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFullscreen();
-                  }}
-                  title="按 Esc 或点击退出全屏"
-                >
-                  <CornersIn size={14} />
-                  <span>退出全屏</span>
-                </button>
-              </div>
               <div className="fullscreen-status-right">
                 <div className="fullscreen-video-time" title="播放进度">
                   <span className="time-played">{formatTime(currentTime)}</span>
@@ -509,6 +528,7 @@ export function CinemaExperience({
               seats={seats}
               selectedSeat={selectedSeat}
               filmMode={filmMode}
+              sceneStyle={sceneStyle}
               playing={playing}
               playbackToken={playbackToken}
               viewCommand={idleViewCommand}
