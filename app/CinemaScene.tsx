@@ -2475,13 +2475,35 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const darkAmbient = useMemo(() => {
-    if (sceneStyle === "snowy_greek") return new Color("#64748b");
-    if (sceneStyle === "drive_in") return new Color("#1e293b");
-    if (sceneStyle === "cyberpunk") return new Color("#312e81");
+    if (sceneStyle === "snowy_greek") return new Color("#1d4ed8");
+    if (sceneStyle === "drive_in") return new Color("#384e68");
+    if (sceneStyle === "cyberpunk") return new Color("#7e22ce");
+    if (sceneStyle === "forest_camp") return new Color("#047857");
+    if (sceneStyle === "space_station") return new Color("#0284c7");
+    if (sceneStyle === "urban_plaza") return new Color("#1e3a8a");
+    return new Color("#881337");
+  }, [sceneStyle]);
+
+  const skyColor = useMemo(() => {
+    if (sceneStyle === "snowy_greek") return new Color("#38bdf8");
+    if (sceneStyle === "drive_in") return new Color("#818cf8");
+    if (sceneStyle === "cyberpunk") return new Color("#f0abfc");
+    if (sceneStyle === "forest_camp") return new Color("#34d399");
+    if (sceneStyle === "space_station") return new Color("#38bdf8");
+    if (sceneStyle === "urban_plaza") return new Color("#60a5fa");
+    return new Color("#fb7185");
+  }, [sceneStyle]);
+
+  const groundColor = useMemo(() => {
+    if (sceneStyle === "snowy_greek") return new Color("#0f172a");
+    if (sceneStyle === "drive_in") return new Color("#0f172a");
+    if (sceneStyle === "cyberpunk") return new Color("#1e1b4b");
     if (sceneStyle === "forest_camp") return new Color("#064e3b");
     if (sceneStyle === "space_station") return new Color("#0f172a");
-    return new Color("#75808a");
+    if (sceneStyle === "urban_plaza") return new Color("#0f172a");
+    return new Color("#1c1917");
   }, [sceneStyle]);
+
   const [initialHouseLights] = useState(() => (filmMode ? 0 : 1));
 
   useFrame((_, delta) => {
@@ -2495,7 +2517,7 @@ function SceneLighting({
 
     if (ambientRef.current) {
       ambientRef.current.intensity +=
-        ((filmMode ? 0.16 : 0.92) - ambientRef.current.intensity) * factor;
+        ((filmMode ? 0.45 : 0.95) - ambientRef.current.intensity) * factor;
       ambientRef.current.color.lerp(
         filmMode ? darkAmbient : litAmbient,
         factor,
@@ -2503,7 +2525,7 @@ function SceneLighting({
     }
     if (hemisphereRef.current) {
       hemisphereRef.current.intensity +=
-        ((filmMode ? 0.13 : 0.58) - hemisphereRef.current.intensity) * factor;
+        ((filmMode ? 0.38 : 0.65) - hemisphereRef.current.intensity) * factor;
     }
     houseSpotRefs.current.forEach((light) => {
       if (light) {
@@ -2562,9 +2584,9 @@ function SceneLighting({
       <hemisphereLight
         ref={hemisphereRef}
         args={[
-          sceneStyle === "snowy_greek" ? "#e0f2fe" : "#aeb8c0",
-          sceneStyle === "snowy_greek" ? "#1e293b" : "#3b211e",
-          initialHouseLights ? 0.58 : 0.18,
+          skyColor,
+          groundColor,
+          initialHouseLights ? 0.65 : 0.38,
         ]}
       />
       {[-12, 12].map((x, index) => (

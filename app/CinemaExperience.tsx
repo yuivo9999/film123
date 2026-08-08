@@ -4,6 +4,12 @@ import Link from "next/link";
 import { CinemaScene } from "./CinemaScene";
 import { SceneStylePicker, type SceneStyle } from "./SceneStylePicker";
 import {
+  ScreenCustomizerControl,
+  loadCustomScreenConfig,
+  saveCustomScreenConfig,
+  type CustomScreenConfig,
+} from "./ScreenCustomizerControl";
+import {
   ArrowLeft,
   ArrowsIn,
   ArrowsOut,
@@ -94,6 +100,8 @@ function TopSeatPicker({
   seats,
   selectedSeat,
   metrics,
+  customScreen,
+  onUpdateCustomScreen,
   onSelectAuditorium,
   onSelectSeat,
 }: {
@@ -102,6 +110,8 @@ function TopSeatPicker({
   seats: Seat[];
   selectedSeat: Seat;
   metrics: ReturnType<typeof getSeatMetrics>;
+  customScreen: CustomScreenConfig;
+  onUpdateCustomScreen: (config: CustomScreenConfig) => void;
   onSelectAuditorium: (id: string) => void;
   onSelectSeat: (seat: Seat) => void;
 }) {
@@ -149,6 +159,13 @@ function TopSeatPicker({
         </div>
 
         <div className="top-seat-metrics-group">
+          <ScreenCustomizerControl
+            config={customScreen}
+            onChange={onUpdateCustomScreen}
+            defaultWidth={auditorium.screenWidth}
+            defaultHeight={auditorium.screenHeight}
+            variant="topbar"
+          />
           <span className="hidden sm:inline">
             视角: <strong>{metrics.horizontalFov.toFixed(0)}°</strong>
           </span>
@@ -397,8 +414,23 @@ export function CinemaExperience({
     setDuration(dur);
   }, []);
 
-  const auditorium =
+  const [customScreen, setCustomScreen] = useState<CustomScreenConfig>(() =>
+    loadCustomScreenConfig(),
+  );
+
+  const rawAuditorium =
     auditoriums.find((item) => item.id === auditoriumId) ?? auditoriums[0];
+
+  const auditorium = useMemo(() => {
+    if (!customScreen.enabled) return rawAuditorium;
+    return {
+      ...rawAuditorium,
+      screenWidth: customScreen.width,
+      screenHeight: customScreen.height,
+      firstRowZ: rawAuditorium.firstRowZ + customScreen.distanceOffset,
+    };
+  }, [rawAuditorium, customScreen]);
+
   const cinema =
     cinemas.find((item) => item.id === auditorium.cinemaId) ?? cinemas[0];
   const cinemaAuditoriums = auditoriums.filter(
@@ -475,11 +507,20 @@ export function CinemaExperience({
           </strong>
         </Link>
 
-        <SceneStylePicker
-          currentStyle={sceneStyle}
-          onSelectStyle={handleSelectSceneStyle}
-          variant="topbar"
-        />
+        <div className="flex items-center gap-2">
+          <ScreenCustomizerControl
+            config={customScreen}
+            onChange={setCustomScreen}
+            defaultWidth={auditorium.screenWidth}
+            defaultHeight={auditorium.screenHeight}
+            variant="topbar"
+          />
+          <SceneStylePicker
+            currentStyle={sceneStyle}
+            onSelectStyle={handleSelectSceneStyle}
+            variant="topbar"
+          />
+        </div>
       </header>
 
       <section
@@ -490,6 +531,18 @@ export function CinemaExperience({
         }`}
         data-dbd-zone="cinema-workspace"
       >
+        <TopSeatPicker
+          auditorium={auditorium}
+          cinemaAuditoriums={cinemaAuditoriums}
+          seats={seats}
+          selectedSeat={selectedSeat}
+          metrics={metrics}
+          customScreen={customScreen}
+          onUpdateCustomScreen={setCustomScreen}
+          onSelectAuditorium={switchAuditorium}
+          onSelectSeat={selectSeat}
+        />
+
         <div
           className="scene-shell"
           data-dbd-zone="cinema-scene"

@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { SceneStylePicker, type SceneStyle } from "./SceneStylePicker";
 import {
+  ScreenCustomizerControl,
+  loadCustomScreenConfig,
+  type CustomScreenConfig,
+} from "./ScreenCustomizerControl";
+import {
   ArrowRight,
   Buildings,
   CaretDown,
@@ -235,6 +240,10 @@ export function CinemaFinder() {
     return "classic";
   });
 
+  const [customScreen, setCustomScreen] = useState<CustomScreenConfig>(() =>
+    loadCustomScreenConfig(),
+  );
+
   const city =
     citySummaries.find((item) => item.name === cityName) ?? defaultCity;
 
@@ -392,6 +401,12 @@ export function CinemaFinder() {
 
       <section className="finder-workspace">
         <div className="filter-bar" data-dbd-pattern="cinema-filter-bar">
+          <ScreenCustomizerControl
+            config={customScreen}
+            onChange={setCustomScreen}
+            variant="header_btn"
+          />
+
           <button
             className="location-trigger"
             type="button"
