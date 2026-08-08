@@ -726,6 +726,10 @@ function VideoSurface({
       }
     };
 
+    if (video.videoWidth && video.videoHeight) {
+      handleLoadedMetadata();
+    }
+
     const handleTimeUpdate = () => {
       const cur = video.currentTime;
       const dur = video.duration || 0;
@@ -964,12 +968,7 @@ function VideoSurface({
     uOffset: { value: [0.0, 0.0] as [number, number] },
   }));
 
-  const meshScale = useMemo<[number, number, number]>(() => {
-    if (fitMode === "vertical") {
-      return [0.42, 1.18, 1.0];
-    }
-    return [1, 1, 1];
-  }, [fitMode]);
+  const meshScale = useMemo<[number, number, number]>(() => [1, 1, 1], []);
 
   useEffect(() => {
     uniforms.uMap.value = texture;
@@ -986,6 +985,8 @@ function VideoSurface({
       targetAspect = vAspect;
     } else if (fitMode === "16_9") {
       targetAspect = 16 / 9;
+    } else if (fitMode === "4_3") {
+      targetAspect = 4 / 3;
     } else if (fitMode === "4_9") {
       targetAspect = 4 / 9;
     } else if (fitMode === "9_16" || fitMode === "vertical") {

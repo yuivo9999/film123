@@ -65,6 +65,7 @@ type FitMode =
   | "fit_screen"
   | "original"
   | "16_9"
+  | "4_3"
   | "4_9"
   | "9_16"
   | "16_10"
@@ -811,7 +812,7 @@ export function CinemaExperience({
                   { id: "fit_screen", label: "符合银幕尺寸" },
                   { id: "original", label: "原始视频尺寸" },
                   { id: "16_9", label: "16比9" },
-                  { id: "4_9", label: "4比9" },
+                  { id: "4_3", label: "4比3" },
                   { id: "9_16", label: "9比16" },
                   { id: "16_10", label: "16比10" },
                 ].map((mode) => (
