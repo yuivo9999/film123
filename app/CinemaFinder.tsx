@@ -15,6 +15,7 @@ import {
   MagnifyingGlass,
   Monitor,
   NavigationArrow,
+  Play,
   SortDescending,
 } from "@phosphor-icons/react";
 import { useEffect, useMemo, useState } from "react";
@@ -401,11 +402,21 @@ export function CinemaFinder() {
 
       <section className="finder-workspace">
         <div className="filter-bar" data-dbd-pattern="cinema-filter-bar">
-          <ScreenCustomizerControl
-            config={customScreen}
-            onChange={setCustomScreen}
-            variant="header_btn"
-          />
+          <div className="flex items-center gap-2">
+            <ScreenCustomizerControl
+              config={customScreen}
+              onChange={setCustomScreen}
+              variant="header_btn"
+            />
+            <Link
+              href="/cinema/auditorium-1?custom=1"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all shadow-sm shrink-0"
+              title="使用您自定义的银幕与视距尺寸进入 3D 影厅"
+            >
+              <Play weight="fill" size={13} />
+              <span>进入自定义影厅</span>
+            </Link>
+          </div>
 
           <button
             className="location-trigger"

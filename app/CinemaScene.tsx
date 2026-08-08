@@ -6,6 +6,7 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
   AmbientLight,
+  CanvasTexture,
   Color,
   Euler,
   ExtrudeGeometry,
@@ -20,6 +21,7 @@ import {
   PlaneGeometry,
   PointLight,
   Quaternion,
+  RepeatWrapping,
   ShaderMaterial,
   Shape,
   SpotLight,
@@ -1630,28 +1632,33 @@ function CyberpunkBackdrop({ auditorium }: { auditorium: Auditorium }) {
 function ForestCampBackdrop({ auditorium }: { auditorium: Auditorium }) {
   const baseZ = auditorium.screenZ;
 
-  const fireflyPositions = useMemo(() => {
-    const pos = new Float32Array(50 * 3);
-    for (let i = 0; i < 50; i++) {
-      pos[i * 3] = (pseudoRandom(i * 3 + 1000) - 0.5) * 60;
-      pos[i * 3 + 1] = pseudoRandom(i * 3 + 1001) * 8 + 1;
-      pos[i * 3 + 2] = baseZ + (pseudoRandom(i * 3 + 1002) - 0.5) * 40;
+  const sideFireflies = useMemo(() => {
+    const list: [number, number, number][] = [];
+    for (let i = 0; i < 20; i++) {
+      const side = i % 2 === 0 ? 1 : -1;
+      const x = (24 + pseudoRandom(i * 3) * 20) * side;
+      const y = 1.5 + pseudoRandom(i * 3 + 1) * 6;
+      const z = baseZ - 20 + pseudoRandom(i * 3 + 2) * 35;
+      list.push([x, y, z]);
     }
-    return pos;
+    return list;
   }, [baseZ]);
 
   return (
     <group>
+      {/* Deep Forest Sky Background Canvas */}
       <mesh position={[0, 45, baseZ - 65]}>
         <planeGeometry args={[320, 150]} />
-        <meshBasicMaterial color="#030805" toneMapped={false} />
+        <meshBasicMaterial color="#061c12" toneMapped={false} />
       </mesh>
 
+      {/* Forest Floor Grass & Moss Ground */}
       <mesh position={[0, -0.2, baseZ + 20]} receiveShadow>
         <boxGeometry args={[260, 0.4, 180]} />
-        <meshStandardMaterial color="#0e1711" roughness={0.95} metalness={0.0} />
+        <meshStandardMaterial color="#14532d" roughness={0.88} metalness={0.0} />
       </mesh>
 
+      {/* Pine Trees Surroundings */}
       {[
         { x: -38, z: baseZ - 20, s: 1.2 },
         { x: -28, z: baseZ - 30, s: 1.5 },
@@ -1665,51 +1672,58 @@ function ForestCampBackdrop({ auditorium }: { auditorium: Auditorium }) {
         <group key={idx} position={[tree.x, 0, tree.z]} scale={[tree.s, tree.s, tree.s]}>
           <mesh position={[0, 3, 0]}>
             <cylinderGeometry args={[0.5, 0.8, 6, 8]} />
-            <meshStandardMaterial color="#291d18" roughness={0.9} />
+            <meshStandardMaterial color="#3d2616" roughness={0.9} />
           </mesh>
           <mesh position={[0, 7, 0]}>
             <coneGeometry args={[4.5, 7, 8]} />
-            <meshStandardMaterial color="#064e3b" roughness={0.8} />
+            <meshStandardMaterial color="#047857" roughness={0.7} />
           </mesh>
           <mesh position={[0, 11, 0]}>
             <coneGeometry args={[3.5, 6, 8]} />
-            <meshStandardMaterial color="#047857" roughness={0.8} />
+            <meshStandardMaterial color="#059669" roughness={0.7} />
           </mesh>
           <mesh position={[0, 14.5, 0]}>
             <coneGeometry args={[2.4, 5, 8]} />
-            <meshStandardMaterial color="#065f46" roughness={0.8} />
+            <meshStandardMaterial color="#10b981" roughness={0.7} />
           </mesh>
         </group>
       ))}
 
+      {/* Central Campfire */}
       <group position={[0, 0.1, baseZ + 12]}>
         <mesh>
           <torusGeometry args={[1.2, 0.3, 8, 16]} />
-          <meshStandardMaterial color="#334155" roughness={0.9} />
+          <meshStandardMaterial color="#475569" roughness={0.85} />
         </mesh>
         <mesh rotation={[0.4, 0.8, 0]}>
           <cylinderGeometry args={[0.15, 0.15, 2.2, 8]} />
-          <meshStandardMaterial color="#1c1917" roughness={0.9} />
+          <meshStandardMaterial color="#292524" roughness={0.9} />
         </mesh>
         <pointLight color="#f97316" intensity={220} distance={28} decay={1.8} />
       </group>
 
-      <points>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            args={[fireflyPositions, 3]}
-          />
-        </bufferGeometry>
-        <pointsMaterial size={1.8} color="#a3e635" transparent opacity={0.9} sizeAttenuation toneMapped={false} />
-      </points>
+      {/* Side Gentle Firefly Orbs (Out of direct screen view) */}
+      {sideFireflies.map(([fx, fy, fz], fIdx) => (
+        <mesh key={fIdx} position={[fx, fy, fz]}>
+          <sphereGeometry args={[0.08, 8, 8]} />
+          <meshBasicMaterial color="#a3e635" toneMapped={false} />
+        </mesh>
+      ))}
 
+      {/* Screen Timber Supporting Posts */}
       {[-auditorium.screenWidth / 2 - 0.8, auditorium.screenWidth / 2 + 0.8].map((x, sideIdx) => (
         <mesh key={sideIdx} position={[x, auditorium.screenBottom + auditorium.screenHeight / 2, baseZ + 0.1]}>
           <cylinderGeometry args={[0.4, 0.45, auditorium.screenHeight + 2.5, 12]} />
-          <meshStandardMaterial color="#3d2817" roughness={0.85} />
+          <meshStandardMaterial color="#451a03" roughness={0.8} />
         </mesh>
       ))}
+
+      {/* Sunlight for Forest Day / Lights On mode */}
+      <directionalLight
+        position={[25, 50, baseZ - 10]}
+        intensity={1.8}
+        color="#fef08a"
+      />
     </group>
   );
 }
@@ -2466,12 +2480,13 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const litAmbient = useMemo(() => {
-    if (sceneStyle === "snowy_greek") return new Color("#cbd5e1");
-    if (sceneStyle === "drive_in") return new Color("#384e68");
-    if (sceneStyle === "cyberpunk") return new Color("#818cf8");
-    if (sceneStyle === "forest_camp") return new Color("#34d399");
-    if (sceneStyle === "space_station") return new Color("#38bdf8");
-    return new Color("#d7c7b8");
+    if (sceneStyle === "snowy_greek") return new Color("#e2e8f0");
+    if (sceneStyle === "drive_in") return new Color("#cbd5e1");
+    if (sceneStyle === "cyberpunk") return new Color("#e0e7ff");
+    if (sceneStyle === "forest_camp") return new Color("#a7f3d0");
+    if (sceneStyle === "space_station") return new Color("#e0f2fe");
+    if (sceneStyle === "urban_plaza") return new Color("#dbeafe");
+    return new Color("#fef08a");
   }, [sceneStyle]);
 
   const darkAmbient = useMemo(() => {
@@ -2517,7 +2532,7 @@ function SceneLighting({
 
     if (ambientRef.current) {
       ambientRef.current.intensity +=
-        ((filmMode ? 0.45 : 0.95) - ambientRef.current.intensity) * factor;
+        ((filmMode ? 0.45 : 1.45) - ambientRef.current.intensity) * factor;
       ambientRef.current.color.lerp(
         filmMode ? darkAmbient : litAmbient,
         factor,
@@ -2525,7 +2540,7 @@ function SceneLighting({
     }
     if (hemisphereRef.current) {
       hemisphereRef.current.intensity +=
-        ((filmMode ? 0.38 : 0.65) - hemisphereRef.current.intensity) * factor;
+        ((filmMode ? 0.38 : 0.95) - hemisphereRef.current.intensity) * factor;
     }
     houseSpotRefs.current.forEach((light) => {
       if (light) {
@@ -2612,6 +2627,24 @@ function SceneLighting({
         intensity={260 * initialHouseLights}
         distance={48}
         decay={1.7}
+      />
+      <directionalLight
+        position={[20, 55, 30]}
+        intensity={filmMode ? 0.3 : 2.2}
+        color={
+          sceneStyle === "snowy_greek"
+            ? "#e0f2fe"
+            : sceneStyle === "forest_camp"
+            ? "#a7f3d0"
+            : sceneStyle === "cyberpunk"
+            ? "#f472b6"
+            : sceneStyle === "space_station"
+            ? "#bae6fd"
+            : sceneStyle === "urban_plaza"
+            ? "#bfdbfe"
+            : "#fef08a"
+        }
+        castShadow={!isMobile}
       />
     </>
   );

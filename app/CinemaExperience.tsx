@@ -159,13 +159,6 @@ function TopSeatPicker({
         </div>
 
         <div className="top-seat-metrics-group">
-          <ScreenCustomizerControl
-            config={customScreen}
-            onChange={onUpdateCustomScreen}
-            defaultWidth={auditorium.screenWidth}
-            defaultHeight={auditorium.screenHeight}
-            variant="topbar"
-          />
           <span className="hidden sm:inline">
             视角: <strong>{metrics.horizontalFov.toFixed(0)}°</strong>
           </span>
@@ -418,18 +411,27 @@ export function CinemaExperience({
     loadCustomScreenConfig(),
   );
 
+  const [isCustomMode, setIsCustomMode] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const search = new URLSearchParams(window.location.search);
+      setIsCustomMode(search.get("custom") === "1");
+    }
+  }, []);
+
   const rawAuditorium =
     auditoriums.find((item) => item.id === auditoriumId) ?? auditoriums[0];
 
   const auditorium = useMemo(() => {
-    if (!customScreen.enabled) return rawAuditorium;
+    if (!isCustomMode || !customScreen.enabled) return rawAuditorium;
     return {
       ...rawAuditorium,
       screenWidth: customScreen.width,
       screenHeight: customScreen.height,
       firstRowZ: rawAuditorium.firstRowZ + customScreen.distanceOffset,
     };
-  }, [rawAuditorium, customScreen]);
+  }, [rawAuditorium, customScreen, isCustomMode]);
 
   const cinema =
     cinemas.find((item) => item.id === auditorium.cinemaId) ?? cinemas[0];
@@ -508,13 +510,6 @@ export function CinemaExperience({
         </Link>
 
         <div className="flex items-center gap-2">
-          <ScreenCustomizerControl
-            config={customScreen}
-            onChange={setCustomScreen}
-            defaultWidth={auditorium.screenWidth}
-            defaultHeight={auditorium.screenHeight}
-            variant="topbar"
-          />
           <SceneStylePicker
             currentStyle={sceneStyle}
             onSelectStyle={handleSelectSceneStyle}
