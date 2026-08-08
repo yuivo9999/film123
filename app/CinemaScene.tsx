@@ -79,6 +79,7 @@ type CinemaSceneProps = {
   audioMode?: "original" | "cinema_spatial";
   volume?: number;
   seekTime?: number | null;
+  skipTailSeconds?: number;
   onTimeUpdate?: (currentTime: number, duration: number) => void;
 };
 
@@ -630,12 +631,15 @@ const screenFitVertexShader = `
 const screenFitFragmentShader = `
   uniform sampler2D uMap;
   uniform vec2 uScale;
-  uniform vec2 uOffset;
   varying vec2 vUv;
 
   void main() {
-    vec2 st = vUv * uScale + uOffset;
-    gl_FragColor = texture2D(uMap, st);
+    vec2 st = (vUv - vec2(0.5)) / uScale + vec2(0.5);
+    if (st.x < 0.0 || st.x > 1.0 || st.y < 0.0 || st.y > 1.0) {
+      gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    } else {
+      gl_FragColor = texture2D(uMap, st);
+    }
   }
 `;
 
@@ -649,6 +653,7 @@ function VideoSurface({
   audioMode = "original",
   volume = 1.0,
   seekTime,
+  skipTailSeconds = 0,
   onTimeUpdate,
   onReady,
 }: Pick<
@@ -661,6 +666,7 @@ function VideoSurface({
   | "audioMode"
   | "volume"
   | "seekTime"
+  | "skipTailSeconds"
   | "onTimeUpdate"
 > & {
   active: boolean;
@@ -706,7 +712,7 @@ function VideoSurface({
     }
   }, [videoSrc]);
 
-  // Video metadata & time update listeners
+  // Video metadata & time update listeners with skipTailSeconds support
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -721,8 +727,19 @@ function VideoSurface({
     };
 
     const handleTimeUpdate = () => {
+      const cur = video.currentTime;
+      const dur = video.duration || 0;
+      if (skipTailSeconds > 0 && dur > skipTailSeconds + 0.5) {
+        if (cur >= dur - skipTailSeconds) {
+          video.currentTime = 0;
+          if (onTimeUpdate) {
+            onTimeUpdate(0, dur);
+          }
+          return;
+        }
+      }
       if (onTimeUpdate) {
-        onTimeUpdate(video.currentTime, video.duration || 0);
+        onTimeUpdate(cur, dur);
       }
     };
 
@@ -733,7 +750,19 @@ function VideoSurface({
       video.removeEventListener("loadedmetadata", handleLoadedMetadata);
       video.removeEventListener("timeupdate", handleTimeUpdate);
     };
-  }, [onTimeUpdate]);
+  }, [onTimeUpdate, skipTailSeconds]);
+
+  // Frame-precise tail skip check
+  useFrame(() => {
+    const video = videoRef.current;
+    if (!video || !playing) return;
+    const dur = video.duration || 0;
+    if (skipTailSeconds > 0 && dur > skipTailSeconds + 0.5) {
+      if (video.currentTime >= dur - skipTailSeconds) {
+        video.currentTime = 0;
+      }
+    }
+  });
 
   // Playback rate
   useEffect(() => {
@@ -960,43 +989,46 @@ function VideoSurface({
     } else if (fitMode === "cover") {
       // Cover full screen surface uniformly without black borders (crop overflow)
       if (vAspect > sAspect) {
-        scaleX = sAspect / vAspect;
+        scaleX = vAspect / sAspect;
         scaleY = 1.0;
       } else {
         scaleX = 1.0;
-        scaleY = vAspect / sAspect;
+        scaleY = sAspect / vAspect;
       }
     } else if (fitMode === "height" || fitMode === "align_height") {
       // 2.39:1 Cinematic Ultrawide Format
       const targetAspect = 2.39;
-      if (sAspect > targetAspect) {
-        scaleX = sAspect / targetAspect;
-        scaleY = 1.0;
-      } else {
+      if (targetAspect > sAspect) {
         scaleX = 1.0;
-        scaleY = targetAspect / sAspect;
+        scaleY = sAspect / targetAspect;
+      } else {
+        scaleX = targetAspect / sAspect;
+        scaleY = 1.0;
       }
     } else if (fitMode === "vertical") {
       // 9:16 Vertical Short-Video Screen
-      scaleX = 1.0;
-      scaleY = 1.0;
-    } else {
-      // "contain" - Native 16:9 Screen Format
-      const targetAspect = 1.777;
-      if (sAspect > targetAspect) {
-        scaleX = sAspect / targetAspect;
-        scaleY = 1.0;
-      } else {
+      const targetAspect = 9 / 16;
+      if (targetAspect > sAspect) {
         scaleX = 1.0;
-        scaleY = targetAspect / sAspect;
+        scaleY = sAspect / targetAspect;
+      } else {
+        scaleX = targetAspect / sAspect;
+        scaleY = 1.0;
+      }
+    } else {
+      // "contain" / "aspect_fit" (Default): Native video aspect ratio self-adaptation!
+      if (vAspect > sAspect) {
+        // Video is wider than screen frame
+        scaleX = 1.0;
+        scaleY = sAspect / vAspect;
+      } else {
+        // Video is taller or narrower than screen frame (e.g. 16:9, 4:3, or 9:16)
+        scaleX = vAspect / sAspect;
+        scaleY = 1.0;
       }
     }
 
-    const offsetX = (1.0 - scaleX) * 0.5;
-    const offsetY = (1.0 - scaleY) * 0.5;
-
     uniforms.uScale.value = [scaleX, scaleY];
-    uniforms.uOffset.value = [offsetX, offsetY];
   }, [fitMode, screenAspect, uniforms, videoAspect]);
 
   const geometry = useMemo(
@@ -1047,6 +1079,7 @@ function Screen({
   audioMode,
   volume,
   seekTime,
+  skipTailSeconds,
   onTimeUpdate,
   onFilmReady,
 }: Pick<
@@ -1061,6 +1094,7 @@ function Screen({
   | "audioMode"
   | "volume"
   | "seekTime"
+  | "skipTailSeconds"
   | "onTimeUpdate"
 > & { onFilmReady: () => void }) {
   const centerY = auditorium.screenBottom + auditorium.screenHeight / 2;
@@ -1133,6 +1167,7 @@ function Screen({
         audioMode={audioMode}
         volume={volume}
         seekTime={seekTime}
+        skipTailSeconds={skipTailSeconds}
         onTimeUpdate={onTimeUpdate}
         onReady={onFilmReady}
       />
@@ -1544,11 +1579,6 @@ function DriveInBackdrop({ auditorium }: { auditorium: Auditorium }) {
         <meshBasicMaterial color="#fef9c3" toneMapped={false} />
       </mesh>
 
-      <mesh position={[0, -0.2, baseZ + 20]} receiveShadow>
-        <boxGeometry args={[260, 0.4, 180]} />
-        <meshStandardMaterial color="#0f1712" roughness={0.9} metalness={0.1} />
-      </mesh>
-
       {[
         { x: -32, z: baseZ + 18, color: "#991b1b" },
         { x: -14, z: baseZ + 24, color: "#1e3a8a" },
@@ -1623,11 +1653,6 @@ function CyberpunkBackdrop({ auditorium }: { auditorium: Auditorium }) {
         </group>
       ))}
 
-      <mesh position={[0, -0.2, baseZ + 20]} receiveShadow>
-        <boxGeometry args={[260, 0.4, 180]} />
-        <meshStandardMaterial color="#08070e" roughness={0.15} metalness={0.9} />
-      </mesh>
-
       {[-auditorium.screenWidth / 2 - 0.4, auditorium.screenWidth / 2 + 0.4].map((x, sideIdx) => (
         <group key={sideIdx} position={[x, auditorium.screenBottom + auditorium.screenHeight / 2, baseZ + 0.1]}>
           <mesh>
@@ -1670,12 +1695,6 @@ function ForestCampBackdrop({ auditorium }: { auditorium: Auditorium }) {
       <mesh position={[0, 45, baseZ - 65]}>
         <planeGeometry args={[320, 150]} />
         <meshBasicMaterial color="#061c12" toneMapped={false} />
-      </mesh>
-
-      {/* Forest Floor Grass & Moss Ground */}
-      <mesh position={[0, -0.2, baseZ + 20]} receiveShadow>
-        <boxGeometry args={[260, 0.4, 180]} />
-        <meshStandardMaterial color="#14532d" roughness={0.88} metalness={0.0} />
       </mesh>
 
       {/* Pine Trees Surroundings */}
@@ -1769,14 +1788,9 @@ function SpaceStationBackdrop({ auditorium }: { auditorium: Auditorium }) {
         </mesh>
       </group>
 
-      <mesh position={[0, -0.2, baseZ + 20]} receiveShadow>
-        <boxGeometry args={[260, 0.4, 180]} />
-        <meshStandardMaterial color="#0f172a" roughness={0.3} metalness={0.8} />
-      </mesh>
-
       {[-12, 12].map((x, idx) => (
-        <mesh key={idx} position={[x, 0.02, baseZ + 20]}>
-          <boxGeometry args={[0.3, 0.04, 120]} />
+        <mesh key={idx} position={[x, 0.01, baseZ + 20]}>
+          <boxGeometry args={[0.3, 0.02, 120]} />
           <meshBasicMaterial color="#06b6d4" toneMapped={false} />
         </mesh>
       ))}
@@ -2881,6 +2895,7 @@ function SceneContents(
         audioMode={props.audioMode}
         volume={props.volume}
         seekTime={props.seekTime}
+        skipTailSeconds={props.skipTailSeconds}
         onTimeUpdate={props.onTimeUpdate}
         onFilmReady={props.onFilmReady}
       />

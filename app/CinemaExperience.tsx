@@ -269,7 +269,24 @@ export function CinemaExperience({
   const [duration, setDuration] = useState<number>(0);
   const [seekTime, setSeekTime] = useState<number | null>(null);
   const [playbackRate, setPlaybackRate] = useState<number>(1.0);
+  const [skipTailSeconds, setSkipTailSeconds] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("zuonaar-cinema-skip-tail");
+      if (saved) {
+        const val = parseFloat(saved);
+        if (!isNaN(val)) return val;
+      }
+    }
+    return 0;
+  });
   const [fitMode, setFitMode] = useState<FitMode>("contain");
+
+  const handleSetSkipTail = (sec: number) => {
+    setSkipTailSeconds(sec);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("zuonaar-cinema-skip-tail", sec.toString());
+    }
+  };
   const [audioMode, setAudioMode] = useState<"original" | "cinema_spatial">("original");
   const [volume, setVolume] = useState<number>(1.0); // 0.0 to 2.0 (0% - 200%)
   const [isMuted, setIsMuted] = useState<boolean>(false);
@@ -579,6 +596,7 @@ export function CinemaExperience({
               audioMode={audioMode}
               volume={isMuted ? 0 : volume}
               seekTime={seekTime}
+              skipTailSeconds={skipTailSeconds}
               onTimeUpdate={handleTimeUpdate}
             />
           ) : (
@@ -828,6 +846,32 @@ export function CinemaExperience({
                     }}
                   >
                     {rate}x
+                  </button>
+                ))}
+              </div>
+
+              <div className="hud-pills-group">
+                <span className="hud-pill-label">跳过片尾:</span>
+                {[
+                  { label: "不跳过", value: 0 },
+                  { label: "3秒", value: 3 },
+                  { label: "5秒", value: 5 },
+                  { label: "10秒", value: 10 },
+                  { label: "15秒", value: 15 },
+                  { label: "30秒", value: 30 },
+                ].map((item) => (
+                  <button
+                    key={item.value}
+                    type="button"
+                    className={`hud-pill-btn ${
+                      skipTailSeconds === item.value ? "is-active" : ""
+                    }`}
+                    onClick={() => {
+                      handleSetSkipTail(item.value);
+                      resetControlsTimer();
+                    }}
+                  >
+                    {item.label}
                   </button>
                 ))}
               </div>
