@@ -2638,4 +2638,99 @@ a:focus-visible {
   box-shadow: 0 0 15px rgba(255, 215, 0, 1), 0 2px 8px rgba(0, 0, 0, 0.8);
 }
 
+/* Style Picker Grid & Sleek Button Pills */
+.style-picker-grid-wrapper {
+  margin-bottom: 24px;
+}
+
+.style-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.style-picker-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+}
+
+.style-picker-toast-badge {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: var(--radius-round);
+  background: var(--surface-soft);
+  border: 1px solid var(--line-strong);
+  color: #FFD700;
+}
+
+.style-picker-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.style-card-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: var(--radius-round);
+  border: 1px solid var(--line-strong);
+  background: var(--surface-raised);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 180ms ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  user-select: none;
+}
+
+.style-card-btn:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: var(--surface-soft);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.style-card-btn.is-active {
+  border-color: var(--active-theme-color, #d04b43);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 12px var(--active-theme-color, rgba(208, 75, 67, 0.4));
+  font-weight: 600;
+}
+
+.style-card-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.style-card-name {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.style-card-badge {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: var(--radius-round);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.style-card-btn.is-active .style-card-badge {
+  background: var(--active-theme-color, #d04b43);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.style-card-check {
+  color: var(--active-theme-color, #FFD700);
+}
+
 

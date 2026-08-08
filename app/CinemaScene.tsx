@@ -102,11 +102,27 @@ const tuneSeatMaterial = (
 ) => {
   if (!material) return;
 
-  material.emissiveIntensity +=
-    (targetEmission - material.emissiveIntensity) * factor;
-  material.sheen += (targetSheen - material.sheen) * factor;
-  material.specularIntensity +=
-    (targetSpecular - material.specularIntensity) * factor;
+  const dE = targetEmission - material.emissiveIntensity;
+  const dSh = targetSheen - material.sheen;
+  const dSp = targetSpecular - material.specularIntensity;
+
+  if (Math.abs(dE) > 0.0005) {
+    material.emissiveIntensity += dE * factor;
+  } else {
+    material.emissiveIntensity = targetEmission;
+  }
+
+  if (Math.abs(dSh) > 0.0005) {
+    material.sheen += dSh * factor;
+  } else {
+    material.sheen = targetSheen;
+  }
+
+  if (Math.abs(dSp) > 0.0005) {
+    material.specularIntensity += dSp * factor;
+  } else {
+    material.specularIntensity = targetSpecular;
+  }
 };
 const silverScreenVertexShader = `
   varying vec2 vUv;
@@ -323,6 +339,7 @@ function ScreenMediaOverlayTracker({
   active: boolean;
   overlayRef: React.RefObject<HTMLDivElement | null>;
 }) {
+  const lastCamKeyRef = useRef("");
   const corners = useMemo(
     () => [
       new Vector3(),
@@ -338,9 +355,17 @@ function ScreenMediaOverlayTracker({
     if (!overlay) return;
 
     if (!active) {
-      overlay.style.visibility = "hidden";
+      if (overlay.style.visibility !== "hidden") {
+        overlay.style.visibility = "hidden";
+      }
       return;
     }
+
+    const camKey = `${camera.position.x.toFixed(2)},${camera.position.y.toFixed(2)},${camera.position.z.toFixed(2)},${camera.quaternion.x.toFixed(2)},${camera.quaternion.y.toFixed(2)},${camera.quaternion.z.toFixed(2)},${size.width},${size.height}`;
+    if (lastCamKeyRef.current === camKey) {
+      return;
+    }
+    lastCamKeyRef.current = camKey;
 
     const centerY =
       auditorium.screenBottom + auditorium.screenHeight / 2;
@@ -1458,6 +1483,280 @@ function SnowMountainBackdrop({ auditorium }: { auditorium: Auditorium }) {
   );
 }
 
+function pseudoRandom(seed: number) {
+  const x = Math.sin(seed * 9999 + 1) * 10000;
+  return x - Math.floor(x);
+}
+
+function DriveInBackdrop({ auditorium }: { auditorium: Auditorium }) {
+  const baseZ = auditorium.screenZ;
+  const starPositions = useMemo(() => {
+    const pos = new Float32Array(250 * 3);
+    for (let i = 0; i < 250; i++) {
+      pos[i * 3] = (pseudoRandom(i * 3) - 0.5) * 280;
+      pos[i * 3 + 1] = pseudoRandom(i * 3 + 1) * 90 + 10;
+      pos[i * 3 + 2] = baseZ - 60 + (pseudoRandom(i * 3 + 2) - 0.5) * 30;
+    }
+    return pos;
+  }, [baseZ]);
+
+  return (
+    <group>
+      <mesh position={[0, 45, baseZ - 65]}>
+        <planeGeometry args={[320, 150]} />
+        <meshBasicMaterial color="#040714" toneMapped={false} />
+      </mesh>
+
+      <points>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            args={[starPositions, 3]}
+          />
+        </bufferGeometry>
+        <pointsMaterial size={1.2} color="#f8fafc" transparent opacity={0.85} sizeAttenuation toneMapped={false} />
+      </points>
+
+      <mesh position={[-60, 68, baseZ - 58]}>
+        <sphereGeometry args={[6.5, 32, 32]} />
+        <meshBasicMaterial color="#fef9c3" toneMapped={false} />
+      </mesh>
+
+      <mesh position={[0, -0.2, baseZ + 20]} receiveShadow>
+        <boxGeometry args={[260, 0.4, 180]} />
+        <meshStandardMaterial color="#0f1712" roughness={0.9} metalness={0.1} />
+      </mesh>
+
+      {[
+        { x: -32, z: baseZ + 18, color: "#991b1b" },
+        { x: -14, z: baseZ + 24, color: "#1e3a8a" },
+        { x: 14, z: baseZ + 24, color: "#065f46" },
+        { x: 32, z: baseZ + 18, color: "#854d0e" },
+        { x: -48, z: baseZ + 32, color: "#374151" },
+        { x: 48, z: baseZ + 32, color: "#581c87" },
+      ].map((car, idx) => (
+        <group key={idx} position={[car.x, 0.8, car.z]}>
+          <mesh position={[0, 0.3, 0]}>
+            <boxGeometry args={[3.2, 1.1, 5.2]} />
+            <meshStandardMaterial color={car.color} roughness={0.3} metalness={0.7} />
+          </mesh>
+          <mesh position={[0, 1.1, -0.2]}>
+            <boxGeometry args={[2.8, 0.8, 2.6]} />
+            <meshStandardMaterial color="#1e293b" roughness={0.2} metalness={0.8} />
+          </mesh>
+          {[-1.2, 1.2].map((hx, hIdx) => (
+            <group key={hIdx} position={[hx, 0.4, -2.55]}>
+              <mesh>
+                <sphereGeometry args={[0.22, 16, 16]} />
+                <meshBasicMaterial color="#fef08a" toneMapped={false} />
+              </mesh>
+            </group>
+          ))}
+          {[-1.5, 1.5].map((wx) =>
+            [-1.6, 1.6].map((wz, wIdx) => (
+              <mesh key={`${wx}-${wz}-${wIdx}`} position={[wx, -0.3, wz]} rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.45, 0.45, 0.3, 16]} />
+                <meshStandardMaterial color="#111827" roughness={0.8} />
+              </mesh>
+            ))
+          )}
+        </group>
+      ))}
+
+      {[-auditorium.screenWidth / 2 - 1, auditorium.screenWidth / 2 + 1].map((x, sideIdx) => (
+        <mesh key={sideIdx} position={[x, auditorium.screenBottom + auditorium.screenHeight / 2, baseZ + 0.1]}>
+          <boxGeometry args={[0.6, auditorium.screenHeight + 3.5, 0.6]} />
+          <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.3} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function CyberpunkBackdrop({ auditorium }: { auditorium: Auditorium }) {
+  const baseZ = auditorium.screenZ;
+
+  return (
+    <group>
+      <mesh position={[0, 45, baseZ - 65]}>
+        <planeGeometry args={[320, 150]} />
+        <meshBasicMaterial color="#05030a" toneMapped={false} />
+      </mesh>
+
+      {[
+        { x: -58, h: 90, w: 24, signColor: "#00f0ff" },
+        { x: -35, h: 75, w: 20, signColor: "#ff007f" },
+        { x: 35, h: 80, w: 22, signColor: "#ff007f" },
+        { x: 60, h: 95, w: 26, signColor: "#00f0ff" },
+      ].map((b, idx) => (
+        <group key={idx} position={[b.x, b.h / 2 - 2, baseZ - 52]}>
+          <mesh>
+            <boxGeometry args={[b.w, b.h, 22]} />
+            <meshStandardMaterial color="#0c0714" roughness={0.6} metalness={0.4} />
+          </mesh>
+          <mesh position={[0, 10, 11.2]}>
+            <planeGeometry args={[b.w * 0.7, 18]} />
+            <meshBasicMaterial color={b.signColor} transparent opacity={0.85} toneMapped={false} />
+          </mesh>
+        </group>
+      ))}
+
+      <mesh position={[0, -0.2, baseZ + 20]} receiveShadow>
+        <boxGeometry args={[260, 0.4, 180]} />
+        <meshStandardMaterial color="#08070e" roughness={0.15} metalness={0.9} />
+      </mesh>
+
+      {[-auditorium.screenWidth / 2 - 0.4, auditorium.screenWidth / 2 + 0.4].map((x, sideIdx) => (
+        <group key={sideIdx} position={[x, auditorium.screenBottom + auditorium.screenHeight / 2, baseZ + 0.1]}>
+          <mesh>
+            <boxGeometry args={[0.25, auditorium.screenHeight + 1.2, 0.25]} />
+            <meshBasicMaterial color={sideIdx === 0 ? "#00f0ff" : "#ff007f"} toneMapped={false} />
+          </mesh>
+          <pointLight
+            color={sideIdx === 0 ? "#00f0ff" : "#ff007f"}
+            intensity={180}
+            distance={22}
+          />
+        </group>
+      ))}
+      <mesh position={[0, auditorium.screenBottom + auditorium.screenHeight + 0.5, baseZ + 0.1]}>
+        <boxGeometry args={[auditorium.screenWidth + 1.2, 0.25, 0.25]} />
+        <meshBasicMaterial color="#38bdf8" toneMapped={false} />
+      </mesh>
+    </group>
+  );
+}
+
+function ForestCampBackdrop({ auditorium }: { auditorium: Auditorium }) {
+  const baseZ = auditorium.screenZ;
+
+  const fireflyPositions = useMemo(() => {
+    const pos = new Float32Array(50 * 3);
+    for (let i = 0; i < 50; i++) {
+      pos[i * 3] = (pseudoRandom(i * 3 + 1000) - 0.5) * 60;
+      pos[i * 3 + 1] = pseudoRandom(i * 3 + 1001) * 8 + 1;
+      pos[i * 3 + 2] = baseZ + (pseudoRandom(i * 3 + 1002) - 0.5) * 40;
+    }
+    return pos;
+  }, [baseZ]);
+
+  return (
+    <group>
+      <mesh position={[0, 45, baseZ - 65]}>
+        <planeGeometry args={[320, 150]} />
+        <meshBasicMaterial color="#030805" toneMapped={false} />
+      </mesh>
+
+      <mesh position={[0, -0.2, baseZ + 20]} receiveShadow>
+        <boxGeometry args={[260, 0.4, 180]} />
+        <meshStandardMaterial color="#0e1711" roughness={0.95} metalness={0.0} />
+      </mesh>
+
+      {[
+        { x: -38, z: baseZ - 20, s: 1.2 },
+        { x: -28, z: baseZ - 30, s: 1.5 },
+        { x: -45, z: baseZ + 10, s: 1.4 },
+        { x: 38, z: baseZ - 20, s: 1.3 },
+        { x: 28, z: baseZ - 30, s: 1.6 },
+        { x: 45, z: baseZ + 10, s: 1.4 },
+        { x: -55, z: baseZ + 25, s: 1.7 },
+        { x: 55, z: baseZ + 25, s: 1.7 },
+      ].map((tree, idx) => (
+        <group key={idx} position={[tree.x, 0, tree.z]} scale={[tree.s, tree.s, tree.s]}>
+          <mesh position={[0, 3, 0]}>
+            <cylinderGeometry args={[0.5, 0.8, 6, 8]} />
+            <meshStandardMaterial color="#291d18" roughness={0.9} />
+          </mesh>
+          <mesh position={[0, 7, 0]}>
+            <coneGeometry args={[4.5, 7, 8]} />
+            <meshStandardMaterial color="#064e3b" roughness={0.8} />
+          </mesh>
+          <mesh position={[0, 11, 0]}>
+            <coneGeometry args={[3.5, 6, 8]} />
+            <meshStandardMaterial color="#047857" roughness={0.8} />
+          </mesh>
+          <mesh position={[0, 14.5, 0]}>
+            <coneGeometry args={[2.4, 5, 8]} />
+            <meshStandardMaterial color="#065f46" roughness={0.8} />
+          </mesh>
+        </group>
+      ))}
+
+      <group position={[0, 0.1, baseZ + 12]}>
+        <mesh>
+          <torusGeometry args={[1.2, 0.3, 8, 16]} />
+          <meshStandardMaterial color="#334155" roughness={0.9} />
+        </mesh>
+        <mesh rotation={[0.4, 0.8, 0]}>
+          <cylinderGeometry args={[0.15, 0.15, 2.2, 8]} />
+          <meshStandardMaterial color="#1c1917" roughness={0.9} />
+        </mesh>
+        <pointLight color="#f97316" intensity={220} distance={28} decay={1.8} />
+      </group>
+
+      <points>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            args={[fireflyPositions, 3]}
+          />
+        </bufferGeometry>
+        <pointsMaterial size={1.8} color="#a3e635" transparent opacity={0.9} sizeAttenuation toneMapped={false} />
+      </points>
+
+      {[-auditorium.screenWidth / 2 - 0.8, auditorium.screenWidth / 2 + 0.8].map((x, sideIdx) => (
+        <mesh key={sideIdx} position={[x, auditorium.screenBottom + auditorium.screenHeight / 2, baseZ + 0.1]}>
+          <cylinderGeometry args={[0.4, 0.45, auditorium.screenHeight + 2.5, 12]} />
+          <meshStandardMaterial color="#3d2817" roughness={0.85} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function SpaceStationBackdrop({ auditorium }: { auditorium: Auditorium }) {
+  const baseZ = auditorium.screenZ;
+
+  return (
+    <group>
+      <mesh position={[0, 45, baseZ - 65]}>
+        <planeGeometry args={[320, 150]} />
+        <meshBasicMaterial color="#02040a" toneMapped={false} />
+      </mesh>
+
+      <group position={[42, 38, baseZ - 52]}>
+        <mesh>
+          <sphereGeometry args={[28, 32, 32]} />
+          <meshStandardMaterial color="#1d4ed8" roughness={0.6} metalness={0.2} emissive="#0284c7" emissiveIntensity={0.15} />
+        </mesh>
+        <mesh scale={[1.08, 1.08, 1.08]}>
+          <sphereGeometry args={[28, 24, 24]} />
+          <meshBasicMaterial color="#38bdf8" transparent opacity={0.25} toneMapped={false} />
+        </mesh>
+      </group>
+
+      <mesh position={[0, -0.2, baseZ + 20]} receiveShadow>
+        <boxGeometry args={[260, 0.4, 180]} />
+        <meshStandardMaterial color="#0f172a" roughness={0.3} metalness={0.8} />
+      </mesh>
+
+      {[-12, 12].map((x, idx) => (
+        <mesh key={idx} position={[x, 0.02, baseZ + 20]}>
+          <boxGeometry args={[0.3, 0.04, 120]} />
+          <meshBasicMaterial color="#06b6d4" toneMapped={false} />
+        </mesh>
+      ))}
+
+      {[-auditorium.screenWidth / 2 - 1.2, auditorium.screenWidth / 2 + 1.2].map((x, sideIdx) => (
+        <mesh key={sideIdx} position={[x, auditorium.screenBottom + auditorium.screenHeight / 2, baseZ + 0.1]}>
+          <boxGeometry args={[0.8, auditorium.screenHeight + 3.2, 0.8]} />
+          <meshStandardMaterial color="#334155" metalness={0.85} roughness={0.2} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 function AuditoriumArchitecture({
   auditorium,
   filmMode,
@@ -1499,185 +1798,22 @@ function AuditoriumArchitecture({
   });
 
   if (sceneStyle === "urban_plaza") {
-    return (
-      <group>
-        {/* Urban Outdoor Plaza Stone Floor (露天广场花岗岩砖平地) */}
-        <mesh position={[0, -0.2, roomCenterZ]} receiveShadow>
-          <boxGeometry args={[roomWidth * 3, 0.4, roomDepth * 3]} />
-          <meshStandardMaterial color="#1e293b" roughness={0.8} metalness={0.2} />
-        </mesh>
-
-        {/* Plaza Floor Decorative Light Strips (广场地面发光线条) */}
-        {[-platformWidth / 2 - 1, platformWidth / 2 + 1].map((x, idx) => (
-          <mesh key={idx} position={[x, 0.02, roomCenterZ]}>
-            <boxGeometry args={[0.2, 0.04, roomDepth * 1.5]} />
-            <meshBasicMaterial color="#38bdf8" toneMapped={false} />
-          </mesh>
-        ))}
-
-        {/* Flat Seat Bases on Plaza (露天平地座席无阶梯差) */}
-        {Array.from({ length: auditorium.rowCount }, (_, row) => {
-          /* 座椅没有高度区别，只要远近 */
-          const y = 0.0;
-          const z = auditorium.firstRowZ + row * auditorium.rowSpacing;
-          return (
-            <mesh key={row} position={[0, y + 0.01, z]} receiveShadow>
-              <boxGeometry args={[platformWidth + 0.4, 0.02, 0.8]} />
-              <meshStandardMaterial color="#334155" roughness={0.7} />
-            </mesh>
-          );
-        })}
-
-        {/* Outdoor Truss Screen Scaffold Frame (露天广场架起的金属桁架银幕) */}
-        {[-auditorium.screenWidth / 2 - 0.8, auditorium.screenWidth / 2 + 0.8].map((x, sideIdx) => {
-          const colY = auditorium.screenBottom + auditorium.screenHeight / 2;
-          const colHeight = auditorium.screenHeight + 3.2;
-          return (
-            <group key={sideIdx} position={[x, colY, auditorium.screenZ + 0.1]}>
-              {/* Main Vertical Truss Columns */}
-              <mesh position={[-0.2, 0, 0]}>
-                <cylinderGeometry args={[0.08, 0.08, colHeight, 12]} />
-                <meshStandardMaterial color="#94a3b8" metalness={0.8} roughness={0.3} />
-              </mesh>
-              <mesh position={[0.2, 0, 0]}>
-                <cylinderGeometry args={[0.08, 0.08, colHeight, 12]} />
-                <meshStandardMaterial color="#94a3b8" metalness={0.8} roughness={0.3} />
-              </mesh>
-              {/* Heavy Base Block (防风加重脚座) */}
-              <mesh position={[0, -colHeight / 2 - 0.2, 0]}>
-                <boxGeometry args={[1.2, 0.6, 1.2]} />
-                <meshStandardMaterial color="#0f172a" roughness={0.9} />
-              </mesh>
-            </group>
-          );
-        })}
-
-        {/* Top Cross-Truss Beam (顶部横向桁架) */}
-        <mesh position={[0, auditorium.screenBottom + auditorium.screenHeight + 1.4, auditorium.screenZ + 0.1]}>
-          <boxGeometry args={[auditorium.screenWidth + 2.8, 0.4, 0.4]} />
-          <meshStandardMaterial color="#94a3b8" metalness={0.8} roughness={0.3} />
-        </mesh>
-
-        {/* Stage Floodlights hanging from top truss (露天广场舞台投光灯) */}
-        {[-6, -2, 2, 6].map((x, spotIdx) => (
-          <group key={spotIdx} position={[x, auditorium.screenBottom + auditorium.screenHeight + 1.1, auditorium.screenZ + 0.3]}>
-            <mesh>
-              <boxGeometry args={[0.4, 0.3, 0.4]} />
-              <meshStandardMaterial color="#1e293b" />
-            </mesh>
-            <mesh position={[0, -0.2, 0.1]}>
-              <sphereGeometry args={[0.12, 16, 16]} />
-              <meshBasicMaterial color="#38bdf8" toneMapped={false} />
-            </mesh>
-          </group>
-        ))}
-      </group>
-    );
+    return <UrbanPlazaBackdrop auditorium={auditorium} />;
   }
-
   if (sceneStyle === "snowy_greek") {
-    return (
-      <group>
-        {/* Snowy Ground Terrain */}
-        <mesh position={[0, -0.5, roomCenterZ]} receiveShadow>
-          <boxGeometry args={[roomWidth * 2.8, 1, roomDepth * 2.8]} />
-          <meshStandardMaterial color="#f1f5f9" roughness={0.8} metalness={0.05} />
-        </mesh>
-
-        {/* Ancient Greek Stone Terraces & Continuous Long Stone Bench Rows */}
-        {Array.from({ length: auditorium.rowCount }, (_, row) => {
-          const y =
-            cinemaSeatGeometry.rowFloorBaseY + row * auditorium.rowRise;
-          const z = auditorium.firstRowZ + row * auditorium.rowSpacing;
-          return (
-            <group key={row}>
-              {/* Terrace Step Base */}
-              <mesh position={[0, y - 0.37, z + 0.1]} receiveShadow>
-                <boxGeometry
-                  args={[platformWidth + 2, 0.72, auditorium.rowSpacing + 0.08]}
-                />
-                <meshStandardMaterial color="#cbd5e1" roughness={0.7} metalness={0.02} />
-              </mesh>
-
-              {/* Continuous Long Greek Stone Bench Slab (长条石头板凳) */}
-              <mesh position={[0, y + 0.16, z + 0.04]} receiveShadow>
-                <boxGeometry args={[platformWidth + 0.8, 0.36, 0.68]} />
-                <meshStandardMaterial color="#f1f5f9" roughness={0.5} metalness={0.05} />
-              </mesh>
-
-              {/* Continuous Stone Bench Backrest Slab (长条石凳靠背) */}
-              <mesh position={[0, y + 0.54, z + 0.32]} receiveShadow>
-                <boxGeometry args={[platformWidth + 0.8, 0.46, 0.18]} />
-                <meshStandardMaterial color="#cbd5e1" roughness={0.6} metalness={0.03} />
-              </mesh>
-
-              {/* Left & Right Sculpted Bench End-Cap Pillars (大理石长凳端头柱) */}
-              {[-platformWidth / 2 - 0.35, platformWidth / 2 + 0.35].map((x, endIdx) => (
-                <group key={endIdx} position={[x, y + 0.35, z + 0.1]}>
-                  <mesh>
-                    <boxGeometry args={[0.3, 0.75, 0.72]} />
-                    <meshStandardMaterial color="#e2e8f0" roughness={0.45} />
-                  </mesh>
-                  <mesh position={[0, 0.4, 0]}>
-                    <cylinderGeometry args={[0.2, 0.22, 0.18, 16]} />
-                    <meshStandardMaterial color="#f8fafc" roughness={0.4} />
-                  </mesh>
-                </group>
-              ))}
-            </group>
-          );
-        })}
-
-        {/* Screen Frame: Greek Marble Columns Flanking the Screen */}
-        {[-1, 1].map((dir) => {
-          const colX = (auditorium.screenWidth / 2 + 1.4) * dir;
-          const colY = auditorium.screenBottom + auditorium.screenHeight / 2;
-          const colHeight = auditorium.screenHeight + 1.8;
-          return (
-            <group key={dir} position={[colX, colY, auditorium.screenZ + 0.2]}>
-              {/* Main Column */}
-              <mesh>
-                <cylinderGeometry args={[0.55, 0.6, colHeight, 24]} />
-                <meshStandardMaterial color="#f8fafc" roughness={0.4} metalness={0.05} />
-              </mesh>
-              {/* Capital Top */}
-              <mesh position={[0, colHeight / 2 + 0.2, 0]}>
-                <boxGeometry args={[1.5, 0.4, 1.5]} />
-                <meshStandardMaterial color="#e2e8f0" roughness={0.45} />
-              </mesh>
-              {/* Base Bottom */}
-              <mesh position={[0, -colHeight / 2 - 0.2, 0]}>
-                <boxGeometry args={[1.6, 0.4, 1.6]} />
-                <meshStandardMaterial color="#cbd5e1" roughness={0.5} />
-              </mesh>
-            </group>
-          );
-        })}
-
-        {/* Greek Marble Pedestal under screen */}
-        <mesh position={[0, auditorium.screenBottom - 0.5, auditorium.screenZ + 0.1]}>
-          <boxGeometry args={[auditorium.screenWidth + 3.8, 1.1, 1.3]} />
-          <meshStandardMaterial color="#e2e8f0" roughness={0.55} />
-        </mesh>
-
-        {/* Ancient Greek Stone Torch Braziers on the flanks */}
-        {[-halfRoomWidth - 2, halfRoomWidth + 2].map((x, idx) => (
-          <group key={idx} position={[x, 1.0, auditorium.firstRowZ + 2]}>
-            <mesh>
-              <cylinderGeometry args={[0.45, 0.55, 2.2, 16]} />
-              <meshStandardMaterial color="#94a3b8" roughness={0.75} />
-            </mesh>
-            <pointLight
-              position={[0, 1.4, 0]}
-              color="#ff8c00"
-              intensity={filmMode ? 80 : 180}
-              distance={16}
-              decay={2}
-            />
-          </group>
-        ))}
-      </group>
-    );
+    return <SnowMountainBackdrop auditorium={auditorium} />;
+  }
+  if (sceneStyle === "drive_in") {
+    return <DriveInBackdrop auditorium={auditorium} />;
+  }
+  if (sceneStyle === "cyberpunk") {
+    return <CyberpunkBackdrop auditorium={auditorium} />;
+  }
+  if (sceneStyle === "forest_camp") {
+    return <ForestCampBackdrop auditorium={auditorium} />;
+  }
+  if (sceneStyle === "space_station") {
+    return <SpaceStationBackdrop auditorium={auditorium} />;
   }
 
   return (
@@ -1798,45 +1934,101 @@ function Seats({
     () => new RoundedBoxGeometry(0.14, 0.08, 0.62, 3, 0.035),
     [],
   );
-  const seatColors = useMemo(
-    () =>
-      sceneStyle === "snowy_greek"
-        ? {
-            available: {
-              upholstery: new Color("#cbd5e1"),
-              shell: new Color("#e2e8f0"),
-              panel: new Color("#94a3b8"),
-            },
-            selected: {
-              upholstery: new Color("#38bdf8"),
-              shell: new Color("#0284c7"),
-              panel: new Color("#7dd3fc"),
-            },
-            occupied: {
-              upholstery: new Color("#64748b"),
-              shell: new Color("#475569"),
-              panel: new Color("#334155"),
-            },
-          }
-        : {
-            available: {
-              upholstery: new Color("#b52b52"),
-              shell: new Color("#8f1e3e"),
-              panel: new Color("#781832"),
-            },
-            selected: {
-              upholstery: new Color("#df5274"),
-              shell: new Color("#ad3152"),
-              panel: new Color("#922542"),
-            },
-            occupied: {
-              upholstery: new Color("#65162f"),
-              shell: new Color("#4f1025"),
-              panel: new Color("#420c1e"),
-            },
-          },
-    [sceneStyle],
-  );
+  const seatColors = useMemo(() => {
+    if (sceneStyle === "snowy_greek") {
+      return {
+        available: {
+          upholstery: new Color("#cbd5e1"),
+          shell: new Color("#e2e8f0"),
+          panel: new Color("#94a3b8"),
+        },
+        selected: {
+          upholstery: new Color("#38bdf8"),
+          shell: new Color("#0284c7"),
+          panel: new Color("#7dd3fc"),
+        },
+        occupied: {
+          upholstery: new Color("#64748b"),
+          shell: new Color("#475569"),
+          panel: new Color("#334155"),
+        },
+      };
+    }
+    if (sceneStyle === "cyberpunk") {
+      return {
+        available: {
+          upholstery: new Color("#0f172a"),
+          shell: new Color("#0284c7"),
+          panel: new Color("#00f0ff"),
+        },
+        selected: {
+          upholstery: new Color("#ff007f"),
+          shell: new Color("#d946ef"),
+          panel: new Color("#f43f5e"),
+        },
+        occupied: {
+          upholstery: new Color("#1e1b4b"),
+          shell: new Color("#312e81"),
+          panel: new Color("#1e293b"),
+        },
+      };
+    }
+    if (sceneStyle === "forest_camp") {
+      return {
+        available: {
+          upholstery: new Color("#78350f"),
+          shell: new Color("#451a03"),
+          panel: new Color("#92400e"),
+        },
+        selected: {
+          upholstery: new Color("#15803d"),
+          shell: new Color("#166534"),
+          panel: new Color("#22c55e"),
+        },
+        occupied: {
+          upholstery: new Color("#27272a"),
+          shell: new Color("#18181b"),
+          panel: new Color("#3f3f46"),
+        },
+      };
+    }
+    if (sceneStyle === "space_station") {
+      return {
+        available: {
+          upholstery: new Color("#1e293b"),
+          shell: new Color("#0f172a"),
+          panel: new Color("#38bdf8"),
+        },
+        selected: {
+          upholstery: new Color("#0284c7"),
+          shell: new Color("#0369a1"),
+          panel: new Color("#7dd3fc"),
+        },
+        occupied: {
+          upholstery: new Color("#334155"),
+          shell: new Color("#1e293b"),
+          panel: new Color("#475569"),
+        },
+      };
+    }
+    return {
+      available: {
+        upholstery: new Color("#b52b52"),
+        shell: new Color("#8f1e3e"),
+        panel: new Color("#781832"),
+      },
+      selected: {
+        upholstery: new Color("#df5274"),
+        shell: new Color("#ad3152"),
+        panel: new Color("#922542"),
+      },
+      occupied: {
+        upholstery: new Color("#65162f"),
+        shell: new Color("#4f1025"),
+        panel: new Color("#420c1e"),
+      },
+    };
+  }, [sceneStyle]);
 
   useLayoutEffect(() => {
     if (
@@ -2237,30 +2429,59 @@ function SceneLighting({
   const hemisphereRef = useRef<HemisphereLight>(null);
   const houseSpotRefs = useRef<Array<SpotLight | null>>([]);
   const housePointRef = useRef<PointLight>(null);
-  const litBackground = useMemo(
-    () => new Color(sceneStyle === "snowy_greek" ? "#0a1128" : "#111317"),
-    [sceneStyle],
-  );
-  const darkBackground = useMemo(
-    () => new Color(sceneStyle === "snowy_greek" ? "#060b1b" : "#07080a"),
-    [sceneStyle],
-  );
-  const litFog = useMemo(
-    () => new Color(sceneStyle === "snowy_greek" ? "#0c1535" : "#15171b"),
-    [sceneStyle],
-  );
-  const darkFog = useMemo(
-    () => new Color(sceneStyle === "snowy_greek" ? "#070d22" : "#08090b"),
-    [sceneStyle],
-  );
-  const litAmbient = useMemo(
-    () => new Color(sceneStyle === "snowy_greek" ? "#cbd5e1" : "#d7c7b8"),
-    [sceneStyle],
-  );
-  const darkAmbient = useMemo(
-    () => new Color(sceneStyle === "snowy_greek" ? "#64748b" : "#75808a"),
-    [sceneStyle],
-  );
+  const litBackground = useMemo(() => {
+    if (sceneStyle === "snowy_greek") return new Color("#0a1128");
+    if (sceneStyle === "drive_in") return new Color("#040714");
+    if (sceneStyle === "cyberpunk") return new Color("#07030e");
+    if (sceneStyle === "forest_camp") return new Color("#030805");
+    if (sceneStyle === "space_station") return new Color("#02040a");
+    return new Color("#111317");
+  }, [sceneStyle]);
+
+  const darkBackground = useMemo(() => {
+    if (sceneStyle === "snowy_greek") return new Color("#060b1b");
+    if (sceneStyle === "drive_in") return new Color("#02040a");
+    if (sceneStyle === "cyberpunk") return new Color("#030107");
+    if (sceneStyle === "forest_camp") return new Color("#010402");
+    if (sceneStyle === "space_station") return new Color("#010205");
+    return new Color("#07080a");
+  }, [sceneStyle]);
+
+  const litFog = useMemo(() => {
+    if (sceneStyle === "snowy_greek") return new Color("#0c1535");
+    if (sceneStyle === "drive_in") return new Color("#060a1e");
+    if (sceneStyle === "cyberpunk") return new Color("#0d051c");
+    if (sceneStyle === "forest_camp") return new Color("#040f09");
+    if (sceneStyle === "space_station") return new Color("#030712");
+    return new Color("#15171b");
+  }, [sceneStyle]);
+
+  const darkFog = useMemo(() => {
+    if (sceneStyle === "snowy_greek") return new Color("#070d22");
+    if (sceneStyle === "drive_in") return new Color("#03050f");
+    if (sceneStyle === "cyberpunk") return new Color("#05020a");
+    if (sceneStyle === "forest_camp") return new Color("#020604");
+    if (sceneStyle === "space_station") return new Color("#010308");
+    return new Color("#08090b");
+  }, [sceneStyle]);
+
+  const litAmbient = useMemo(() => {
+    if (sceneStyle === "snowy_greek") return new Color("#cbd5e1");
+    if (sceneStyle === "drive_in") return new Color("#384e68");
+    if (sceneStyle === "cyberpunk") return new Color("#818cf8");
+    if (sceneStyle === "forest_camp") return new Color("#34d399");
+    if (sceneStyle === "space_station") return new Color("#38bdf8");
+    return new Color("#d7c7b8");
+  }, [sceneStyle]);
+
+  const darkAmbient = useMemo(() => {
+    if (sceneStyle === "snowy_greek") return new Color("#64748b");
+    if (sceneStyle === "drive_in") return new Color("#1e293b");
+    if (sceneStyle === "cyberpunk") return new Color("#312e81");
+    if (sceneStyle === "forest_camp") return new Color("#064e3b");
+    if (sceneStyle === "space_station") return new Color("#0f172a");
+    return new Color("#75808a");
+  }, [sceneStyle]);
   const [initialHouseLights] = useState(() => (filmMode ? 0 : 1));
 
   useFrame((_, delta) => {
@@ -2447,7 +2668,7 @@ export function CinemaScene(props: CinemaSceneProps) {
     <>
       <Canvas
         className="cinema-canvas"
-        dpr={props.isMobile ? [1, 1.35] : [1, 1.75]}
+        dpr={props.isMobile ? [0.85, 1.1] : [1, 1.5]}
         camera={{
           position: initialCameraPosition,
           fov: 60,
@@ -2457,7 +2678,8 @@ export function CinemaScene(props: CinemaSceneProps) {
         gl={{
           antialias: !props.isMobile,
           alpha: false,
-          powerPreference: "high-performance",
+          powerPreference: props.isMobile ? "low-power" : "high-performance",
+          precision: props.isMobile ? "mediump" : "highp",
         }}
         shadows={!props.isMobile}
         onCreated={({ gl }) => {

@@ -137,7 +137,7 @@ export function SceneStylePicker({
         <div className="style-picker-header">
           <span className="style-picker-label">
             <Sparkle size={18} className="text-amber-400 inline mr-1" />
-            3D 影馆场景风格切换 (6大主题)：
+            切换 3D 影院主题（7大实景风格）：
           </span>
           {toastMessage && (
             <span className="style-picker-toast-badge animate-bounce">
@@ -166,13 +166,10 @@ export function SceneStylePicker({
                     : undefined
                 }
               >
-                <div className="style-card-top">
-                  <span className="style-card-icon">{option.icon}</span>
-                  <span className="style-card-name">{option.name}</span>
-                  {isActive && <Check size={16} className="style-card-check" />}
-                </div>
-                <div className="style-card-desc">{option.subtitle}</div>
+                <span className="style-card-icon">{option.icon}</span>
+                <span className="style-card-name">{option.name}</span>
                 <span className="style-card-badge">{option.badge}</span>
+                {isActive && <Check size={16} className="style-card-check" />}
               </button>
             );
           })}
@@ -205,7 +202,7 @@ export function SceneStylePicker({
       {isOpen && (
         <div className="style-picker-dropdown-menu" role="menu">
           <div className="dropdown-menu-header">
-            <span>选择 3D 影厅视觉风格 (6种)</span>
+            <span>选择 3D 影厅视觉风格 (7种)</span>
           </div>
           <div className="dropdown-menu-list">
             {SCENE_STYLES.map((option) => {
