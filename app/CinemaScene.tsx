@@ -1174,100 +1174,151 @@ function Screen({
 }
 
 function SnowMountainBackdrop({ auditorium }: { auditorium: Auditorium }) {
-  const starPositions = useMemo(() => {
-    const count = 180;
-    const positions = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 160;
-      positions[i * 3 + 1] = Math.random() * 60 + 12;
-      positions[i * 3 + 2] = auditorium.screenZ - 30 - Math.random() * 40;
-    }
-    return positions;
-  }, [auditorium.screenZ]);
-
   const baseZ = auditorium.screenZ;
 
   return (
     <group>
-      {/* Alpine Night Sky Stars */}
-      <points>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            args={[starPositions, 3]}
-          />
-        </bufferGeometry>
-        <pointsMaterial
-          size={0.65}
-          color="#f8fafc"
-          transparent
-          opacity={0.85}
-          sizeAttenuation
-        />
-      </points>
-
-      {/* Alpine Glow Moon */}
-      <mesh position={[22, 36, baseZ - 38]}>
-        <sphereGeometry args={[3.2, 32, 32]} />
-        <meshBasicMaterial color="#ffffff" toneMapped={false} />
+      {/* European Sky Canvas (Clear Azure Alpine Sky behind Screen) */}
+      <mesh position={[0, 48, baseZ - 65]}>
+        <planeGeometry args={[320, 160]} />
+        <meshBasicMaterial color="#38bdf8" toneMapped={false} />
       </mesh>
-      {/* Moon Halo Glow */}
-      <mesh position={[22, 36, baseZ - 38.5]}>
-        <sphereGeometry args={[4.8, 24, 24]} />
+
+      {/* Atmospheric Alpine Horizon Glow */}
+      <mesh position={[0, 18, baseZ - 64]}>
+        <planeGeometry args={[320, 60]} />
         <meshBasicMaterial
-          color="#93c5fd"
+          color="#bae6fd"
           transparent
-          opacity={0.25}
+          opacity={0.65}
           toneMapped={false}
         />
       </mesh>
 
-      {/* Center Mountain Peak */}
-      <group position={[0, 16, baseZ - 48]}>
-        <mesh>
-          <coneGeometry args={[34, 46, 8]} />
-          <meshStandardMaterial color="#1e293b" roughness={0.85} />
+      {/* High Alpine Radiant Sun */}
+      <mesh position={[42, 62, baseZ - 60]}>
+        <sphereGeometry args={[7.5, 32, 32]} />
+        <meshBasicMaterial color="#fffbe1" toneMapped={false} />
+      </mesh>
+      {/* Sun Atmosphere Corona Halo */}
+      <mesh position={[42, 62, baseZ - 60.5]}>
+        <sphereGeometry args={[14, 24, 24]} />
+        <meshBasicMaterial
+          color="#fef08a"
+          transparent
+          opacity={0.35}
+          toneMapped={false}
+        />
+      </mesh>
+
+      {/* Floating Alpine Clouds */}
+      <group position={[-38, 54, baseZ - 56]}>
+        <mesh position={[0, 0, 0]}>
+          <sphereGeometry args={[8, 16, 16]} />
+          <meshStandardMaterial color="#ffffff" transparent opacity={0.88} roughness={0.9} />
         </mesh>
-        <mesh position={[0, 12, 0]}>
-          <coneGeometry args={[26, 22, 8]} />
+        <mesh position={[6, 2, 0]}>
+          <sphereGeometry args={[6.5, 16, 16]} />
+          <meshStandardMaterial color="#f8fafc" transparent opacity={0.85} roughness={0.9} />
+        </mesh>
+        <mesh position={[-6, -1, 0]}>
+          <sphereGeometry args={[5.5, 16, 16]} />
+          <meshStandardMaterial color="#ffffff" transparent opacity={0.85} roughness={0.9} />
+        </mesh>
+      </group>
+
+      <group position={[52, 48, baseZ - 54]}>
+        <mesh position={[0, 0, 0]}>
+          <sphereGeometry args={[7, 16, 16]} />
+          <meshStandardMaterial color="#ffffff" transparent opacity={0.85} roughness={0.9} />
+        </mesh>
+        <mesh position={[-5, 1, 0]}>
+          <sphereGeometry args={[5.5, 16, 16]} />
+          <meshStandardMaterial color="#f8fafc" transparent opacity={0.82} roughness={0.9} />
+        </mesh>
+      </group>
+
+      {/* === European Highest Snow Mountain (Mont Blanc / 勃朗峰巨型连绵雪山群) === */}
+
+      {/* Center Main Peak: Mont Blanc Summit (勃朗峰主峰) */}
+      <group position={[0, 32, baseZ - 52]}>
+        {/* Granite Rock Mountain Base Body */}
+        <mesh>
+          <coneGeometry args={[48, 72, 10]} />
+          <meshStandardMaterial color="#334155" roughness={0.85} metalness={0.05} />
+        </mesh>
+        {/* Massive Majestic Glistering Snow Cap & Ice Cliff Top */}
+        <mesh position={[0, 22, 0]}>
+          <coneGeometry args={[36, 42, 10]} />
           <meshStandardMaterial
-            color="#f8fafc"
-            roughness={0.6}
+            color="#ffffff"
+            roughness={0.25}
+            metalness={0.05}
             emissive="#e0f2fe"
-            emissiveIntensity={0.2}
+            emissiveIntensity={0.35}
+          />
+        </mesh>
+        {/* Secondary Glacier Ice Ridges */}
+        <mesh position={[0, 10, 2]}>
+          <coneGeometry args={[28, 28, 8]} />
+          <meshStandardMaterial color="#f1f5f9" roughness={0.3} emissive="#bae6fd" emissiveIntensity={0.2} />
+        </mesh>
+      </group>
+
+      {/* Left Alpine Summit Peak (Aiguille du Midi / 南针峰群) */}
+      <group position={[-46, 24, baseZ - 46]}>
+        <mesh>
+          <coneGeometry args={[38, 56, 8]} />
+          <meshStandardMaterial color="#1e293b" roughness={0.9} />
+        </mesh>
+        <mesh position={[0, 16, 0]}>
+          <coneGeometry args={[28, 32, 8]} />
+          <meshStandardMaterial
+            color="#ffffff"
+            roughness={0.3}
+            emissive="#e0f2fe"
+            emissiveIntensity={0.25}
           />
         </mesh>
       </group>
 
-      {/* Left Mountain Peak */}
-      <group position={[-34, 11, baseZ - 40]}>
+      {/* Right Alpine Summit Peak (Grandes Jorasses / 大茹拉峰群) */}
+      <group position={[48, 26, baseZ - 48]}>
         <mesh>
-          <coneGeometry args={[26, 34, 7]} />
-          <meshStandardMaterial color="#1e293b" roughness={0.9} />
+          <coneGeometry args={[40, 58, 8]} />
+          <meshStandardMaterial color="#334155" roughness={0.88} />
         </mesh>
-        <mesh position={[0, 9, 0]}>
-          <coneGeometry args={[19, 16, 7]} />
-          <meshStandardMaterial color="#f1f5f9" roughness={0.65} />
+        <mesh position={[0, 18, 0]}>
+          <coneGeometry args={[30, 32, 8]} />
+          <meshStandardMaterial
+            color="#ffffff"
+            roughness={0.3}
+            emissive="#e0f2fe"
+            emissiveIntensity={0.25}
+          />
         </mesh>
       </group>
 
-      {/* Right Mountain Peak */}
-      <group position={[36, 13, baseZ - 44]}>
-        <mesh>
-          <coneGeometry args={[28, 38, 7]} />
-          <meshStandardMaterial color="#1e293b" roughness={0.9} />
-        </mesh>
-        <mesh position={[0, 10, 0]}>
-          <coneGeometry args={[21, 18, 7]} />
-          <meshStandardMaterial color="#f1f5f9" roughness={0.65} />
-        </mesh>
-      </group>
-
-      {/* Distant Snow Hills background row */}
-      <mesh position={[0, 2, baseZ - 32]}>
-        <boxGeometry args={[160, 14, 12]} />
-        <meshStandardMaterial color="#cbd5e1" roughness={0.9} />
+      {/* Foreground Glacier Foothills & Snow Ridges */}
+      <mesh position={[0, 4, baseZ - 36]}>
+        <boxGeometry args={[190, 18, 16]} />
+        <meshStandardMaterial color="#e2e8f0" roughness={0.7} metalness={0.02} />
       </mesh>
+      <mesh position={[-30, 8, baseZ - 38]}>
+        <coneGeometry args={[22, 22, 6]} />
+        <meshStandardMaterial color="#f1f5f9" roughness={0.6} />
+      </mesh>
+      <mesh position={[35, 9, baseZ - 39]}>
+        <coneGeometry args={[24, 24, 6]} />
+        <meshStandardMaterial color="#f1f5f9" roughness={0.6} />
+      </mesh>
+
+      {/* Sun Light Source for Snow Mountain Peaks */}
+      <directionalLight
+        position={[40, 60, baseZ - 10]}
+        intensity={1.8}
+        color="#fffbeb"
+      />
     </group>
   );
 }
@@ -1321,18 +1372,47 @@ function AuditoriumArchitecture({
           <meshStandardMaterial color="#f1f5f9" roughness={0.8} metalness={0.05} />
         </mesh>
 
-        {/* Ancient Greek Stone Terraces (Amphitheater Steps) */}
+        {/* Ancient Greek Stone Terraces & Continuous Long Stone Bench Rows */}
         {Array.from({ length: auditorium.rowCount }, (_, row) => {
           const y =
             cinemaSeatGeometry.rowFloorBaseY + row * auditorium.rowRise;
           const z = auditorium.firstRowZ + row * auditorium.rowSpacing;
           return (
-            <mesh key={row} position={[0, y - 0.37, z + 0.1]} receiveShadow>
-              <boxGeometry
-                args={[platformWidth + 2, 0.72, auditorium.rowSpacing + 0.08]}
-              />
-              <meshStandardMaterial color="#cbd5e1" roughness={0.7} metalness={0.02} />
-            </mesh>
+            <group key={row}>
+              {/* Terrace Step Base */}
+              <mesh position={[0, y - 0.37, z + 0.1]} receiveShadow>
+                <boxGeometry
+                  args={[platformWidth + 2, 0.72, auditorium.rowSpacing + 0.08]}
+                />
+                <meshStandardMaterial color="#cbd5e1" roughness={0.7} metalness={0.02} />
+              </mesh>
+
+              {/* Continuous Long Greek Stone Bench Slab (长条石头板凳) */}
+              <mesh position={[0, y + 0.16, z + 0.04]} receiveShadow>
+                <boxGeometry args={[platformWidth + 0.8, 0.36, 0.68]} />
+                <meshStandardMaterial color="#f1f5f9" roughness={0.5} metalness={0.05} />
+              </mesh>
+
+              {/* Continuous Stone Bench Backrest Slab (长条石凳靠背) */}
+              <mesh position={[0, y + 0.54, z + 0.32]} receiveShadow>
+                <boxGeometry args={[platformWidth + 0.8, 0.46, 0.18]} />
+                <meshStandardMaterial color="#cbd5e1" roughness={0.6} metalness={0.03} />
+              </mesh>
+
+              {/* Left & Right Sculpted Bench End-Cap Pillars (大理石长凳端头柱) */}
+              {[-platformWidth / 2 - 0.35, platformWidth / 2 + 0.35].map((x, endIdx) => (
+                <group key={endIdx} position={[x, y + 0.35, z + 0.1]}>
+                  <mesh>
+                    <boxGeometry args={[0.3, 0.75, 0.72]} />
+                    <meshStandardMaterial color="#e2e8f0" roughness={0.45} />
+                  </mesh>
+                  <mesh position={[0, 0.4, 0]}>
+                    <cylinderGeometry args={[0.2, 0.22, 0.18, 16]} />
+                    <meshStandardMaterial color="#f8fafc" roughness={0.4} />
+                  </mesh>
+                </group>
+              ))}
+            </group>
           );
         })}
 
@@ -1575,87 +1655,155 @@ function Seats({
       mesh.setMatrixAt(instanceIndex, matrix);
     };
 
+    const isGreek = sceneStyle === "snowy_greek";
+
     seats.forEach((seat, index) => {
-      placePart(
-        cushionRef.current!,
-        index,
-        [
-          seat.x,
-          seat.y + cinemaSeatGeometry.cushionCenterAboveFloor,
-          seat.z - 0.03,
-        ],
-        [-0.08, 0, 0],
-        [1, 1, 1],
-      );
-      placePart(
-        backShellRef.current!,
-        index,
-        [
-          seat.x,
-          seat.y + cinemaSeatGeometry.backCenterAboveFloor,
-          seat.z + 0.32,
-        ],
-        [cinemaSeatGeometry.backrestReclineRadians, 0, 0],
-        [0.71, 0.57, 1.02],
-      );
-      placePart(
-        backRef.current!,
-        index,
-        [
-          seat.x,
-          seat.y + cinemaSeatGeometry.backCenterAboveFloor,
-          seat.z + 0.23,
-        ],
-        [cinemaSeatGeometry.backrestReclineRadians, 0, 0],
-        [0.68, 0.54, 0.9],
-      );
-
-      [-0.35, 0.35].forEach((xOffset, sideIndex) => {
+      if (isGreek) {
+        // Ancient Greek Stone Bench Seat Pad
         placePart(
-          sidePanelRef.current!,
-          index * 2 + sideIndex,
-          [seat.x + xOffset, seat.y + 0.34, seat.z + 0.06],
-          [-0.055, 0, 0],
-          [1, 1, 1],
+          cushionRef.current!,
+          index,
+          [seat.x, seat.y + 0.38, seat.z + 0.04],
+          [0, 0, 0],
+          [0.85, 0.45, 0.85],
         );
+        // Stone Bench Back Cushion
         placePart(
-          armCapRef.current!,
-          index * 2 + sideIndex,
+          backRef.current!,
+          index,
+          [seat.x, seat.y + 0.62, seat.z + 0.28],
+          [0, 0, 0],
+          [0.85, 0.45, 0.4],
+        );
+        // Hide modern backshell
+        placePart(
+          backShellRef.current!,
+          index,
+          [seat.x, seat.y, seat.z],
+          [0, 0, 0],
+          [0, 0, 0],
+        );
+
+        [-0.35, 0.35].forEach((xOffset, sideIndex) => {
+          placePart(
+            sidePanelRef.current!,
+            index * 2 + sideIndex,
+            [seat.x, seat.y, seat.z],
+            [0, 0, 0],
+            [0, 0, 0],
+          );
+          placePart(
+            armCapRef.current!,
+            index * 2 + sideIndex,
+            [seat.x, seat.y, seat.z],
+            [0, 0, 0],
+            [0, 0, 0],
+          );
+          placePart(
+            legRef.current!,
+            index * 2 + sideIndex,
+            [seat.x, seat.y, seat.z],
+            [0, 0, 0],
+            [0, 0, 0],
+          );
+          placePart(
+            footRef.current!,
+            index * 2 + sideIndex,
+            [seat.x, seat.y, seat.z],
+            [0, 0, 0],
+            [0, 0, 0],
+          );
+        });
+
+        placePart(
+          cupHolderRef.current!,
+          index,
+          [seat.x, seat.y, seat.z],
+          [0, 0, 0],
+          [0, 0, 0],
+        );
+      } else {
+        placePart(
+          cushionRef.current!,
+          index,
           [
-            seat.x + xOffset,
-            seat.y + cinemaSeatGeometry.armrestAboveFloor,
-            seat.z + 0.05,
+            seat.x,
+            seat.y + cinemaSeatGeometry.cushionCenterAboveFloor,
+            seat.z - 0.03,
           ],
-          [-0.055, 0, 0],
+          [-0.08, 0, 0],
           [1, 1, 1],
         );
         placePart(
-          legRef.current!,
-          index * 2 + sideIndex,
-          [seat.x + xOffset * 0.72, seat.y + 0.2, seat.z + 0.16],
-          [0, 0, 0],
-          [1, 1, 1],
+          backShellRef.current!,
+          index,
+          [
+            seat.x,
+            seat.y + cinemaSeatGeometry.backCenterAboveFloor,
+            seat.z + 0.32,
+          ],
+          [cinemaSeatGeometry.backrestReclineRadians, 0, 0],
+          [0.71, 0.57, 1.02],
         );
         placePart(
-          footRef.current!,
-          index * 2 + sideIndex,
-          [seat.x + xOffset * 0.72, seat.y + 0.03, seat.z + 0.12],
-          [0, 0, 0],
-          [1, 1, 1],
+          backRef.current!,
+          index,
+          [
+            seat.x,
+            seat.y + cinemaSeatGeometry.backCenterAboveFloor,
+            seat.z + 0.23,
+          ],
+          [cinemaSeatGeometry.backrestReclineRadians, 0, 0],
+          [0.68, 0.54, 0.9],
         );
-      });
 
-      placePart(
-        cupHolderRef.current!,
-        index,
-        [
-          seat.x + 0.35,
-          seat.y + cinemaSeatGeometry.armrestAboveFloor + 0.015,
-          seat.z - 0.2,
-        ],
-        [Math.PI / 2, 0, 0],
-        [1, 1, 1],
-      );
+        [-0.35, 0.35].forEach((xOffset, sideIndex) => {
+          placePart(
+            sidePanelRef.current!,
+            index * 2 + sideIndex,
+            [seat.x + xOffset, seat.y + 0.34, seat.z + 0.06],
+            [-0.055, 0, 0],
+            [1, 1, 1],
+          );
+          placePart(
+            armCapRef.current!,
+            index * 2 + sideIndex,
+            [
+              seat.x + xOffset,
+              seat.y + cinemaSeatGeometry.armrestAboveFloor,
+              seat.z + 0.05,
+            ],
+            [-0.055, 0, 0],
+            [1, 1, 1],
+          );
+          placePart(
+            legRef.current!,
+            index * 2 + sideIndex,
+            [seat.x + xOffset * 0.72, seat.y + 0.2, seat.z + 0.16],
+            [0, 0, 0],
+            [1, 1, 1],
+          );
+          placePart(
+            footRef.current!,
+            index * 2 + sideIndex,
+            [seat.x + xOffset * 0.72, seat.y + 0.03, seat.z + 0.12],
+            [0, 0, 0],
+            [1, 1, 1],
+          );
+        });
+
+        placePart(
+          cupHolderRef.current!,
+          index,
+          [
+            seat.x + 0.35,
+            seat.y + cinemaSeatGeometry.armrestAboveFloor + 0.015,
+            seat.z - 0.2,
+          ],
+          [Math.PI / 2, 0, 0],
+          [1, 1, 1],
+        );
+      }
     });
 
     [
@@ -1671,7 +1819,7 @@ function Seats({
       mesh.instanceMatrix.needsUpdate = true;
       mesh.computeBoundingSphere();
     });
-  }, [matrix, seatObject, seats]);
+  }, [matrix, seatObject, seats, sceneStyle]);
 
   useLayoutEffect(() => {
     if (

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { SceneStylePicker, type SceneStyle } from "./SceneStylePicker";
 import {
   ArrowRight,
   Buildings,
@@ -226,21 +227,22 @@ export function CinemaFinder() {
   >("idle");
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [preferencesReady, setPreferencesReady] = useState(false);
-  const [sceneStyle, setSceneStyle] = useState<"classic" | "snowy_greek">("classic");
+  const [sceneStyle, setSceneStyle] = useState<SceneStyle>(() => {
+    if (typeof window !== "undefined") {
+      const savedStyle = window.localStorage.getItem("zuonaar-cinema-theme-style");
+      if (savedStyle) return savedStyle as SceneStyle;
+    }
+    return "classic";
+  });
 
   const city =
     citySummaries.find((item) => item.name === cityName) ?? defaultCity;
 
-  useEffect(() => {
-    const savedStyle = window.localStorage.getItem("zuonaar-cinema-theme-style");
-    if (savedStyle === "snowy_greek" || savedStyle === "classic") {
-      setSceneStyle(savedStyle);
-    }
-  }, []);
-
-  const handleSelectStyle = (style: "classic" | "snowy_greek") => {
+  const handleSelectStyle = (style: SceneStyle) => {
     setSceneStyle(style);
-    window.localStorage.setItem("zuonaar-cinema-theme-style", style);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("zuonaar-cinema-theme-style", style);
+    }
   };
 
   useEffect(() => {
@@ -381,25 +383,11 @@ export function CinemaFinder() {
           </p>
         </div>
 
-        <div className="theme-style-picker-bar">
-          <span className="theme-picker-title">选择 3D 影场风格：</span>
-          <div className="theme-picker-pills">
-            <button
-              type="button"
-              className={`theme-pill ${sceneStyle === "classic" ? "is-active" : ""}`}
-              onClick={() => handleSelectStyle("classic")}
-            >
-              🏛️ 经典现代影厅
-            </button>
-            <button
-              type="button"
-              className={`theme-pill ${sceneStyle === "snowy_greek" ? "is-active" : ""}`}
-              onClick={() => handleSelectStyle("snowy_greek")}
-            >
-              ❄️ 古希腊雪山露天影院
-            </button>
-          </div>
-        </div>
+        <SceneStylePicker
+          currentStyle={sceneStyle}
+          onSelectStyle={handleSelectStyle}
+          variant="card_grid"
+        />
       </section>
 
       <section className="finder-workspace">

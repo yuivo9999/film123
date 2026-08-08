@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { CinemaScene } from "./CinemaScene";
+import { SceneStylePicker, type SceneStyle } from "./SceneStylePicker";
 import {
   ArrowLeft,
   ArrowsIn,
@@ -272,18 +273,19 @@ export function CinemaExperience({
   const [deviceTimeStr, setDeviceTimeStr] = useState<string>("");
   const [batteryLevel, setBatteryLevel] = useState<number | null>(88);
   const [isCharging, setIsCharging] = useState<boolean>(false);
-  const [sceneStyle, setSceneStyle] = useState<"classic" | "snowy_greek">("classic");
-
-  useEffect(() => {
-    const savedStyle = window.localStorage.getItem("zuonaar-cinema-theme-style");
-    if (savedStyle === "snowy_greek" || savedStyle === "classic") {
-      setSceneStyle(savedStyle);
+  const [sceneStyle, setSceneStyle] = useState<SceneStyle>(() => {
+    if (typeof window !== "undefined") {
+      const savedStyle = window.localStorage.getItem("zuonaar-cinema-theme-style");
+      if (savedStyle) return savedStyle as SceneStyle;
     }
-  }, []);
+    return "classic";
+  });
 
-  const handleSelectSceneStyle = (style: "classic" | "snowy_greek") => {
+  const handleSelectSceneStyle = (style: SceneStyle) => {
     setSceneStyle(style);
-    window.localStorage.setItem("zuonaar-cinema-theme-style", style);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("zuonaar-cinema-theme-style", style);
+    }
   };
 
   useEffect(() => {
@@ -473,25 +475,11 @@ export function CinemaExperience({
           </strong>
         </Link>
 
-        <div className="topbar-style-switcher">
-          <span className="topbar-style-label hidden sm:inline">影厅风格:</span>
-          <button
-            type="button"
-            className={`topbar-style-btn ${sceneStyle === "classic" ? "is-active" : ""}`}
-            onClick={() => handleSelectSceneStyle("classic")}
-            title="切换为 经典现代影厅"
-          >
-            🏛️ 经典影厅
-          </button>
-          <button
-            type="button"
-            className={`topbar-style-btn ${sceneStyle === "snowy_greek" ? "is-active" : ""}`}
-            onClick={() => handleSelectSceneStyle("snowy_greek")}
-            title="切换为 古希腊雪山露天影院"
-          >
-            ❄️ 雪山露天影院
-          </button>
-        </div>
+        <SceneStylePicker
+          currentStyle={sceneStyle}
+          onSelectStyle={handleSelectSceneStyle}
+          variant="topbar"
+        />
       </header>
 
       <section
