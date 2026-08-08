@@ -452,13 +452,13 @@ export function CinemaExperience({
     auditoriums.find((item) => item.id === auditoriumId) ?? auditoriums[0];
 
   const auditorium = useMemo(() => {
-    if (!isCustomMode && !customScreen.enabled) return rawAuditorium;
+    if (!isCustomMode) return rawAuditorium;
     const w = customScreen.width > 0 ? customScreen.width : 22;
     const h = customScreen.height > 0 ? customScreen.height : 12;
     const offset = typeof customScreen.distanceOffset === "number" ? customScreen.distanceOffset : 0;
     return {
       ...rawAuditorium,
-      name: isCustomMode || customScreen.enabled ? `自定义银幕影厅 (${w.toFixed(1)}×${h.toFixed(1)}m)` : rawAuditorium.name,
+      name: `自定义银幕影厅 (${w.toFixed(1)}×${h.toFixed(1)}m)`,
       screenWidth: w,
       screenHeight: h,
       firstRowZ: rawAuditorium.firstRowZ + offset,
