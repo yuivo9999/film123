@@ -1208,34 +1208,21 @@ function UrbanPlazaBackdrop({ auditorium }: { auditorium: Auditorium }) {
         <meshBasicMaterial color="#fef08a" toneMapped={false} />
       </mesh>
 
-      {/* Background Central High-rise Towers (高层现代玻璃幕墙摩天大楼群) */}
+      {/* Background Central High-rise Towers (高层公寓与摩天大楼群) */}
       {[
-        { x: -55, h: 78, w: 22, d: 18, color: "#020617", neon: "#38bdf8" },
-        { x: -32, h: 90, w: 20, d: 20, color: "#020617", neon: "#818cf8" },
-        { x: -12, h: 68, w: 18, d: 16, color: "#020617", neon: "#f59e0b" },
-        { x: 12, h: 84, w: 22, d: 18, color: "#020617", neon: "#06b6d4" },
-        { x: 35, h: 72, w: 20, d: 20, color: "#020617", neon: "#38bdf8" },
-        { x: 58, h: 88, w: 24, d: 22, color: "#020617", neon: "#c084fc" },
+        { x: -55, h: 78, w: 22, d: 18, color: "#1e293b" },
+        { x: -32, h: 90, w: 20, d: 20, color: "#0f172a" },
+        { x: -12, h: 68, w: 18, d: 16, color: "#1e293b" },
+        { x: 12, h: 84, w: 22, d: 18, color: "#0f172a" },
+        { x: 35, h: 72, w: 20, d: 20, color: "#1e293b" },
+        { x: 58, h: 88, w: 24, d: 22, color: "#0f172a" },
       ].map((b, idx) => (
         <group key={idx} position={[b.x, b.h / 2 - 2, baseZ - 52]}>
-          {/* Main Building Body - Obsidian Glass Metal Curtain Wall */}
+          {/* Main Building Body */}
           <mesh>
             <boxGeometry args={[b.w, b.h, b.d]} />
-            <meshStandardMaterial
-              color={b.color}
-              roughness={0.2}
-              metalness={0.85}
-              emissive="#030712"
-              emissiveIntensity={0.2}
-            />
+            <meshStandardMaterial color={b.color} roughness={0.7} metalness={0.2} />
           </mesh>
-          {/* Vertical Architectural Neon Edge Strips */}
-          {[-b.w / 2 + 0.1, b.w / 2 - 0.1].map((nx, nIdx) => (
-            <mesh key={nIdx} position={[nx, 0, b.d / 2 + 0.1]}>
-              <boxGeometry args={[0.25, b.h * 0.95, 0.15]} />
-              <meshBasicMaterial color={b.neon} toneMapped={false} />
-            </mesh>
-          ))}
           {/* Illuminated Windows (发光窗户方格矩阵) */}
           {Array.from({ length: 8 }, (_, rowIdx) => (
             <group key={rowIdx} position={[0, -b.h / 2 + 10 + rowIdx * 8, b.d / 2 + 0.1]}>
@@ -1252,11 +1239,6 @@ function UrbanPlazaBackdrop({ auditorium }: { auditorium: Auditorium }) {
               ))}
             </group>
           ))}
-          {/* Rooftop Glowing Neon Crown Band */}
-          <mesh position={[0, b.h / 2 - 0.4, b.d / 2 + 0.1]}>
-            <planeGeometry args={[b.w * 0.9, 1.2]} />
-            <meshBasicMaterial color={b.neon} toneMapped={false} />
-          </mesh>
           {/* Roof Beacon Light (楼顶警示红灯) */}
           <mesh position={[0, b.h / 2 + 0.8, 0]}>
             <sphereGeometry args={[0.8, 16, 16]} />
@@ -1265,28 +1247,17 @@ function UrbanPlazaBackdrop({ auditorium }: { auditorium: Auditorium }) {
         </group>
       ))}
 
-      {/* Left Flanking Apartment Skyscrapers (左侧近景现代奢华大厦) */}
+      {/* Left Flanking Apartment Skyscrapers (左侧近景大厦公寓) */}
       {[
-        { x: -75, zOff: -20, h: 95, w: 26, neon: "#38bdf8" },
-        { x: -82, zOff: 10, h: 85, w: 28, neon: "#a855f7" },
+        { x: -75, zOff: -20, h: 95, w: 26 },
+        { x: -82, zOff: 10, h: 85, w: 28 },
       ].map((b, idx) => (
         <group key={`left-b-${idx}`} position={[b.x, b.h / 2 - 2, baseZ + b.zOff]}>
           <mesh>
             <boxGeometry args={[b.w, b.h, 24]} />
-            <meshStandardMaterial
-              color="#020617"
-              roughness={0.2}
-              metalness={0.85}
-              emissive="#030712"
-              emissiveIntensity={0.2}
-            />
+            <meshStandardMaterial color="#0f172a" roughness={0.8} />
           </mesh>
-          {/* Vertical Neon Edges Facing Inner Plaza */}
-          <mesh position={[b.w / 2 + 0.1, 0, 11.9]}>
-            <boxGeometry args={[0.2, b.h * 0.95, 0.2]} />
-            <meshBasicMaterial color={b.neon} toneMapped={false} />
-          </mesh>
-          {/* Flanking Windows Facing Inner Plaza */}
+          {/* Flanking Windows */}
           {Array.from({ length: 9 }, (_, rIdx) => (
             <group key={rIdx} position={[b.w / 2 + 0.1, -b.h / 2 + 12 + rIdx * 8, 0]} rotation={[0, Math.PI / 2, 0]}>
               {[-6, 0, 6].map((wx, cIdx) => (
@@ -1295,7 +1266,7 @@ function UrbanPlazaBackdrop({ auditorium }: { auditorium: Auditorium }) {
                   <meshBasicMaterial
                     color={cIdx % 2 === 0 ? "#fef08a" : "#bae6fd"}
                     transparent
-                    opacity={0.85}
+                    opacity={0.8}
                     toneMapped={false}
                   />
                 </mesh>
@@ -1305,28 +1276,17 @@ function UrbanPlazaBackdrop({ auditorium }: { auditorium: Auditorium }) {
         </group>
       ))}
 
-      {/* Right Flanking Apartment Skyscrapers (右侧近景现代奢华大厦) */}
+      {/* Right Flanking Apartment Skyscrapers (右侧近景大厦公寓) */}
       {[
-        { x: 75, zOff: -20, h: 98, w: 26, neon: "#06b6d4" },
-        { x: 82, zOff: 10, h: 88, w: 28, neon: "#f59e0b" },
+        { x: 75, zOff: -20, h: 98, w: 26 },
+        { x: 82, zOff: 10, h: 88, w: 28 },
       ].map((b, idx) => (
         <group key={`right-b-${idx}`} position={[b.x, b.h / 2 - 2, baseZ + b.zOff]}>
           <mesh>
             <boxGeometry args={[b.w, b.h, 24]} />
-            <meshStandardMaterial
-              color="#020617"
-              roughness={0.2}
-              metalness={0.85}
-              emissive="#030712"
-              emissiveIntensity={0.2}
-            />
+            <meshStandardMaterial color="#0f172a" roughness={0.8} />
           </mesh>
-          {/* Vertical Neon Edges Facing Inner Plaza */}
-          <mesh position={[-b.w / 2 - 0.1, 0, 11.9]}>
-            <boxGeometry args={[0.2, b.h * 0.95, 0.2]} />
-            <meshBasicMaterial color={b.neon} toneMapped={false} />
-          </mesh>
-          {/* Flanking Windows Facing Inner Plaza */}
+          {/* Flanking Windows */}
           {Array.from({ length: 9 }, (_, rIdx) => (
             <group key={rIdx} position={[-b.w / 2 - 0.1, -b.h / 2 + 12 + rIdx * 8, 0]} rotation={[0, -Math.PI / 2, 0]}>
               {[-6, 0, 6].map((wx, cIdx) => (
@@ -1335,7 +1295,7 @@ function UrbanPlazaBackdrop({ auditorium }: { auditorium: Auditorium }) {
                   <meshBasicMaterial
                     color={cIdx % 2 === 0 ? "#fef08a" : "#93c5fd"}
                     transparent
-                    opacity={0.85}
+                    opacity={0.8}
                     toneMapped={false}
                   />
                 </mesh>
@@ -1498,327 +1458,6 @@ function SnowMountainBackdrop({ auditorium }: { auditorium: Auditorium }) {
   );
 }
 
-function DriveInBackdrop({ auditorium }: { auditorium: Auditorium }) {
-  const baseZ = auditorium.screenZ;
-
-  return (
-    <group>
-      {/* Deep Midnight Sky */}
-      <mesh position={[0, 48, baseZ - 65]}>
-        <planeGeometry args={[320, 150]} />
-        <meshBasicMaterial color="#050814" toneMapped={false} />
-      </mesh>
-
-      {/* Wilds Moon */}
-      <mesh position={[50, 58, baseZ - 60]}>
-        <sphereGeometry args={[6.5, 32, 32]} />
-        <meshBasicMaterial color="#fef9c3" toneMapped={false} />
-      </mesh>
-
-      {/* Grass Ground Plane */}
-      <mesh position={[0, -0.2, 0]} receiveShadow>
-        <planeGeometry args={[300, 300]} rotation={[-Math.PI / 2, 0, 0]} />
-        <meshStandardMaterial color="#142115" roughness={0.9} />
-      </mesh>
-
-      {/* Retro American Drive-in Automobiles (复古美式轿车与皮卡) */}
-      {[
-        { x: -18, z: baseZ + 22, color: "#ef4444", rot: 0.12 }, // Red Sedan
-        { x: 20, z: baseZ + 26, color: "#3b82f6", rot: -0.15 }, // Blue Cruiser
-        { x: -28, z: baseZ + 38, color: "#eab308", rot: 0.2 }, // Yellow Truck
-        { x: 30, z: baseZ + 42, color: "#8b5cf6", rot: -0.18 }, // Purple Vintage
-      ].map((car, idx) => (
-        <group key={idx} position={[car.x, 0.9, car.z]} rotation={[0, car.rot, 0]}>
-          {/* Car Lower Body */}
-          <mesh position={[0, 0.4, 0]}>
-            <boxGeometry args={[3.2, 1.2, 6.2]} />
-            <meshStandardMaterial color={car.color} roughness={0.3} metalness={0.7} />
-          </mesh>
-          {/* Car Cabin Top */}
-          <mesh position={[0, 1.2, -0.4]}>
-            <boxGeometry args={[2.8, 0.9, 3.4]} />
-            <meshStandardMaterial color="#1e293b" roughness={0.2} metalness={0.8} />
-          </mesh>
-          {/* Car Windshield Glass */}
-          <mesh position={[0, 1.25, -2.02]} rotation={[0.2, 0, 0]}>
-            <planeGeometry args={[2.5, 0.8]} />
-            <meshBasicMaterial color="#cbd5e1" transparent opacity={0.6} toneMapped={false} />
-          </mesh>
-          {/* Car Headlights (发光车灯与向前投影光束) */}
-          {[-1.1, 1.1].map((hx, hIdx) => (
-            <group key={hIdx} position={[hx, 0.4, -3.1]}>
-              <mesh>
-                <sphereGeometry args={[0.22, 16, 16]} />
-                <meshBasicMaterial color="#fef08a" toneMapped={false} />
-              </mesh>
-              {/* Headlight Beam Light */}
-              <spotLight
-                position={[0, 0, 0]}
-                target-position={[0, -0.5, -12]}
-                color="#fef08a"
-                intensity={12}
-                angle={0.4}
-                penumbra={0.5}
-                distance={24}
-              />
-            </group>
-          ))}
-          {/* Car Wheels */}
-          {[-1.4, 1.4].map((wx, wIdx) =>
-            [-1.8, 1.8].map((wz, wzIdx) => (
-              <mesh key={`${wIdx}-${wzIdx}`} position={[wx, -0.2, wz]} rotation={[0, 0, Math.PI / 2]}>
-                <cylinderGeometry args={[0.45, 0.45, 0.35, 16]} />
-                <meshStandardMaterial color="#0f172a" roughness={0.9} />
-              </mesh>
-            )),
-          )}
-        </group>
-      ))}
-
-      {/* Screen Wooden/Steel Support Posts (木质/钢构银幕拉线支架) */}
-      {[-auditorium.screenWidth / 2 - 1.2, auditorium.screenWidth / 2 + 1.2].map((x, sideIdx) => (
-        <group key={sideIdx} position={[x, 10, baseZ + 0.2]}>
-          <mesh>
-            <cylinderGeometry args={[0.3, 0.35, 24, 16]} />
-            <meshStandardMaterial color="#334155" roughness={0.8} />
-          </mesh>
-          {/* Support Diagonal Cables */}
-          <mesh position={[x > 0 ? 3 : -3, -4, -4]} rotation={[0.4, 0, x > 0 ? -0.3 : 0.3]}>
-            <cylinderGeometry args={[0.04, 0.04, 16, 8]} />
-            <meshStandardMaterial color="#94a3b8" metalness={0.9} />
-          </mesh>
-        </group>
-      ))}
-
-      {/* Festoon String Lights across cars (露天灯串微光) */}
-      {Array.from({ length: 12 }, (_, i) => {
-        const x = -18 + i * 3.2;
-        const y = 8.5 - Math.sin((i / 12) * Math.PI) * 1.5;
-        return (
-          <mesh key={i} position={[x, y, baseZ + 15]}>
-            <sphereGeometry args={[0.15, 12, 12]} />
-            <meshBasicMaterial color="#fef08a" toneMapped={false} />
-          </mesh>
-        );
-      })}
-    </group>
-  );
-}
-
-function CyberpunkBackdrop({ auditorium }: { auditorium: Auditorium }) {
-  const baseZ = auditorium.screenZ;
-
-  return (
-    <group>
-      {/* Cyber City Dark Sky */}
-      <mesh position={[0, 48, baseZ - 65]}>
-        <planeGeometry args={[320, 150]} />
-        <meshBasicMaterial color="#030712" toneMapped={false} />
-      </mesh>
-
-      {/* Cyber Grid Ground Floor */}
-      <mesh position={[0, -0.15, 0]}>
-        <planeGeometry args={[260, 260]} rotation={[-Math.PI / 2, 0, 0]} />
-        <meshStandardMaterial color="#090d16" roughness={0.2} metalness={0.9} />
-      </mesh>
-
-      {/* Cyberpunk Skyscrapers with Neon Edge Strips */}
-      {[
-        { x: -52, h: 90, w: 22, color: "#ec4899" }, // Neon Pink
-        { x: -30, h: 105, w: 24, color: "#06b6d4" }, // Neon Cyan
-        { x: 30, h: 110, w: 24, color: "#3b82f6" }, // Neon Blue
-        { x: 52, h: 88, w: 22, color: "#a855f7" }, // Neon Purple
-      ].map((b, idx) => (
-        <group key={idx} position={[b.x, b.h / 2 - 4, baseZ - 50]}>
-          <mesh>
-            <boxGeometry args={[b.w, b.h, 22]} />
-            <meshStandardMaterial color="#0b0f19" roughness={0.5} metalness={0.8} />
-          </mesh>
-          {/* Vertical Neon Edge Lighting Strip */}
-          {[-b.w / 2, b.w / 2].map((nx, nIdx) => (
-            <mesh key={nIdx} position={[nx, 0, 11.1]}>
-              <boxGeometry args={[0.3, b.h * 0.9, 0.2]} />
-              <meshBasicMaterial color={b.color} toneMapped={false} />
-            </mesh>
-          ))}
-          {/* Holographic Glowing Ad Boards (赛博全息霓虹广告牌) */}
-          <mesh position={[0, b.h * 0.1, 11.2]}>
-            <planeGeometry args={[b.w * 0.7, 12]} />
-            <meshBasicMaterial color={b.color} transparent opacity={0.7} toneMapped={false} />
-          </mesh>
-        </group>
-      ))}
-
-      {/* High-Tech Industrial Metal Truss Frame around Screen */}
-      <group position={[0, auditorium.screenBottom + auditorium.screenHeight / 2, baseZ + 0.1]}>
-        {[-auditorium.screenWidth / 2 - 1.4, auditorium.screenWidth / 2 + 1.4].map((x, sideIdx) => (
-          <group key={sideIdx} position={[x, 0, 0]}>
-            <mesh>
-              <boxGeometry args={[0.8, auditorium.screenHeight + 3, 0.8]} />
-              <meshStandardMaterial color="#1e293b" metalness={0.9} roughness={0.2} />
-            </mesh>
-            {/* Cyber Cyan Neon Vertical Strip */}
-            <mesh position={[0, 0, 0.42]}>
-              <boxGeometry args={[0.2, auditorium.screenHeight + 2.8, 0.1]} />
-              <meshBasicMaterial color="#06b6d4" toneMapped={false} />
-            </mesh>
-          </group>
-        ))}
-      </group>
-
-      {/* Laser Light Beams across scene */}
-      {[-12, 12].map((lx, lIdx) => (
-        <spotLight
-          key={lIdx}
-          position={[lx, 35, baseZ - 20]}
-          target-position={[lx * -1.5, 0, baseZ + 30]}
-          color={lIdx === 0 ? "#ec4899" : "#06b6d4"}
-          intensity={25}
-          angle={0.15}
-          penumbra={0.2}
-          distance={80}
-        />
-      ))}
-    </group>
-  );
-}
-
-function ForestCampBackdrop({ auditorium }: { auditorium: Auditorium }) {
-  const baseZ = auditorium.screenZ;
-
-  return (
-    <group>
-      {/* Deep Forest Midnight Sky */}
-      <mesh position={[0, 48, baseZ - 65]}>
-        <planeGeometry args={[320, 150]} />
-        <meshBasicMaterial color="#020d08" toneMapped={false} />
-      </mesh>
-
-      {/* Forest Floor Grass & Soil */}
-      <mesh position={[0, -0.2, 0]} receiveShadow>
-        <planeGeometry args={[300, 300]} rotation={[-Math.PI / 2, 0, 0]} />
-        <meshStandardMaterial color="#0a1a0d" roughness={0.95} />
-      </mesh>
-
-      {/* Pine Trees Surround (松林剪影与自然围合) */}
-      {[
-        { x: -45, z: baseZ - 20, s: 1.4 },
-        { x: -35, z: baseZ - 10, s: 1.1 },
-        { x: -28, z: baseZ + 15, s: 1.2 },
-        { x: -38, z: baseZ + 35, s: 1.5 },
-        { x: 45, z: baseZ - 20, s: 1.3 },
-        { x: 35, z: baseZ - 10, s: 1.2 },
-        { x: 28, z: baseZ + 15, s: 1.1 },
-        { x: 38, z: baseZ + 35, s: 1.4 },
-      ].map((tree, idx) => (
-        <group key={idx} position={[tree.x, 0, tree.z]} scale={[tree.s, tree.s, tree.s]}>
-          {/* Tree Trunk */}
-          <mesh position={[0, 4, 0]}>
-            <cylinderGeometry args={[0.4, 0.6, 8, 12]} />
-            <meshStandardMaterial color="#1c1917" roughness={0.9} />
-          </mesh>
-          {/* Tree Pine Foliage */}
-          <mesh position={[0, 11, 0]}>
-            <coneGeometry args={[4.2, 10, 8]} />
-            <meshStandardMaterial color="#062c19" roughness={0.8} />
-          </mesh>
-          <mesh position={[0, 15, 0]}>
-            <coneGeometry args={[3.2, 8, 8]} />
-            <meshStandardMaterial color="#062c19" roughness={0.8} />
-          </mesh>
-        </group>
-      ))}
-
-      {/* Central Campfire (森林营地篝火) */}
-      <group position={[0, 0.2, baseZ + 28]}>
-        {/* Campfire Log Circle */}
-        {Array.from({ length: 6 }, (_, i) => {
-          const ang = (i / 6) * Math.PI * 2;
-          return (
-            <mesh key={i} position={[Math.cos(ang) * 0.8, 0.1, Math.sin(ang) * 0.8]} rotation={[0, ang, 0]}>
-              <boxGeometry args={[0.3, 0.2, 0.8]} />
-              <meshStandardMaterial color="#292524" roughness={0.9} />
-            </mesh>
-          );
-        })}
-        {/* Glowing Ember Center */}
-        <mesh position={[0, 0.25, 0]}>
-          <sphereGeometry args={[0.45, 16, 16]} />
-          <meshBasicMaterial color="#f97316" toneMapped={false} />
-        </mesh>
-        {/* Campfire Warm Flickering Light */}
-        <pointLight position={[0, 0.8, 0]} color="#f97316" intensity={18} distance={22} decay={2} />
-      </group>
-
-      {/* Floating Green Fireflies (夜空漫天流萤) */}
-      {Array.from({ length: 24 }, (_, i) => {
-        const fx = ((i * 17) % 50) - 25;
-        const fy = 2 + ((i * 11) % 12);
-        const fz = baseZ + ((i * 13) % 40);
-        return (
-          <mesh key={i} position={[fx, fy, fz]}>
-            <sphereGeometry args={[0.12, 8, 8]} />
-            <meshBasicMaterial color="#4ade80" toneMapped={false} />
-          </mesh>
-        );
-      })}
-    </group>
-  );
-}
-
-function SpaceStationBackdrop({ auditorium }: { auditorium: Auditorium }) {
-  const baseZ = auditorium.screenZ;
-
-  return (
-    <group>
-      {/* Deep Space Cosmic Void */}
-      <mesh position={[0, 48, baseZ - 65]}>
-        <planeGeometry args={[320, 150]} />
-        <meshBasicMaterial color="#02040a" toneMapped={false} />
-      </mesh>
-
-      {/* Photorealistic Earth Globe orbiting below in cosmic space */}
-      <group position={[0, -68, baseZ - 80]} rotation={[0.4, 0.2, 0.1]}>
-        <mesh>
-          <sphereGeometry args={[82, 64, 64]} />
-          <meshStandardMaterial color="#1d4ed8" roughness={0.4} metalness={0.1} />
-        </mesh>
-        {/* Atmospheric Blue Cloud Halo */}
-        <mesh>
-          <sphereGeometry args={[84.5, 48, 48]} />
-          <meshBasicMaterial color="#60a5fa" transparent opacity={0.25} toneMapped={false} />
-        </mesh>
-      </group>
-
-      {/* Futuristic Space Station Curved Dome Arch Windows */}
-      {[-45, 45].map((x, sideIdx) => (
-        <group key={sideIdx} position={[x, 22, baseZ - 40]}>
-          {/* Metallic Hull Arch Pillars */}
-          <mesh>
-            <cylinderGeometry args={[1.5, 2.2, 65, 16]} />
-            <meshStandardMaterial color="#e2e8f0" metalness={0.8} roughness={0.2} />
-          </mesh>
-          {/* Glowing Status Indicator Lights */}
-          {[-15, 0, 15].map((ly, lIdx) => (
-            <mesh key={lIdx} position={[0, ly, 1.6]}>
-              <boxGeometry args={[0.4, 1.2, 0.2]} />
-              <meshBasicMaterial color="#f59e0b" toneMapped={false} />
-            </mesh>
-          ))}
-        </group>
-      ))}
-
-      {/* Floating Holographic Sci-Fi HUD Control Panels */}
-      {[-24, 24].map((hx, hIdx) => (
-        <mesh key={hIdx} position={[hx, 18, baseZ - 25]} rotation={[0, hx > 0 ? -0.4 : 0.4, 0]}>
-          <planeGeometry args={[8, 5]} />
-          <meshBasicMaterial color="#f59e0b" transparent opacity={0.35} toneMapped={false} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
 function AuditoriumArchitecture({
   auditorium,
   filmMode,
@@ -1836,20 +1475,13 @@ function AuditoriumArchitecture({
   const lastRowZ =
     auditorium.firstRowZ +
     (auditorium.rowCount - 1) * auditorium.rowSpacing;
-  const roomDepth = Math.max(
-    30,
-    lastRowZ - auditorium.screenZ + 14
-  );
+  const roomDepth = lastRowZ - auditorium.screenZ + 10;
   const roomCenterZ = auditorium.screenZ + roomDepth / 2 - 2;
   const roomHeight = Math.max(
-    16,
-    auditorium.screenBottom + auditorium.screenHeight + 3.8,
+    15,
+    auditorium.screenBottom + auditorium.screenHeight + 2.2,
   );
-  const roomWidth = Math.max(
-    36,
-    auditorium.seatingWidth + 6,
-    auditorium.screenWidth + 8.5
-  );
+  const roomWidth = Math.max(34, auditorium.seatingWidth + 5);
   const halfRoomWidth = roomWidth / 2;
   const platformWidth = roomWidth - 5;
   const aisleLightX = Math.max(14.5, halfRoomWidth - 2.5);
@@ -2759,18 +2391,6 @@ function SceneContents(
       )}
       {sceneStyle === "snowy_greek" && (
         <SnowMountainBackdrop auditorium={auditorium} />
-      )}
-      {sceneStyle === "drive_in" && (
-        <DriveInBackdrop auditorium={auditorium} />
-      )}
-      {sceneStyle === "cyberpunk" && (
-        <CyberpunkBackdrop auditorium={auditorium} />
-      )}
-      {sceneStyle === "forest_camp" && (
-        <ForestCampBackdrop auditorium={auditorium} />
-      )}
-      {sceneStyle === "space_station" && (
-        <SpaceStationBackdrop auditorium={auditorium} />
       )}
       <Screen
         auditorium={auditorium}

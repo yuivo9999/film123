@@ -22,7 +22,6 @@ import {
   SpeakerHigh,
   SpeakerLow,
   SpeakerSlash,
-  Sliders,
   Upload,
 } from "@phosphor-icons/react";
 import {
@@ -97,7 +96,6 @@ function TopSeatPicker({
   metrics,
   onSelectAuditorium,
   onSelectSeat,
-  onOpenCustomizer,
 }: {
   auditorium: Auditorium;
   cinemaAuditoriums: Auditorium[];
@@ -106,7 +104,6 @@ function TopSeatPicker({
   metrics: ReturnType<typeof getSeatMetrics>;
   onSelectAuditorium: (id: string) => void;
   onSelectSeat: (seat: Seat) => void;
-  onOpenCustomizer?: () => void;
 }) {
   const [activeRow, setActiveRow] = useState<number | null>(null);
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
@@ -158,17 +155,6 @@ function TopSeatPicker({
           <span className="hidden md:inline">
             距银幕: <strong>{metrics.distance.toFixed(1)}m</strong>
           </span>
-          {onOpenCustomizer && (
-            <button
-              type="button"
-              className="top-seat-toggle-btn text-amber-300 border-amber-500/40 hover:bg-amber-500/20"
-              onClick={onOpenCustomizer}
-              title="自定义银幕高宽与第一排距离"
-            >
-              <Sliders size={14} className="inline mr-0.5 text-amber-400" />
-              <span>微调银幕与影厅</span>
-            </button>
-          )}
           <button
             type="button"
             className="top-seat-toggle-btn"
@@ -411,27 +397,8 @@ export function CinemaExperience({
     setDuration(dur);
   }, []);
 
-  const [customScreenWidth, setCustomScreenWidth] = useState<number | null>(null);
-  const [customScreenHeight, setCustomScreenHeight] = useState<number | null>(null);
-  const [customScreenDistance, setCustomScreenDistance] = useState<number | null>(null);
-  const [isScreenCustomizerOpen, setIsScreenCustomizerOpen] = useState<boolean>(false);
-
-  const rawAuditorium =
+  const auditorium =
     auditoriums.find((item) => item.id === auditoriumId) ?? auditoriums[0];
-
-  const auditorium = useMemo<Auditorium>(() => {
-    const w = customScreenWidth ?? rawAuditorium.screenWidth;
-    const h = customScreenHeight ?? rawAuditorium.screenHeight;
-    const dist = customScreenDistance ?? Math.abs(rawAuditorium.screenZ);
-
-    return {
-      ...rawAuditorium,
-      screenWidth: w,
-      screenHeight: h,
-      screenZ: -dist,
-    };
-  }, [rawAuditorium, customScreenWidth, customScreenHeight, customScreenDistance]);
-
   const cinema =
     cinemas.find((item) => item.id === auditorium.cinemaId) ?? cinemas[0];
   const cinemaAuditoriums = auditoriums.filter(
@@ -515,17 +482,6 @@ export function CinemaExperience({
         />
       </header>
 
-      <TopSeatPickerBar
-        auditorium={auditorium}
-        cinemaAuditoriums={cinemaAuditoriums}
-        seats={seats}
-        selectedSeat={selectedSeat}
-        metrics={metrics}
-        onSelectAuditorium={switchAuditorium}
-        onSelectSeat={handleSeatSelect}
-        onOpenCustomizer={() => setIsScreenCustomizerOpen(true)}
-      />
-
       <section
         className={`experience-layout ${
           isSeatPanelCollapsed ? "is-panel-collapsed" : ""
@@ -592,18 +548,6 @@ export function CinemaExperience({
                 <span>{videoTitle}</span>
               </div>
               <div className="hud-actions-group">
-                <button
-                  type="button"
-                  className="hud-btn-file-upload text-amber-300 border-amber-500/40"
-                  onClick={() => {
-                    setIsScreenCustomizerOpen(true);
-                    resetControlsTimer();
-                  }}
-                  title="自定义银幕高宽与离第一排座椅距离"
-                >
-                  <Sliders size={14} className="text-amber-400" />
-                  <span>微调银幕/距离</span>
-                </button>
                 <label className="hud-btn-file-upload">
                   <Upload size={14} />
                   <span>选择本地视频</span>
@@ -1173,141 +1117,6 @@ export function CinemaExperience({
           </div>
         </aside>
       </section>
-
-      {isScreenCustomizerOpen && (
-        <div
-          className="customizer-modal-overlay"
-          onClick={() => setIsScreenCustomizerOpen(false)}
-        >
-          <div
-            className="customizer-modal-card"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="customizer-modal-header">
-              <div className="customizer-modal-title">
-                <Sliders size={20} className="text-amber-400" />
-                <span>自定义银幕尺寸与第一排座椅距离</span>
-              </div>
-              <button
-                type="button"
-                className="customizer-modal-close"
-                onClick={() => setIsScreenCustomizerOpen(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="customizer-anti-clipping-badge">
-              <span className="badge-icon">🛡️</span>
-              <span className="badge-text">
-                <strong>3D 室内防穿模保障：</strong>
-                系统内置自适应建筑壁障算法。当您增减银幕高宽或远近时，室内影厅的深红软包侧墙、穹顶天花板、发光筒灯与吸音主排将全自动重构扩展，保证100%无穿模漏光！
-              </span>
-            </div>
-
-            <div className="customizer-controls-list">
-              {/* Screen Width Slider */}
-              <div className="customizer-control-item">
-                <div className="control-label-row">
-                  <span>银幕宽度 (Screen Width)</span>
-                  <strong className="control-value">
-                    {auditorium.screenWidth.toFixed(1)} 米
-                  </strong>
-                </div>
-                <input
-                  type="range"
-                  min="8"
-                  max="36"
-                  step="0.5"
-                  value={auditorium.screenWidth}
-                  onChange={(e) =>
-                    setCustomScreenWidth(parseFloat(e.target.value))
-                  }
-                  className="customizer-range-slider"
-                />
-                <div className="control-ticks">
-                  <span>8m (小型巨幕)</span>
-                  <span>18.5m (标准IMAX)</span>
-                  <span>36m (极致超阔巨幕)</span>
-                </div>
-              </div>
-
-              {/* Screen Height Slider */}
-              <div className="customizer-control-item">
-                <div className="control-label-row">
-                  <span>银幕高度 (Screen Height)</span>
-                  <strong className="control-value">
-                    {auditorium.screenHeight.toFixed(1)} 米
-                  </strong>
-                </div>
-                <input
-                  type="range"
-                  min="4"
-                  max="20"
-                  step="0.5"
-                  value={auditorium.screenHeight}
-                  onChange={(e) =>
-                    setCustomScreenHeight(parseFloat(e.target.value))
-                  }
-                  className="customizer-range-slider"
-                />
-                <div className="control-ticks">
-                  <span>4m</span>
-                  <span>10.2m (标准)</span>
-                  <span>20m (极高穹顶)</span>
-                </div>
-              </div>
-
-              {/* Screen Distance Slider */}
-              <div className="customizer-control-item">
-                <div className="control-label-row">
-                  <span>银幕离第1排座椅距离 (Screen Distance to Row 1)</span>
-                  <strong className="control-value">
-                    {Math.abs(auditorium.screenZ).toFixed(1)} 米
-                  </strong>
-                </div>
-                <input
-                  type="range"
-                  min="3"
-                  max="25"
-                  step="0.5"
-                  value={Math.abs(auditorium.screenZ)}
-                  onChange={(e) =>
-                    setCustomScreenDistance(parseFloat(e.target.value))
-                  }
-                  className="customizer-range-slider"
-                />
-                <div className="control-ticks">
-                  <span>3m (紧贴第1排)</span>
-                  <span>8.5m (标准纵深)</span>
-                  <span>25m (旷野遥远距离)</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="customizer-footer-actions">
-              <button
-                type="button"
-                className="customizer-btn-reset"
-                onClick={() => {
-                  setCustomScreenWidth(null);
-                  setCustomScreenHeight(null);
-                  setCustomScreenDistance(null);
-                }}
-              >
-                重置默认规格
-              </button>
-              <button
-                type="button"
-                className="customizer-btn-apply"
-                onClick={() => setIsScreenCustomizerOpen(false)}
-              >
-                完成设置并实时观影
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </main>
   );
 }
