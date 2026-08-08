@@ -6,6 +6,7 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
   AmbientLight,
+  BackSide,
   CanvasTexture,
   Color,
   Euler,
@@ -16,6 +17,7 @@ import {
   Matrix4,
   MeshBasicMaterial,
   MeshPhysicalMaterial,
+  MeshStandardMaterial,
   Object3D,
   PerspectiveCamera,
   PlaneGeometry,
@@ -1475,6 +1477,24 @@ function SnowMountainBackdrop({ auditorium }: { auditorium: Auditorium }) {
         <meshStandardMaterial color="#f1f5f9" roughness={0.6} />
       </mesh>
 
+      {/* Flanking Ancient Greek Marble Columns */}
+      {[-auditorium.screenWidth / 2 - 1.2, auditorium.screenWidth / 2 + 1.2].map((x, sideIdx) => (
+        <group key={sideIdx} position={[x, auditorium.screenBottom + auditorium.screenHeight / 2, baseZ + 0.1]}>
+          <mesh>
+            <cylinderGeometry args={[0.45, 0.55, auditorium.screenHeight + 3, 16]} />
+            <meshStandardMaterial color="#f8fafc" roughness={0.3} metalness={0.05} />
+          </mesh>
+          <mesh position={[0, (auditorium.screenHeight + 3) / 2 + 0.3, 0]}>
+            <boxGeometry args={[1.3, 0.6, 1.3]} />
+            <meshStandardMaterial color="#f1f5f9" roughness={0.3} />
+          </mesh>
+          <mesh position={[0, -(auditorium.screenHeight + 3) / 2 - 0.3, 0]}>
+            <boxGeometry args={[1.4, 0.6, 1.4]} />
+            <meshStandardMaterial color="#e2e8f0" roughness={0.3} />
+          </mesh>
+        </group>
+      ))}
+
       {/* Sun Light Source for Snow Mountain Peaks */}
       <directionalLight
         position={[40, 60, baseZ - 10]}
@@ -1771,6 +1791,159 @@ function SpaceStationBackdrop({ auditorium }: { auditorium: Auditorium }) {
   );
 }
 
+function SkySphere({
+  sceneStyle,
+  filmMode,
+  auditorium,
+}: {
+  sceneStyle: string;
+  filmMode: boolean;
+  auditorium: Auditorium;
+}) {
+  const texture = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 512;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    const w = canvas.width;
+    const h = canvas.height;
+
+    if (!filmMode) {
+      // === DAYTIME / LIGHTS ON SKY ===
+      if (sceneStyle === "snowy_greek") {
+        // Clear Alpine Azure Sky
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, "#0284c7");
+        grad.addColorStop(0.4, "#38bdf8");
+        grad.addColorStop(0.8, "#bae6fd");
+        grad.addColorStop(1, "#f0f9ff");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+
+        // Sun disc
+        const sun = ctx.createRadialGradient(w * 0.7, h * 0.25, 5, w * 0.7, h * 0.25, 120);
+        sun.addColorStop(0, "#ffffff");
+        sun.addColorStop(0.25, "#fef08a");
+        sun.addColorStop(1, "rgba(254, 240, 138, 0)");
+        ctx.fillStyle = sun;
+        ctx.fillRect(0, 0, w, h);
+      } else if (sceneStyle === "cyberpunk") {
+        // Sunset Magenta & Neon Purple Horizon
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, "#1e1b4b");
+        grad.addColorStop(0.35, "#581c87");
+        grad.addColorStop(0.7, "#be185d");
+        grad.addColorStop(1, "#0284c7");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+      } else if (sceneStyle === "space_station") {
+        // Space Orbit Curve
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, "#020617");
+        grad.addColorStop(0.45, "#0f172a");
+        grad.addColorStop(0.75, "#0284c7");
+        grad.addColorStop(1, "#7dd3fc");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+      } else {
+        // General Day Sky (drive_in, forest_camp, urban_plaza)
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, "#0369a1");
+        grad.addColorStop(0.45, "#38bdf8");
+        grad.addColorStop(0.8, "#fef08a");
+        grad.addColorStop(1, "#f97316");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      // Fluffy clouds
+      ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
+      for (let i = 0; i < 20; i++) {
+        const cx = (i * 157) % w;
+        const cy = h * 0.35 + ((i * 47) % (h * 0.25));
+        const cr = 20 + (i % 6) * 12;
+        ctx.beginPath();
+        ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else {
+      // === NIGHTTIME STARRY SKY ===
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      if (sceneStyle === "cyberpunk") {
+        grad.addColorStop(0, "#030206");
+        grad.addColorStop(0.65, "#0f0a1c");
+        grad.addColorStop(1, "#2e1065");
+      } else if (sceneStyle === "space_station") {
+        grad.addColorStop(0, "#010206");
+        grad.addColorStop(0.6, "#030712");
+        grad.addColorStop(1, "#0369a1");
+      } else {
+        grad.addColorStop(0, "#020617");
+        grad.addColorStop(0.6, "#0b132b");
+        grad.addColorStop(1, "#1e293b");
+      }
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Nebula / Cosmic Glow
+      const neb = ctx.createRadialGradient(w * 0.35, h * 0.3, 10, w * 0.35, h * 0.3, 260);
+      neb.addColorStop(0, sceneStyle === "cyberpunk" ? "rgba(236, 72, 153, 0.3)" : "rgba(56, 189, 248, 0.22)");
+      neb.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = neb;
+      ctx.fillRect(0, 0, w, h);
+
+      // Moon
+      const mx = w * 0.28;
+      const my = h * 0.28;
+      const moonGlow = ctx.createRadialGradient(mx, my, 4, mx, my, 65);
+      moonGlow.addColorStop(0, "#ffffff");
+      moonGlow.addColorStop(0.2, "#fef08a");
+      moonGlow.addColorStop(1, "rgba(254, 240, 138, 0)");
+      ctx.fillStyle = moonGlow;
+      ctx.beginPath();
+      ctx.arc(mx, my, 65, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#fffbe1";
+      ctx.beginPath();
+      ctx.arc(mx, my, 13, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Twinkling Stars
+      const colors = ["#ffffff", "#fef08a", "#bae6fd", "#e0e7ff", "#fbcfe8"];
+      for (let i = 0; i < 750; i++) {
+        const sx = pseudoRandom(i * 3) * w;
+        const sy = pseudoRandom(i * 3 + 1) * h * 0.75;
+        const sr = 0.5 + pseudoRandom(i * 3 + 2) * 2;
+        const a = 0.35 + pseudoRandom(i * 7) * 0.65;
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.globalAlpha = a;
+        ctx.beginPath();
+        ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1.0;
+    }
+
+    const tex = new CanvasTexture(canvas);
+    tex.wrapS = RepeatWrapping;
+    tex.wrapT = RepeatWrapping;
+    return tex;
+  }, [sceneStyle, filmMode]);
+
+  if (sceneStyle === "classic" || !texture) return null;
+
+  return (
+    <mesh position={[0, 10, auditorium.screenZ + 20]}>
+      <sphereGeometry args={[320, 64, 64]} />
+      <meshBasicMaterial map={texture} side={BackSide} toneMapped={false} />
+    </mesh>
+  );
+}
+
 function AuditoriumArchitecture({
   auditorium,
   filmMode,
@@ -1811,100 +1984,129 @@ function AuditoriumArchitecture({
     );
   });
 
-  if (sceneStyle === "urban_plaza") {
-    return <UrbanPlazaBackdrop auditorium={auditorium} />;
-  }
-  if (sceneStyle === "snowy_greek") {
-    return <SnowMountainBackdrop auditorium={auditorium} />;
-  }
-  if (sceneStyle === "drive_in") {
-    return <DriveInBackdrop auditorium={auditorium} />;
-  }
-  if (sceneStyle === "cyberpunk") {
-    return <CyberpunkBackdrop auditorium={auditorium} />;
-  }
-  if (sceneStyle === "forest_camp") {
-    return <ForestCampBackdrop auditorium={auditorium} />;
-  }
-  if (sceneStyle === "space_station") {
-    return <SpaceStationBackdrop auditorium={auditorium} />;
-  }
+  const platformColor = useMemo(() => {
+    if (sceneStyle === "snowy_greek") return "#f1f5f9";
+    if (sceneStyle === "cyberpunk") return "#0f172a";
+    if (sceneStyle === "forest_camp") return "#3d2616";
+    if (sceneStyle === "drive_in") return "#334155";
+    if (sceneStyle === "space_station") return "#1e293b";
+    if (sceneStyle === "urban_plaza") return "#475569";
+    return "#202329";
+  }, [sceneStyle]);
+
+  const platformRoughness = useMemo(() => {
+    if (sceneStyle === "snowy_greek") return 0.4;
+    if (sceneStyle === "cyberpunk") return 0.2;
+    if (sceneStyle === "space_station") return 0.3;
+    return 0.9;
+  }, [sceneStyle]);
+
+  const groundColor = useMemo(() => {
+    if (sceneStyle === "snowy_greek") return "#cbd5e1";
+    if (sceneStyle === "cyberpunk") return "#08070e";
+    if (sceneStyle === "forest_camp") return "#14532d";
+    if (sceneStyle === "drive_in") return "#1e293b";
+    if (sceneStyle === "space_station") return "#0f172a";
+    if (sceneStyle === "urban_plaza") return "#1e293b";
+    return "#191b1f";
+  }, [sceneStyle]);
 
   return (
     <group>
+      <SkySphere sceneStyle={sceneStyle} filmMode={filmMode} auditorium={auditorium} />
+
+      {/* Render theme backdrop */}
+      {sceneStyle === "urban_plaza" && <UrbanPlazaBackdrop auditorium={auditorium} />}
+      {sceneStyle === "snowy_greek" && <SnowMountainBackdrop auditorium={auditorium} />}
+      {sceneStyle === "drive_in" && <DriveInBackdrop auditorium={auditorium} />}
+      {sceneStyle === "cyberpunk" && <CyberpunkBackdrop auditorium={auditorium} />}
+      {sceneStyle === "forest_camp" && <ForestCampBackdrop auditorium={auditorium} />}
+      {sceneStyle === "space_station" && <SpaceStationBackdrop auditorium={auditorium} />}
+
+      {/* Ground plane */}
       <mesh position={[0, -0.5, roomCenterZ]} receiveShadow>
         <boxGeometry args={[roomWidth, 1, roomDepth]} />
-        <meshStandardMaterial color="#191b1f" roughness={0.95} />
+        <meshStandardMaterial color={groundColor} roughness={0.9} />
       </mesh>
 
+      {/* Tiered Seating Platforms for ALL themes */}
       {Array.from({ length: auditorium.rowCount }, (_, row) => {
-        const y =
-          cinemaSeatGeometry.rowFloorBaseY + row * auditorium.rowRise;
+        const y = cinemaSeatGeometry.rowFloorBaseY + row * auditorium.rowRise;
         const z = auditorium.firstRowZ + row * auditorium.rowSpacing;
         return (
-          <mesh key={row} position={[0, y - 0.37, z + 0.1]} receiveShadow>
-            <boxGeometry
-              args={[platformWidth, 0.72, auditorium.rowSpacing + 0.08]}
-            />
-            <meshStandardMaterial color="#202329" roughness={0.98} />
-          </mesh>
+          <group key={row}>
+            <mesh position={[0, y - 0.37, z + 0.1]} receiveShadow>
+              <boxGeometry args={[platformWidth, 0.72, auditorium.rowSpacing + 0.08]} />
+              <meshStandardMaterial color={platformColor} roughness={platformRoughness} />
+            </mesh>
+
+            {/* Glowing Edge Strips for Cyberpunk & Space Station */}
+            {sceneStyle === "cyberpunk" && (
+              <mesh position={[0, y - 0.01, z - auditorium.rowSpacing / 2 + 0.05]}>
+                <boxGeometry args={[platformWidth, 0.04, 0.08]} />
+                <meshBasicMaterial color="#00f0ff" toneMapped={false} />
+              </mesh>
+            )}
+            {sceneStyle === "space_station" && (
+              <mesh position={[0, y - 0.01, z - auditorium.rowSpacing / 2 + 0.05]}>
+                <boxGeometry args={[platformWidth, 0.04, 0.08]} />
+                <meshBasicMaterial color="#38bdf8" toneMapped={false} />
+              </mesh>
+            )}
+          </group>
         );
       })}
 
-      <mesh
-        position={[-halfRoomWidth, roomHeight / 2, roomCenterZ]}
-        receiveShadow
-      >
-        <boxGeometry args={[1.2, roomHeight, roomDepth]} />
-        <meshStandardMaterial color="#23262b" roughness={0.92} />
-      </mesh>
-      <mesh
-        position={[halfRoomWidth, roomHeight / 2, roomCenterZ]}
-        receiveShadow
-      >
-        <boxGeometry args={[1.2, roomHeight, roomDepth]} />
-        <meshStandardMaterial color="#23262b" roughness={0.92} />
-      </mesh>
-      <mesh position={[0, roomHeight + 0.6, roomCenterZ]} receiveShadow>
-        <boxGeometry args={[roomWidth + 1.2, 1.2, roomDepth]} />
-        <meshStandardMaterial color="#101114" roughness={0.96} />
-      </mesh>
-      <mesh
-        position={[0, roomHeight / 2, lastRowZ + 5]}
-        receiveShadow
-      >
-        <boxGeometry args={[roomWidth, roomHeight, 1]} />
-        <meshStandardMaterial color="#202227" roughness={0.96} />
-      </mesh>
-
-      {[-aisleLightX, aisleLightX].map((x) =>
-        Array.from({ length: 8 }, (_, index) => (
-          <mesh
-            key={`${x}-${index}`}
-            position={[
-              x,
-              1 + index * 0.72,
-              auditorium.firstRowZ + index * auditorium.rowSpacing + 0.85,
-            ]}
-          >
-            <boxGeometry args={[0.8, 0.06, 0.34]} />
-            <primitive object={aisleLightMaterial} attach="material" />
+      {/* Indoor walls & panels only for Classic theme */}
+      {sceneStyle === "classic" && (
+        <>
+          <mesh position={[-halfRoomWidth, roomHeight / 2, roomCenterZ]} receiveShadow>
+            <boxGeometry args={[1.2, roomHeight, roomDepth]} />
+            <meshStandardMaterial color="#23262b" roughness={0.92} />
           </mesh>
-        )),
+          <mesh position={[halfRoomWidth, roomHeight / 2, roomCenterZ]} receiveShadow>
+            <boxGeometry args={[1.2, roomHeight, roomDepth]} />
+            <meshStandardMaterial color="#23262b" roughness={0.92} />
+          </mesh>
+          <mesh position={[0, roomHeight + 0.6, roomCenterZ]} receiveShadow>
+            <boxGeometry args={[roomWidth + 1.2, 1.2, roomDepth]} />
+            <meshStandardMaterial color="#101114" roughness={0.96} />
+          </mesh>
+          <mesh position={[0, roomHeight / 2, lastRowZ + 5]} receiveShadow>
+            <boxGeometry args={[roomWidth, roomHeight, 1]} />
+            <meshStandardMaterial color="#202227" roughness={0.96} />
+          </mesh>
+
+          {[-aisleLightX, aisleLightX].map((x) =>
+            Array.from({ length: 8 }, (_, index) => (
+              <mesh
+                key={`${x}-${index}`}
+                position={[
+                  x,
+                  1 + index * 0.72,
+                  auditorium.firstRowZ + index * auditorium.rowSpacing + 0.85,
+                ]}
+              >
+                <boxGeometry args={[0.8, 0.06, 0.34]} />
+                <primitive object={aisleLightMaterial} attach="material" />
+              </mesh>
+            )),
+          )}
+
+          {[-acousticPanelX, acousticPanelX].map((x) => (
+            <group key={x}>
+              <mesh position={[x, 6.8, -5]}>
+                <boxGeometry args={[0.08, 7.8, 17]} />
+                <meshStandardMaterial color="#27282b" roughness={0.98} />
+              </mesh>
+              <mesh position={[x, 6.8, 12]}>
+                <boxGeometry args={[0.08, 7.8, 14]} />
+                <meshStandardMaterial color="#27282b" roughness={0.98} />
+              </mesh>
+            </group>
+          ))}
+        </>
       )}
-
-      {[-acousticPanelX, acousticPanelX].map((x) => (
-        <group key={x}>
-          <mesh position={[x, 6.8, -5]}>
-            <boxGeometry args={[0.08, 7.8, 17]} />
-            <meshStandardMaterial color="#27282b" roughness={0.98} />
-          </mesh>
-          <mesh position={[x, 6.8, 12]}>
-            <boxGeometry args={[0.08, 7.8, 14]} />
-            <meshStandardMaterial color="#27282b" roughness={0.98} />
-          </mesh>
-        </group>
-      ))}
     </group>
   );
 }
@@ -2579,8 +2781,8 @@ function SceneLighting({
             : sceneStyle === "snowy_greek"
               ? "#070d22"
               : "#08090b",
-          20,
-          isMobile ? 60 : 85,
+          sceneStyle === "classic" ? 20 : 150,
+          sceneStyle === "classic" ? (isMobile ? 65 : 90) : 480,
         ]}
       />
       <ambientLight

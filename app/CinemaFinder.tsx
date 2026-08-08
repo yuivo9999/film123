@@ -410,6 +410,15 @@ export function CinemaFinder() {
             />
             <Link
               href="/cinema/auditorium-1?custom=1"
+              onClick={() => {
+                const nextConfig = { ...customScreen, enabled: true };
+                setCustomScreen(nextConfig);
+                try {
+                  localStorage.setItem("custom_screen_config", JSON.stringify(nextConfig));
+                } catch (e) {
+                  console.error(e);
+                }
+              }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all shadow-sm shrink-0"
               title="使用您自定义的银幕与视距尺寸进入 3D 影厅"
             >
