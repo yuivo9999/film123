@@ -57,7 +57,14 @@ type CinemaSceneProps = {
   seats: Seat[];
   selectedSeat: Seat;
   filmMode: boolean;
-  sceneStyle?: "classic" | "snowy_greek";
+  sceneStyle?:
+    | "classic"
+    | "urban_plaza"
+    | "snowy_greek"
+    | "drive_in"
+    | "cyberpunk"
+    | "forest_camp"
+    | "space_station";
   playing: boolean;
   playbackToken: number;
   viewCommand: ViewCommand;
@@ -1173,6 +1180,134 @@ function Screen({
   );
 }
 
+function UrbanPlazaBackdrop({ auditorium }: { auditorium: Auditorium }) {
+  const baseZ = auditorium.screenZ;
+
+  return (
+    <group>
+      {/* City Midnight Sky Canvas */}
+      <mesh position={[0, 45, baseZ - 65]}>
+        <planeGeometry args={[320, 150]} />
+        <meshBasicMaterial color="#080c1a" toneMapped={false} />
+      </mesh>
+
+      {/* Urban Glow Light Pollution Horizon */}
+      <mesh position={[0, 16, baseZ - 64]}>
+        <planeGeometry args={[320, 50]} />
+        <meshBasicMaterial
+          color="#1e293b"
+          transparent
+          opacity={0.6}
+          toneMapped={false}
+        />
+      </mesh>
+
+      {/* City Moon */}
+      <mesh position={[-52, 65, baseZ - 60]}>
+        <sphereGeometry args={[6, 32, 32]} />
+        <meshBasicMaterial color="#fef08a" toneMapped={false} />
+      </mesh>
+
+      {/* Background Central High-rise Towers (高层公寓与摩天大楼群) */}
+      {[
+        { x: -55, h: 78, w: 22, d: 18, color: "#1e293b" },
+        { x: -32, h: 90, w: 20, d: 20, color: "#0f172a" },
+        { x: -12, h: 68, w: 18, d: 16, color: "#1e293b" },
+        { x: 12, h: 84, w: 22, d: 18, color: "#0f172a" },
+        { x: 35, h: 72, w: 20, d: 20, color: "#1e293b" },
+        { x: 58, h: 88, w: 24, d: 22, color: "#0f172a" },
+      ].map((b, idx) => (
+        <group key={idx} position={[b.x, b.h / 2 - 2, baseZ - 52]}>
+          {/* Main Building Body */}
+          <mesh>
+            <boxGeometry args={[b.w, b.h, b.d]} />
+            <meshStandardMaterial color={b.color} roughness={0.7} metalness={0.2} />
+          </mesh>
+          {/* Illuminated Windows (发光窗户方格矩阵) */}
+          {Array.from({ length: 8 }, (_, rowIdx) => (
+            <group key={rowIdx} position={[0, -b.h / 2 + 10 + rowIdx * 8, b.d / 2 + 0.1]}>
+              {[-b.w / 3, 0, b.w / 3].map((wx, colIdx) => (
+                <mesh key={colIdx} position={[wx, 0, 0]}>
+                  <planeGeometry args={[b.w * 0.22, 3.2]} />
+                  <meshBasicMaterial
+                    color={(rowIdx + colIdx) % 3 === 0 ? "#fef08a" : (rowIdx + colIdx) % 2 === 0 ? "#bae6fd" : "#38bdf8"}
+                    transparent
+                    opacity={(rowIdx * 7 + colIdx * 3) % 5 === 0 ? 0.35 : 0.85}
+                    toneMapped={false}
+                  />
+                </mesh>
+              ))}
+            </group>
+          ))}
+          {/* Roof Beacon Light (楼顶警示红灯) */}
+          <mesh position={[0, b.h / 2 + 0.8, 0]}>
+            <sphereGeometry args={[0.8, 16, 16]} />
+            <meshBasicMaterial color="#ef4444" toneMapped={false} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Left Flanking Apartment Skyscrapers (左侧近景大厦公寓) */}
+      {[
+        { x: -75, zOff: -20, h: 95, w: 26 },
+        { x: -82, zOff: 10, h: 85, w: 28 },
+      ].map((b, idx) => (
+        <group key={`left-b-${idx}`} position={[b.x, b.h / 2 - 2, baseZ + b.zOff]}>
+          <mesh>
+            <boxGeometry args={[b.w, b.h, 24]} />
+            <meshStandardMaterial color="#0f172a" roughness={0.8} />
+          </mesh>
+          {/* Flanking Windows */}
+          {Array.from({ length: 9 }, (_, rIdx) => (
+            <group key={rIdx} position={[b.w / 2 + 0.1, -b.h / 2 + 12 + rIdx * 8, 0]} rotation={[0, Math.PI / 2, 0]}>
+              {[-6, 0, 6].map((wx, cIdx) => (
+                <mesh key={cIdx} position={[wx, 0, 0]}>
+                  <planeGeometry args={[3.8, 3.2]} />
+                  <meshBasicMaterial
+                    color={cIdx % 2 === 0 ? "#fef08a" : "#bae6fd"}
+                    transparent
+                    opacity={0.8}
+                    toneMapped={false}
+                  />
+                </mesh>
+              ))}
+            </group>
+          ))}
+        </group>
+      ))}
+
+      {/* Right Flanking Apartment Skyscrapers (右侧近景大厦公寓) */}
+      {[
+        { x: 75, zOff: -20, h: 98, w: 26 },
+        { x: 82, zOff: 10, h: 88, w: 28 },
+      ].map((b, idx) => (
+        <group key={`right-b-${idx}`} position={[b.x, b.h / 2 - 2, baseZ + b.zOff]}>
+          <mesh>
+            <boxGeometry args={[b.w, b.h, 24]} />
+            <meshStandardMaterial color="#0f172a" roughness={0.8} />
+          </mesh>
+          {/* Flanking Windows */}
+          {Array.from({ length: 9 }, (_, rIdx) => (
+            <group key={rIdx} position={[-b.w / 2 - 0.1, -b.h / 2 + 12 + rIdx * 8, 0]} rotation={[0, -Math.PI / 2, 0]}>
+              {[-6, 0, 6].map((wx, cIdx) => (
+                <mesh key={cIdx} position={[wx, 0, 0]}>
+                  <planeGeometry args={[3.8, 3.2]} />
+                  <meshBasicMaterial
+                    color={cIdx % 2 === 0 ? "#fef08a" : "#93c5fd"}
+                    transparent
+                    opacity={0.8}
+                    toneMapped={false}
+                  />
+                </mesh>
+              ))}
+            </group>
+          ))}
+        </group>
+      ))}
+    </group>
+  );
+}
+
 function SnowMountainBackdrop({ auditorium }: { auditorium: Auditorium }) {
   const baseZ = auditorium.screenZ;
 
@@ -1362,6 +1497,83 @@ function AuditoriumArchitecture({
       smoothFactor(delta),
     );
   });
+
+  if (sceneStyle === "urban_plaza") {
+    return (
+      <group>
+        {/* Urban Outdoor Plaza Stone Floor (露天广场花岗岩砖平地) */}
+        <mesh position={[0, -0.2, roomCenterZ]} receiveShadow>
+          <boxGeometry args={[roomWidth * 3, 0.4, roomDepth * 3]} />
+          <meshStandardMaterial color="#1e293b" roughness={0.8} metalness={0.2} />
+        </mesh>
+
+        {/* Plaza Floor Decorative Light Strips (广场地面发光线条) */}
+        {[-platformWidth / 2 - 1, platformWidth / 2 + 1].map((x, idx) => (
+          <mesh key={idx} position={[x, 0.02, roomCenterZ]}>
+            <boxGeometry args={[0.2, 0.04, roomDepth * 1.5]} />
+            <meshBasicMaterial color="#38bdf8" toneMapped={false} />
+          </mesh>
+        ))}
+
+        {/* Flat Seat Bases on Plaza (露天平地座席无阶梯差) */}
+        {Array.from({ length: auditorium.rowCount }, (_, row) => {
+          /* 座椅没有高度区别，只要远近 */
+          const y = 0.0;
+          const z = auditorium.firstRowZ + row * auditorium.rowSpacing;
+          return (
+            <mesh key={row} position={[0, y + 0.01, z]} receiveShadow>
+              <boxGeometry args={[platformWidth + 0.4, 0.02, 0.8]} />
+              <meshStandardMaterial color="#334155" roughness={0.7} />
+            </mesh>
+          );
+        })}
+
+        {/* Outdoor Truss Screen Scaffold Frame (露天广场架起的金属桁架银幕) */}
+        {[-auditorium.screenWidth / 2 - 0.8, auditorium.screenWidth / 2 + 0.8].map((x, sideIdx) => {
+          const colY = auditorium.screenBottom + auditorium.screenHeight / 2;
+          const colHeight = auditorium.screenHeight + 3.2;
+          return (
+            <group key={sideIdx} position={[x, colY, auditorium.screenZ + 0.1]}>
+              {/* Main Vertical Truss Columns */}
+              <mesh position={[-0.2, 0, 0]}>
+                <cylinderGeometry args={[0.08, 0.08, colHeight, 12]} />
+                <meshStandardMaterial color="#94a3b8" metalness={0.8} roughness={0.3} />
+              </mesh>
+              <mesh position={[0.2, 0, 0]}>
+                <cylinderGeometry args={[0.08, 0.08, colHeight, 12]} />
+                <meshStandardMaterial color="#94a3b8" metalness={0.8} roughness={0.3} />
+              </mesh>
+              {/* Heavy Base Block (防风加重脚座) */}
+              <mesh position={[0, -colHeight / 2 - 0.2, 0]}>
+                <boxGeometry args={[1.2, 0.6, 1.2]} />
+                <meshStandardMaterial color="#0f172a" roughness={0.9} />
+              </mesh>
+            </group>
+          );
+        })}
+
+        {/* Top Cross-Truss Beam (顶部横向桁架) */}
+        <mesh position={[0, auditorium.screenBottom + auditorium.screenHeight + 1.4, auditorium.screenZ + 0.1]}>
+          <boxGeometry args={[auditorium.screenWidth + 2.8, 0.4, 0.4]} />
+          <meshStandardMaterial color="#94a3b8" metalness={0.8} roughness={0.3} />
+        </mesh>
+
+        {/* Stage Floodlights hanging from top truss (露天广场舞台投光灯) */}
+        {[-6, -2, 2, 6].map((x, spotIdx) => (
+          <group key={spotIdx} position={[x, auditorium.screenBottom + auditorium.screenHeight + 1.1, auditorium.screenZ + 0.3]}>
+            <mesh>
+              <boxGeometry args={[0.4, 0.3, 0.4]} />
+              <meshStandardMaterial color="#1e293b" />
+            </mesh>
+            <mesh position={[0, -0.2, 0.1]}>
+              <sphereGeometry args={[0.12, 16, 16]} />
+              <meshBasicMaterial color="#38bdf8" toneMapped={false} />
+            </mesh>
+          </group>
+        ))}
+      </group>
+    );
+  }
 
   if (sceneStyle === "snowy_greek") {
     return (
@@ -1656,8 +1868,10 @@ function Seats({
     };
 
     const isGreek = sceneStyle === "snowy_greek";
+    const isFlatFloor = sceneStyle === "urban_plaza";
 
     seats.forEach((seat, index) => {
+      const actualY = isFlatFloor ? 0 : seat.y;
       if (isGreek) {
         // Ancient Greek Stone Bench Seat Pad
         placePart(
@@ -1728,7 +1942,7 @@ function Seats({
           index,
           [
             seat.x,
-            seat.y + cinemaSeatGeometry.cushionCenterAboveFloor,
+            actualY + cinemaSeatGeometry.cushionCenterAboveFloor,
             seat.z - 0.03,
           ],
           [-0.08, 0, 0],
@@ -1739,7 +1953,7 @@ function Seats({
           index,
           [
             seat.x,
-            seat.y + cinemaSeatGeometry.backCenterAboveFloor,
+            actualY + cinemaSeatGeometry.backCenterAboveFloor,
             seat.z + 0.32,
           ],
           [cinemaSeatGeometry.backrestReclineRadians, 0, 0],
@@ -1750,7 +1964,7 @@ function Seats({
           index,
           [
             seat.x,
-            seat.y + cinemaSeatGeometry.backCenterAboveFloor,
+            actualY + cinemaSeatGeometry.backCenterAboveFloor,
             seat.z + 0.23,
           ],
           [cinemaSeatGeometry.backrestReclineRadians, 0, 0],
@@ -1761,7 +1975,7 @@ function Seats({
           placePart(
             sidePanelRef.current!,
             index * 2 + sideIndex,
-            [seat.x + xOffset, seat.y + 0.34, seat.z + 0.06],
+            [seat.x + xOffset, actualY + 0.34, seat.z + 0.06],
             [-0.055, 0, 0],
             [1, 1, 1],
           );
@@ -1770,7 +1984,7 @@ function Seats({
             index * 2 + sideIndex,
             [
               seat.x + xOffset,
-              seat.y + cinemaSeatGeometry.armrestAboveFloor,
+              actualY + cinemaSeatGeometry.armrestAboveFloor,
               seat.z + 0.05,
             ],
             [-0.055, 0, 0],
@@ -1779,14 +1993,14 @@ function Seats({
           placePart(
             legRef.current!,
             index * 2 + sideIndex,
-            [seat.x + xOffset * 0.72, seat.y + 0.2, seat.z + 0.16],
+            [seat.x + xOffset * 0.72, actualY + 0.2, seat.z + 0.16],
             [0, 0, 0],
             [1, 1, 1],
           );
           placePart(
             footRef.current!,
             index * 2 + sideIndex,
-            [seat.x + xOffset * 0.72, seat.y + 0.03, seat.z + 0.12],
+            [seat.x + xOffset * 0.72, actualY + 0.03, seat.z + 0.12],
             [0, 0, 0],
             [1, 1, 1],
           );
@@ -1797,7 +2011,7 @@ function Seats({
           index,
           [
             seat.x + 0.35,
-            seat.y + cinemaSeatGeometry.armrestAboveFloor + 0.015,
+            actualY + cinemaSeatGeometry.armrestAboveFloor + 0.015,
             seat.z - 0.2,
           ],
           [Math.PI / 2, 0, 0],
@@ -2172,6 +2386,9 @@ function SceneContents(
         isMobile={isMobile}
         sceneStyle={sceneStyle}
       />
+      {sceneStyle === "urban_plaza" && (
+        <UrbanPlazaBackdrop auditorium={auditorium} />
+      )}
       {sceneStyle === "snowy_greek" && (
         <SnowMountainBackdrop auditorium={auditorium} />
       )}

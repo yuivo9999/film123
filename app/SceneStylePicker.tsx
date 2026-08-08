@@ -5,6 +5,7 @@ import { Check, CaretDown, Sparkle } from "@phosphor-icons/react";
 
 export type SceneStyle =
   | "classic"
+  | "urban_plaza"
   | "snowy_greek"
   | "drive_in"
   | "cyberpunk"
@@ -30,10 +31,18 @@ export const SCENE_STYLES: SceneStyleOption[] = [
     themeColor: "#d04b43",
   },
   {
+    id: "urban_plaza",
+    icon: "🏙️",
+    name: "都市露天广场影院",
+    subtitle: "高楼公寓夜景环绕 · 金属桁架独立银幕 · 广场平整座席",
+    badge: "都市摩天",
+    themeColor: "#3b82f6",
+  },
+  {
     id: "snowy_greek",
     icon: "❄️",
     name: "古希腊雪山露天影院",
-    subtitle: "阿尔卑斯山脉巨峰 · 千年大理石阶梯长凳",
+    subtitle: "欧洲最高雪山阿尔卑斯 · 千年大理石阶梯长凳",
     badge: "雪山史诗",
     themeColor: "#38bdf8",
   },
