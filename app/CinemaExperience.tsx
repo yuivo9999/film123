@@ -61,7 +61,18 @@ function formatTime(seconds: number): string {
 
 const idleViewCommand = { yaw: 0, pitch: 0, token: 0 };
 type MobilePanelTab = "seats" | "info";
-type FitMode = "contain" | "fill" | "height" | "vertical";
+type FitMode =
+  | "fit_screen"
+  | "original"
+  | "16_9"
+  | "4_9"
+  | "9_16"
+  | "16_10"
+  | "contain"
+  | "fill"
+  | "cover"
+  | "height"
+  | "vertical";
 
 function getPreferredAuditorium(initialAuditoriumId?: string) {
   const requestedAuditorium =
@@ -279,7 +290,7 @@ export function CinemaExperience({
     }
     return 0;
   });
-  const [fitMode, setFitMode] = useState<FitMode>("contain");
+  const [fitMode, setFitMode] = useState<FitMode>("fit_screen");
 
   const handleSetSkipTail = (sec: number) => {
     setSkipTailSeconds(sec);
@@ -797,11 +808,12 @@ export function CinemaExperience({
               <div className="hud-pills-group">
                 <span className="hud-pill-label">画面尺寸:</span>
                 {[
-                  { id: "contain", label: "原始 16:9" },
-                  { id: "fill", label: "拉伸填满 (Fill)" },
-                  { id: "cover", label: "裁切无黑边 (Cover)" },
-                  { id: "height", label: "2.39:1 宽银幕" },
-                  { id: "vertical", label: "9:16 竖屏" },
+                  { id: "fit_screen", label: "符合银幕尺寸" },
+                  { id: "original", label: "原始视频尺寸" },
+                  { id: "16_9", label: "16比9" },
+                  { id: "4_9", label: "4比9" },
+                  { id: "9_16", label: "9比16" },
+                  { id: "16_10", label: "16比10" },
                 ].map((mode) => (
                   <button
                     key={mode.id}
@@ -845,17 +857,17 @@ export function CinemaExperience({
                     type="number"
                     min={0}
                     max={600}
-                    step={1}
+                    step={0.1}
                     value={skipTailSeconds === 0 ? "" : skipTailSeconds}
                     onChange={(e) => {
-                      const val = parseInt(e.target.value, 10);
-                      const newSec = isNaN(val) || val < 0 ? 0 : val;
+                      const val = parseFloat(e.target.value);
+                      const newSec = isNaN(val) || val < 0 ? 0 : Math.round(val * 10) / 10;
                       handleSetSkipTail(newSec);
                       resetControlsTimer();
                     }}
                     placeholder="0"
-                    className="w-10 bg-transparent text-center font-mono text-xs font-bold text-amber-400 outline-none border-b border-amber-500/50 focus:border-amber-400"
-                    title="输入需跳过的片尾末尾秒数，0为不跳过"
+                    className="w-12 bg-transparent text-center font-mono text-xs font-bold text-amber-400 outline-none border-b border-amber-500/50 focus:border-amber-400"
+                    title="支持小数点后一位(例如 1.3, 35.6)，0为不跳过"
                   />
                   <span className="text-[11px] text-slate-300 font-medium select-none">秒</span>
                   {skipTailSeconds > 0 ? (
@@ -876,10 +888,10 @@ export function CinemaExperience({
                 </div>
                 <div className="flex items-center gap-1 ml-1.5">
                   {[
+                    { label: "1.3s", value: 1.3 },
                     { label: "5s", value: 5 },
                     { label: "10s", value: 10 },
-                    { label: "15s", value: 15 },
-                    { label: "30s", value: 30 },
+                    { label: "35.6s", value: 35.6 },
                   ].map((item) => (
                     <button
                       key={item.value}

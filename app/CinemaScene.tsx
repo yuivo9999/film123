@@ -977,55 +977,39 @@ function VideoSurface({
 
   useEffect(() => {
     const vAspect = videoAspect || 16 / 9;
-    const sAspect = screenAspect;
+    const sAspect = screenAspect || 16 / 9;
+
+    let targetAspect = sAspect;
+    if (fitMode === "fit_screen" || fitMode === "contain") {
+      targetAspect = sAspect;
+    } else if (fitMode === "original") {
+      targetAspect = vAspect;
+    } else if (fitMode === "16_9") {
+      targetAspect = 16 / 9;
+    } else if (fitMode === "4_9") {
+      targetAspect = 4 / 9;
+    } else if (fitMode === "9_16" || fitMode === "vertical") {
+      targetAspect = 9 / 16;
+    } else if (fitMode === "16_10") {
+      targetAspect = 16 / 10;
+    } else if (fitMode === "fill") {
+      uniforms.uScale.value = [1.0, 1.0];
+      return;
+    } else if (fitMode === "height" || fitMode === "align_height") {
+      targetAspect = 2.39;
+    } else {
+      targetAspect = vAspect;
+    }
 
     let scaleX = 1.0;
     let scaleY = 1.0;
 
-    if (fitMode === "fill") {
-      // 100% Stretch to fill screen surface with zero black borders
+    if (targetAspect > sAspect) {
       scaleX = 1.0;
-      scaleY = 1.0;
-    } else if (fitMode === "cover") {
-      // Cover full screen surface uniformly without black borders (crop overflow)
-      if (vAspect > sAspect) {
-        scaleX = vAspect / sAspect;
-        scaleY = 1.0;
-      } else {
-        scaleX = 1.0;
-        scaleY = sAspect / vAspect;
-      }
-    } else if (fitMode === "height" || fitMode === "align_height") {
-      // 2.39:1 Cinematic Ultrawide Format
-      const targetAspect = 2.39;
-      if (targetAspect > sAspect) {
-        scaleX = 1.0;
-        scaleY = sAspect / targetAspect;
-      } else {
-        scaleX = targetAspect / sAspect;
-        scaleY = 1.0;
-      }
-    } else if (fitMode === "vertical") {
-      // 9:16 Vertical Short-Video Screen
-      const targetAspect = 9 / 16;
-      if (targetAspect > sAspect) {
-        scaleX = 1.0;
-        scaleY = sAspect / targetAspect;
-      } else {
-        scaleX = targetAspect / sAspect;
-        scaleY = 1.0;
-      }
+      scaleY = sAspect / targetAspect;
     } else {
-      // "contain" / "aspect_fit" (Default): Native video aspect ratio self-adaptation!
-      if (vAspect > sAspect) {
-        // Video is wider than screen frame
-        scaleX = 1.0;
-        scaleY = sAspect / vAspect;
-      } else {
-        // Video is taller or narrower than screen frame (e.g. 16:9, 4:3, or 9:16)
-        scaleX = vAspect / sAspect;
-        scaleY = 1.0;
-      }
+      scaleX = targetAspect / sAspect;
+      scaleY = 1.0;
     }
 
     uniforms.uScale.value = [scaleX, scaleY];
@@ -1559,11 +1543,6 @@ function DriveInBackdrop({ auditorium }: { auditorium: Auditorium }) {
 
   return (
     <group>
-      <mesh position={[0, 45, baseZ - 65]}>
-        <planeGeometry args={[320, 150]} />
-        <meshBasicMaterial color="#040714" toneMapped={false} />
-      </mesh>
-
       <points>
         <bufferGeometry>
           <bufferAttribute
@@ -1630,11 +1609,6 @@ function CyberpunkBackdrop({ auditorium }: { auditorium: Auditorium }) {
 
   return (
     <group>
-      <mesh position={[0, 45, baseZ - 65]}>
-        <planeGeometry args={[320, 150]} />
-        <meshBasicMaterial color="#05030a" toneMapped={false} />
-      </mesh>
-
       {[
         { x: -58, h: 90, w: 24, signColor: "#00f0ff" },
         { x: -35, h: 75, w: 20, signColor: "#ff007f" },
@@ -1691,12 +1665,6 @@ function ForestCampBackdrop({ auditorium }: { auditorium: Auditorium }) {
 
   return (
     <group>
-      {/* Deep Forest Sky Background Canvas */}
-      <mesh position={[0, 45, baseZ - 65]}>
-        <planeGeometry args={[320, 150]} />
-        <meshBasicMaterial color="#061c12" toneMapped={false} />
-      </mesh>
-
       {/* Pine Trees Surroundings */}
       {[
         { x: -38, z: baseZ - 20, s: 1.2 },
@@ -1772,11 +1740,6 @@ function SpaceStationBackdrop({ auditorium }: { auditorium: Auditorium }) {
 
   return (
     <group>
-      <mesh position={[0, 45, baseZ - 65]}>
-        <planeGeometry args={[320, 150]} />
-        <meshBasicMaterial color="#02040a" toneMapped={false} />
-      </mesh>
-
       <group position={[42, 38, baseZ - 52]}>
         <mesh>
           <sphereGeometry args={[28, 32, 32]} />
@@ -1814,6 +1777,12 @@ function SkySphere({
   filmMode: boolean;
   auditorium: Auditorium;
 }) {
+  const lastRowZ =
+    auditorium.firstRowZ +
+    (auditorium.rowCount - 1) * auditorium.rowSpacing;
+  const roomDepth = lastRowZ - auditorium.screenZ + 10;
+  const roomCenterZ = auditorium.screenZ + roomDepth / 2;
+
   const texture = useMemo(() => {
     if (typeof window === "undefined") return null;
     const canvas = document.createElement("canvas");
@@ -1873,18 +1842,18 @@ function SkySphere({
         ctx.fillRect(0, 0, w, h);
       }
 
-      // Fluffy clouds
+      // Fluffy clouds wrapped 360 degrees
       ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
-      for (let i = 0; i < 20; i++) {
-        const cx = (i * 157) % w;
-        const cy = h * 0.35 + ((i * 47) % (h * 0.25));
-        const cr = 20 + (i % 6) * 12;
+      for (let i = 0; i < 40; i++) {
+        const cx = (i * 87) % w;
+        const cy = h * 0.25 + ((i * 37) % (h * 0.35));
+        const cr = 20 + (i % 6) * 14;
         ctx.beginPath();
         ctx.arc(cx, cy, cr, 0, Math.PI * 2);
         ctx.fill();
       }
     } else {
-      // === NIGHTTIME STARRY SKY ===
+      // === NIGHTTIME STARRY SKY DOME (360 DEGREES) ===
       const grad = ctx.createLinearGradient(0, 0, 0, h);
       if (sceneStyle === "cyberpunk") {
         grad.addColorStop(0, "#030206");
@@ -1902,36 +1871,36 @@ function SkySphere({
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, w, h);
 
-      // Nebula / Cosmic Glow
-      const neb = ctx.createRadialGradient(w * 0.35, h * 0.3, 10, w * 0.35, h * 0.3, 260);
-      neb.addColorStop(0, sceneStyle === "cyberpunk" ? "rgba(236, 72, 153, 0.3)" : "rgba(56, 189, 248, 0.22)");
+      // Cosmic Nebula / Milky Way Glow overhead
+      const neb = ctx.createRadialGradient(w * 0.5, h * 0.2, 10, w * 0.5, h * 0.2, 350);
+      neb.addColorStop(0, sceneStyle === "cyberpunk" ? "rgba(236, 72, 153, 0.35)" : "rgba(56, 189, 248, 0.28)");
       neb.addColorStop(1, "rgba(0, 0, 0, 0)");
       ctx.fillStyle = neb;
       ctx.fillRect(0, 0, w, h);
 
       // Moon
-      const mx = w * 0.28;
-      const my = h * 0.28;
-      const moonGlow = ctx.createRadialGradient(mx, my, 4, mx, my, 65);
+      const mx = w * 0.3;
+      const my = h * 0.25;
+      const moonGlow = ctx.createRadialGradient(mx, my, 4, mx, my, 70);
       moonGlow.addColorStop(0, "#ffffff");
       moonGlow.addColorStop(0.2, "#fef08a");
       moonGlow.addColorStop(1, "rgba(254, 240, 138, 0)");
       ctx.fillStyle = moonGlow;
       ctx.beginPath();
-      ctx.arc(mx, my, 65, 0, Math.PI * 2);
+      ctx.arc(mx, my, 70, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.fillStyle = "#fffbe1";
       ctx.beginPath();
-      ctx.arc(mx, my, 13, 0, Math.PI * 2);
+      ctx.arc(mx, my, 14, 0, Math.PI * 2);
       ctx.fill();
 
-      // Twinkling Stars
+      // Twinkling Stars distributed across entire 360° sky dome overhead & behind seats
       const colors = ["#ffffff", "#fef08a", "#bae6fd", "#e0e7ff", "#fbcfe8"];
-      for (let i = 0; i < 750; i++) {
+      for (let i = 0; i < 1200; i++) {
         const sx = pseudoRandom(i * 3) * w;
-        const sy = pseudoRandom(i * 3 + 1) * h * 0.75;
-        const sr = 0.5 + pseudoRandom(i * 3 + 2) * 2;
+        const sy = pseudoRandom(i * 3 + 1) * h * 0.85;
+        const sr = 0.5 + pseudoRandom(i * 3 + 2) * 2.2;
         const a = 0.35 + pseudoRandom(i * 7) * 0.65;
         ctx.fillStyle = colors[i % colors.length];
         ctx.globalAlpha = a;
@@ -1946,13 +1915,13 @@ function SkySphere({
     tex.wrapS = RepeatWrapping;
     tex.wrapT = RepeatWrapping;
     return tex;
-  }, [sceneStyle, filmMode]);
+  }, [sceneStyle, filmMode, auditorium]);
 
   if (sceneStyle === "classic" || !texture) return null;
 
   return (
-    <mesh position={[0, 10, auditorium.screenZ + 20]}>
-      <sphereGeometry args={[320, 64, 64]} />
+    <mesh position={[0, -2, roomCenterZ]}>
+      <sphereGeometry args={[350, 64, 64]} />
       <meshBasicMaterial map={texture} side={BackSide} toneMapped={false} />
     </mesh>
   );
