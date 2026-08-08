@@ -50,7 +50,7 @@ export const SCENE_STYLES: SceneStyleOption[] = [
     id: "drive_in",
     icon: "🌌",
     name: "星空露天汽车影院",
-    subtitle: "旷野璀璨星河 · 复古汽车露天电影场",
+    subtitle: "旷野璀璨星河 · 复古美式汽车露天影场",
     badge: "星光浪漫",
     themeColor: "#a855f7",
   },
@@ -119,13 +119,13 @@ export function SceneStylePicker({
   const handleChoose = (option: SceneStyleOption) => {
     setClickedStyle(option.id);
     onSelectStyle(option.id);
-    setToastMessage(`已开启：${option.icon} ${option.name}`);
+    setToastMessage(`已切换为：${option.icon} ${option.name}`);
     setTimeout(() => {
       setClickedStyle(null);
     }, 400);
     setTimeout(() => {
       setIsOpen(false);
-    }, 200);
+    }, 180);
     setTimeout(() => {
       setToastMessage(null);
     }, 2200);
@@ -137,10 +137,10 @@ export function SceneStylePicker({
         <div className="style-picker-header">
           <span className="style-picker-label">
             <Sparkle size={18} className="text-amber-400 inline mr-1" />
-            3D 影馆场景风格切换 (6大主题)：
+            3D 影馆场景风格切换 (7大精细主题)：
           </span>
           {toastMessage && (
-            <span className="style-picker-toast-badge animate-bounce">
+            <span className="style-picker-toast-badge animate-pulse">
               {toastMessage}
             </span>
           )}
@@ -189,7 +189,9 @@ export function SceneStylePicker({
 
       <button
         type="button"
-        className={`style-picker-trigger ${isOpen ? "is-open" : ""}`}
+        className={`style-picker-trigger ${isOpen ? "is-open" : ""} ${
+          clickedStyle ? "is-active-press" : ""
+        }`}
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
         aria-label={`切换影厅风格，当前：${activeOption.name}`}
@@ -205,7 +207,7 @@ export function SceneStylePicker({
       {isOpen && (
         <div className="style-picker-dropdown-menu" role="menu">
           <div className="dropdown-menu-header">
-            <span>选择 3D 影厅视觉风格 (6种)</span>
+            <span>选择 3D 影厅沉浸视觉风格 (7种主题)</span>
           </div>
           <div className="dropdown-menu-list">
             {SCENE_STYLES.map((option) => {
@@ -245,3 +247,4 @@ export function SceneStylePicker({
     </div>
   );
 }
+
