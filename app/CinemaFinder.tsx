@@ -409,7 +409,7 @@ export function CinemaFinder() {
               variant="header_btn"
             />
             <Link
-              href="/cinema/auditorium-1?custom=1"
+              href="/cinema/hall-0019?custom=1"
               onClick={() => {
                 const nextConfig = { ...customScreen, enabled: true };
                 setCustomScreen(nextConfig);

@@ -217,18 +217,16 @@ export function SceneStylePicker({
                   }`}
                   role="menuitem"
                   onClick={() => handleChoose(option)}
+                  style={{ "--item-theme-color": option.themeColor } as React.CSSProperties}
                 >
                   <span className="item-icon">{option.icon}</span>
                   <div className="item-info">
-                    <div className="item-title-row">
-                      <span className="item-name">{option.name}</span>
-                      <span className="item-badge">{option.badge}</span>
-                    </div>
-                    <span className="item-subtitle">{option.subtitle}</span>
+                    <span className="item-name">{option.name}</span>
                   </div>
+                  <span className="item-badge">{option.badge}</span>
                   {isActive ? (
                     <span className="item-active-check">
-                      <Check size={16} />
+                      <Check size={16} weight="bold" />
                     </span>
                   ) : (
                     <span className="item-hover-indicator" />

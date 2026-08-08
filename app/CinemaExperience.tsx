@@ -547,18 +547,6 @@ export function CinemaExperience({
         }`}
         data-dbd-zone="cinema-workspace"
       >
-        <TopSeatPicker
-          auditorium={auditorium}
-          cinemaAuditoriums={cinemaAuditoriums}
-          seats={seats}
-          selectedSeat={selectedSeat}
-          metrics={metrics}
-          customScreen={customScreen}
-          onUpdateCustomScreen={setCustomScreen}
-          onSelectAuditorium={switchAuditorium}
-          onSelectSeat={selectSeat}
-        />
-
         <div
           className="scene-shell"
           data-dbd-zone="cinema-scene"
@@ -850,30 +838,66 @@ export function CinemaExperience({
                 ))}
               </div>
 
-              <div className="hud-pills-group">
+              <div className="hud-pills-group flex items-center">
                 <span className="hud-pill-label">跳过片尾:</span>
-                {[
-                  { label: "不跳过", value: 0 },
-                  { label: "3秒", value: 3 },
-                  { label: "5秒", value: 5 },
-                  { label: "10秒", value: 10 },
-                  { label: "15秒", value: 15 },
-                  { label: "30秒", value: 30 },
-                ].map((item) => (
-                  <button
-                    key={item.value}
-                    type="button"
-                    className={`hud-pill-btn ${
-                      skipTailSeconds === item.value ? "is-active" : ""
-                    }`}
-                    onClick={() => {
-                      handleSetSkipTail(item.value);
+                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-black/50 rounded-full border border-white/20">
+                  <input
+                    type="number"
+                    min={0}
+                    max={600}
+                    step={1}
+                    value={skipTailSeconds === 0 ? "" : skipTailSeconds}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      const newSec = isNaN(val) || val < 0 ? 0 : val;
+                      handleSetSkipTail(newSec);
                       resetControlsTimer();
                     }}
-                  >
-                    {item.label}
-                  </button>
-                ))}
+                    placeholder="0"
+                    className="w-10 bg-transparent text-center font-mono text-xs font-bold text-amber-400 outline-none border-b border-amber-500/50 focus:border-amber-400"
+                    title="输入需跳过的片尾末尾秒数，0为不跳过"
+                  />
+                  <span className="text-[11px] text-slate-300 font-medium select-none">秒</span>
+                  {skipTailSeconds > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleSetSkipTail(0);
+                        resetControlsTimer();
+                      }}
+                      className="text-[10px] text-amber-300 hover:text-white px-1.5 py-0.2 bg-amber-500/20 hover:bg-amber-500/40 rounded border border-amber-500/30 transition-all"
+                      title="重置为不跳过"
+                    >
+                      清零
+                    </button>
+                  ) : (
+                    <span className="text-[10px] text-slate-400 px-1">(不跳过)</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 ml-1.5">
+                  {[
+                    { label: "5s", value: 5 },
+                    { label: "10s", value: 10 },
+                    { label: "15s", value: 15 },
+                    { label: "30s", value: 30 },
+                  ].map((item) => (
+                    <button
+                      key={item.value}
+                      type="button"
+                      className={`px-1.5 py-0.5 text-[10px] rounded transition-all ${
+                        skipTailSeconds === item.value
+                          ? "bg-amber-500 text-slate-950 font-bold"
+                          : "bg-white/10 text-slate-300 hover:bg-white/20"
+                      }`}
+                      onClick={() => {
+                        handleSetSkipTail(item.value);
+                        resetControlsTimer();
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="hud-pills-group">
