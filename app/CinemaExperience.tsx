@@ -440,14 +440,12 @@ export function CinemaExperience({
     loadCustomScreenConfig(),
   );
 
-  const [isCustomMode, setIsCustomMode] = useState(false);
-
-  useEffect(() => {
+  const [isCustomMode, setIsCustomMode] = useState(() => {
     if (typeof window !== "undefined") {
-      const search = new URLSearchParams(window.location.search);
-      setIsCustomMode(search.get("custom") === "1");
+      return new URLSearchParams(window.location.search).get("custom") === "1";
     }
-  }, []);
+    return false;
+  });
 
   const rawAuditorium =
     auditoriums.find((item) => item.id === auditoriumId) ?? auditoriums[0];

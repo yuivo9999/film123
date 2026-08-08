@@ -28,6 +28,7 @@ import {
   Shape,
   SpotLight,
   SRGBColorSpace,
+  Vector2,
   Vector3,
   VideoTexture,
 } from "three";
@@ -54,7 +55,21 @@ type ViewCommand = {
   token: number;
 };
 
-type FitMode = "contain" | "fill" | "height" | "vertical" | "aspect_fit" | "cover" | "align_height";
+type FitMode =
+  | "fit_screen"
+  | "original"
+  | "16_9"
+  | "4_3"
+  | "4_9"
+  | "9_16"
+  | "16_10"
+  | "contain"
+  | "fill"
+  | "height"
+  | "vertical"
+  | "aspect_fit"
+  | "cover"
+  | "align_height";
 
 type CinemaSceneProps = {
   auditorium: Auditorium;
@@ -748,10 +763,14 @@ function VideoSurface({
     };
 
     video.addEventListener("loadedmetadata", handleLoadedMetadata);
+    video.addEventListener("canplay", handleLoadedMetadata);
+    video.addEventListener("resize", handleLoadedMetadata);
     video.addEventListener("timeupdate", handleTimeUpdate);
 
     return () => {
       video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      video.removeEventListener("canplay", handleLoadedMetadata);
+      video.removeEventListener("resize", handleLoadedMetadata);
       video.removeEventListener("timeupdate", handleTimeUpdate);
     };
   }, [onTimeUpdate, skipTailSeconds]);
@@ -962,10 +981,12 @@ function VideoSurface({
   // Mapping scale & offset for 5 Screen Fit Modes: contain, fill, cover, height, vertical
   const screenAspect = auditorium.screenWidth / auditorium.screenHeight;
 
+  const materialRef = useRef<ShaderMaterial | null>(null);
+
   const [uniforms] = useState(() => ({
     uMap: { value: texture },
-    uScale: { value: [1.0, 1.0] as [number, number] },
-    uOffset: { value: [0.0, 0.0] as [number, number] },
+    uScale: { value: new Vector2(1.0, 1.0) },
+    uOffset: { value: new Vector2(0.0, 0.0) },
   }));
 
   const meshScale = useMemo<[number, number, number]>(() => [1, 1, 1], []);
@@ -994,7 +1015,12 @@ function VideoSurface({
     } else if (fitMode === "16_10") {
       targetAspect = 16 / 10;
     } else if (fitMode === "fill") {
-      uniforms.uScale.value = [1.0, 1.0];
+      if (materialRef.current) {
+        materialRef.current.uniforms.uScale.value.set(1.0, 1.0);
+        materialRef.current.uniformsNeedUpdate = true;
+      } else {
+        uniforms.uScale.value.set(1.0, 1.0);
+      }
       return;
     } else if (fitMode === "height" || fitMode === "align_height") {
       targetAspect = 2.39;
@@ -1013,7 +1039,12 @@ function VideoSurface({
       scaleY = 1.0;
     }
 
-    uniforms.uScale.value = [scaleX, scaleY];
+    if (materialRef.current) {
+      materialRef.current.uniforms.uScale.value.set(scaleX, scaleY);
+      materialRef.current.uniformsNeedUpdate = true;
+    } else {
+      uniforms.uScale.value.set(scaleX, scaleY);
+    }
   }, [fitMode, screenAspect, uniforms, videoAspect]);
 
   const geometry = useMemo(
@@ -1044,6 +1075,7 @@ function VideoSurface({
     >
       <primitive object={geometry} attach="geometry" />
       <shaderMaterial
+        ref={materialRef}
         vertexShader={screenFitVertexShader}
         fragmentShader={screenFitFragmentShader}
         uniforms={uniforms}
