@@ -1208,21 +1208,34 @@ function UrbanPlazaBackdrop({ auditorium }: { auditorium: Auditorium }) {
         <meshBasicMaterial color="#fef08a" toneMapped={false} />
       </mesh>
 
-      {/* Background Central High-rise Towers (高层公寓与摩天大楼群) */}
+      {/* Background Central High-rise Towers (高层现代玻璃幕墙摩天大楼群) */}
       {[
-        { x: -55, h: 78, w: 22, d: 18, color: "#1e293b" },
-        { x: -32, h: 90, w: 20, d: 20, color: "#0f172a" },
-        { x: -12, h: 68, w: 18, d: 16, color: "#1e293b" },
-        { x: 12, h: 84, w: 22, d: 18, color: "#0f172a" },
-        { x: 35, h: 72, w: 20, d: 20, color: "#1e293b" },
-        { x: 58, h: 88, w: 24, d: 22, color: "#0f172a" },
+        { x: -55, h: 78, w: 22, d: 18, color: "#020617", neon: "#38bdf8" },
+        { x: -32, h: 90, w: 20, d: 20, color: "#020617", neon: "#818cf8" },
+        { x: -12, h: 68, w: 18, d: 16, color: "#020617", neon: "#f59e0b" },
+        { x: 12, h: 84, w: 22, d: 18, color: "#020617", neon: "#06b6d4" },
+        { x: 35, h: 72, w: 20, d: 20, color: "#020617", neon: "#38bdf8" },
+        { x: 58, h: 88, w: 24, d: 22, color: "#020617", neon: "#c084fc" },
       ].map((b, idx) => (
         <group key={idx} position={[b.x, b.h / 2 - 2, baseZ - 52]}>
-          {/* Main Building Body */}
+          {/* Main Building Body - Obsidian Glass Metal Curtain Wall */}
           <mesh>
             <boxGeometry args={[b.w, b.h, b.d]} />
-            <meshStandardMaterial color={b.color} roughness={0.7} metalness={0.2} />
+            <meshStandardMaterial
+              color={b.color}
+              roughness={0.2}
+              metalness={0.85}
+              emissive="#030712"
+              emissiveIntensity={0.2}
+            />
           </mesh>
+          {/* Vertical Architectural Neon Edge Strips */}
+          {[-b.w / 2 + 0.1, b.w / 2 - 0.1].map((nx, nIdx) => (
+            <mesh key={nIdx} position={[nx, 0, b.d / 2 + 0.1]}>
+              <boxGeometry args={[0.25, b.h * 0.95, 0.15]} />
+              <meshBasicMaterial color={b.neon} toneMapped={false} />
+            </mesh>
+          ))}
           {/* Illuminated Windows (发光窗户方格矩阵) */}
           {Array.from({ length: 8 }, (_, rowIdx) => (
             <group key={rowIdx} position={[0, -b.h / 2 + 10 + rowIdx * 8, b.d / 2 + 0.1]}>
@@ -1239,6 +1252,11 @@ function UrbanPlazaBackdrop({ auditorium }: { auditorium: Auditorium }) {
               ))}
             </group>
           ))}
+          {/* Rooftop Glowing Neon Crown Band */}
+          <mesh position={[0, b.h / 2 - 0.4, b.d / 2 + 0.1]}>
+            <planeGeometry args={[b.w * 0.9, 1.2]} />
+            <meshBasicMaterial color={b.neon} toneMapped={false} />
+          </mesh>
           {/* Roof Beacon Light (楼顶警示红灯) */}
           <mesh position={[0, b.h / 2 + 0.8, 0]}>
             <sphereGeometry args={[0.8, 16, 16]} />
@@ -1247,17 +1265,28 @@ function UrbanPlazaBackdrop({ auditorium }: { auditorium: Auditorium }) {
         </group>
       ))}
 
-      {/* Left Flanking Apartment Skyscrapers (左侧近景大厦公寓) */}
+      {/* Left Flanking Apartment Skyscrapers (左侧近景现代奢华大厦) */}
       {[
-        { x: -75, zOff: -20, h: 95, w: 26 },
-        { x: -82, zOff: 10, h: 85, w: 28 },
+        { x: -75, zOff: -20, h: 95, w: 26, neon: "#38bdf8" },
+        { x: -82, zOff: 10, h: 85, w: 28, neon: "#a855f7" },
       ].map((b, idx) => (
         <group key={`left-b-${idx}`} position={[b.x, b.h / 2 - 2, baseZ + b.zOff]}>
           <mesh>
             <boxGeometry args={[b.w, b.h, 24]} />
-            <meshStandardMaterial color="#0f172a" roughness={0.8} />
+            <meshStandardMaterial
+              color="#020617"
+              roughness={0.2}
+              metalness={0.85}
+              emissive="#030712"
+              emissiveIntensity={0.2}
+            />
           </mesh>
-          {/* Flanking Windows */}
+          {/* Vertical Neon Edges Facing Inner Plaza */}
+          <mesh position={[b.w / 2 + 0.1, 0, 11.9]}>
+            <boxGeometry args={[0.2, b.h * 0.95, 0.2]} />
+            <meshBasicMaterial color={b.neon} toneMapped={false} />
+          </mesh>
+          {/* Flanking Windows Facing Inner Plaza */}
           {Array.from({ length: 9 }, (_, rIdx) => (
             <group key={rIdx} position={[b.w / 2 + 0.1, -b.h / 2 + 12 + rIdx * 8, 0]} rotation={[0, Math.PI / 2, 0]}>
               {[-6, 0, 6].map((wx, cIdx) => (
@@ -1266,7 +1295,7 @@ function UrbanPlazaBackdrop({ auditorium }: { auditorium: Auditorium }) {
                   <meshBasicMaterial
                     color={cIdx % 2 === 0 ? "#fef08a" : "#bae6fd"}
                     transparent
-                    opacity={0.8}
+                    opacity={0.85}
                     toneMapped={false}
                   />
                 </mesh>
@@ -1276,17 +1305,28 @@ function UrbanPlazaBackdrop({ auditorium }: { auditorium: Auditorium }) {
         </group>
       ))}
 
-      {/* Right Flanking Apartment Skyscrapers (右侧近景大厦公寓) */}
+      {/* Right Flanking Apartment Skyscrapers (右侧近景现代奢华大厦) */}
       {[
-        { x: 75, zOff: -20, h: 98, w: 26 },
-        { x: 82, zOff: 10, h: 88, w: 28 },
+        { x: 75, zOff: -20, h: 98, w: 26, neon: "#06b6d4" },
+        { x: 82, zOff: 10, h: 88, w: 28, neon: "#f59e0b" },
       ].map((b, idx) => (
         <group key={`right-b-${idx}`} position={[b.x, b.h / 2 - 2, baseZ + b.zOff]}>
           <mesh>
             <boxGeometry args={[b.w, b.h, 24]} />
-            <meshStandardMaterial color="#0f172a" roughness={0.8} />
+            <meshStandardMaterial
+              color="#020617"
+              roughness={0.2}
+              metalness={0.85}
+              emissive="#030712"
+              emissiveIntensity={0.2}
+            />
           </mesh>
-          {/* Flanking Windows */}
+          {/* Vertical Neon Edges Facing Inner Plaza */}
+          <mesh position={[-b.w / 2 - 0.1, 0, 11.9]}>
+            <boxGeometry args={[0.2, b.h * 0.95, 0.2]} />
+            <meshBasicMaterial color={b.neon} toneMapped={false} />
+          </mesh>
+          {/* Flanking Windows Facing Inner Plaza */}
           {Array.from({ length: 9 }, (_, rIdx) => (
             <group key={rIdx} position={[-b.w / 2 - 0.1, -b.h / 2 + 12 + rIdx * 8, 0]} rotation={[0, -Math.PI / 2, 0]}>
               {[-6, 0, 6].map((wx, cIdx) => (
@@ -1295,7 +1335,7 @@ function UrbanPlazaBackdrop({ auditorium }: { auditorium: Auditorium }) {
                   <meshBasicMaterial
                     color={cIdx % 2 === 0 ? "#fef08a" : "#93c5fd"}
                     transparent
-                    opacity={0.8}
+                    opacity={0.85}
                     toneMapped={false}
                   />
                 </mesh>
