@@ -85,7 +85,8 @@ type CinemaSceneProps = {
     | "forest_camp"
     | "space_station"
     | "warm_wood_lounge"
-    | "imax_giant";
+    | "imax_giant"
+    | "minimalist_cream";
   playing: boolean;
   playbackToken: number;
   viewCommand: ViewCommand;
@@ -2000,6 +2001,128 @@ function WarmWoodLoungeBackdrop({ auditorium }: { auditorium: Auditorium }) {
   );
 }
 
+function MinimalistCreamBackdrop({ auditorium }: { auditorium: Auditorium }) {
+  const lastRowZ =
+    auditorium.firstRowZ +
+    (auditorium.rowCount - 1) * auditorium.rowSpacing;
+  const roomDepth = lastRowZ - auditorium.screenZ + 12;
+  const roomCenterZ = auditorium.screenZ + roomDepth / 2 - 2;
+  const roomHeight = Math.max(
+    14,
+    auditorium.screenBottom + auditorium.screenHeight + 2.5,
+  );
+  const roomWidth = Math.max(34, auditorium.seatingWidth + 6);
+  const halfRoomWidth = roomWidth / 2;
+  const baseZ = auditorium.screenZ;
+
+  return (
+    <group>
+      {/* Multitiered Angled Cream Ceiling with Concealed Cove Light */}
+      <group position={[0, roomHeight, roomCenterZ]}>
+        {/* Main Upper Slanted Ceiling Plane */}
+        <mesh position={[0, 0.2, 0]} rotation={[0.04, 0, 0]} receiveShadow>
+          <boxGeometry args={[roomWidth + 2, 0.3, roomDepth + 4]} />
+          <meshStandardMaterial color="#e8dfd1" roughness={0.92} />
+        </mesh>
+
+        {/* Lower Angled Step Ceiling Section */}
+        <mesh position={[0, -0.4, -roomDepth * 0.2]} rotation={[-0.08, 0, 0]} receiveShadow>
+          <boxGeometry args={[roomWidth + 0.8, 0.25, roomDepth * 0.55]} />
+          <meshStandardMaterial color="#ded4c5" roughness={0.9} />
+        </mesh>
+
+        {/* Concealed Linear Cove Light Strip between ceiling steps */}
+        <mesh position={[0, -0.52, -roomDepth * 0.45]}>
+          <boxGeometry args={[roomWidth - 1, 0.05, 0.2]} />
+          <meshBasicMaterial color="#fef08a" toneMapped={false} />
+        </mesh>
+        <pointLight
+          position={[0, -0.6, -roomDepth * 0.45]}
+          color="#fde047"
+          intensity={110}
+          distance={18}
+          decay={1.8}
+        />
+      </group>
+
+      {/* Acoustic Fabric Side Walls with Geometric Diagonal Slash Cuts & Hidden Warm LED Strips */}
+      {[-halfRoomWidth, halfRoomWidth].map((x, sideIdx) => {
+        const isRight = sideIdx === 1;
+        const xMult = isRight ? 1 : -1;
+
+        return (
+          <group key={`cream-side-${sideIdx}`}>
+            {/* Main Background Cream Wall */}
+            <mesh position={[x, roomHeight / 2, roomCenterZ]} receiveShadow>
+              <boxGeometry args={[0.4, roomHeight, roomDepth + 4]} />
+              <meshStandardMaterial color="#e2d7c7" roughness={0.92} />
+            </mesh>
+
+            {/* Angular Faceted Acoustic Wall Panels */}
+            {[-roomDepth * 0.3, 0, roomDepth * 0.3].map((zOffset, pIdx) => {
+              const panelZ = roomCenterZ + zOffset;
+              const angleRotZ = isRight ? -0.06 : 0.06;
+              const angleRotY = isRight ? -0.05 : 0.05;
+
+              return (
+                <group key={`panel-${pIdx}`} position={[x - xMult * 0.15, roomHeight * 0.52, panelZ]}>
+                  {/* Facet panel */}
+                  <mesh
+                    rotation={[0.08, angleRotY, angleRotZ]}
+                    receiveShadow
+                    castShadow
+                  >
+                    <boxGeometry args={[0.25, roomHeight * 0.88, roomDepth * 0.28]} />
+                    <meshStandardMaterial color="#ece3d5" roughness={0.88} />
+                  </mesh>
+
+                  {/* Diagonal Glowing LED Light Strip along the panel seam */}
+                  <mesh
+                    position={[-xMult * 0.14, 0, isRight ? 1.2 : -1.2]}
+                    rotation={[0.35, 0, isRight ? -0.15 : 0.15]}
+                  >
+                    <boxGeometry args={[0.05, roomHeight * 0.85, 0.08]} />
+                    <meshBasicMaterial color="#fef08a" toneMapped={false} />
+                  </mesh>
+
+                  {/* Soft Light Point for Warm Wall Reflection */}
+                  <pointLight
+                    position={[-xMult * 0.4, 0, 0]}
+                    color="#fde047"
+                    intensity={65}
+                    distance={12}
+                    decay={2}
+                  />
+                </group>
+              );
+            })}
+          </group>
+        );
+      })}
+
+      {/* Recessed Screen Surround Back Wall */}
+      <group position={[0, roomHeight / 2, baseZ - 0.4]}>
+        {/* Front Recessed Frame */}
+        <mesh receiveShadow>
+          <boxGeometry args={[roomWidth + 1, roomHeight + 1, 0.4]} />
+          <meshStandardMaterial color="#dbcfbe" roughness={0.92} />
+        </mesh>
+        {/* Soft Glowing Frame Border */}
+        <mesh position={[0, 0, 0.22]}>
+          <boxGeometry args={[auditorium.screenWidth + 1.8, auditorium.screenHeight + 1.8, 0.04]} />
+          <meshBasicMaterial color="#fef08a" toneMapped={false} transparent opacity={0.3} />
+        </mesh>
+      </group>
+
+      {/* Polished Micro-cement Floor Front Stage Area */}
+      <mesh position={[0, 0.01, baseZ + 3]} receiveShadow>
+        <planeGeometry args={[roomWidth, 8]} rotation={[-Math.PI / 2, 0, 0]} />
+        <meshStandardMaterial color="#c8c0b2" roughness={0.35} metalness={0.05} />
+      </mesh>
+    </group>
+  );
+}
+
 function ImaxGiantBackdrop({ auditorium }: { auditorium: Auditorium }) {
   const lastRowZ =
     auditorium.firstRowZ +
@@ -2342,6 +2465,7 @@ function AuditoriumArchitecture({
   });
 
   const platformColor = useMemo(() => {
+    if (sceneStyle === "minimalist_cream") return "#c8c0b2";
     if (sceneStyle === "imax_giant") return "#111318";
     if (sceneStyle === "warm_wood_lounge") return "#8c5e34";
     if (sceneStyle === "snowy_greek") return "#f1f5f9";
@@ -2354,6 +2478,7 @@ function AuditoriumArchitecture({
   }, [sceneStyle]);
 
   const platformRoughness = useMemo(() => {
+    if (sceneStyle === "minimalist_cream") return 0.35;
     if (sceneStyle === "imax_giant") return 0.85;
     if (sceneStyle === "warm_wood_lounge") return 0.45;
     if (sceneStyle === "snowy_greek") return 0.4;
@@ -2363,6 +2488,7 @@ function AuditoriumArchitecture({
   }, [sceneStyle]);
 
   const groundColor = useMemo(() => {
+    if (sceneStyle === "minimalist_cream") return "#b8b0a2";
     if (sceneStyle === "imax_giant") return "#090a0e";
     if (sceneStyle === "warm_wood_lounge") return "#784e2a";
     if (sceneStyle === "snowy_greek") return "#cbd5e1";
@@ -2379,6 +2505,7 @@ function AuditoriumArchitecture({
       <SkySphere sceneStyle={sceneStyle} filmMode={filmMode} auditorium={auditorium} />
 
       {/* Render theme backdrop */}
+      {sceneStyle === "minimalist_cream" && <MinimalistCreamBackdrop auditorium={auditorium} />}
       {sceneStyle === "imax_giant" && <ImaxGiantBackdrop auditorium={auditorium} />}
       {sceneStyle === "warm_wood_lounge" && <WarmWoodLoungeBackdrop auditorium={auditorium} />}
       {sceneStyle === "urban_plaza" && <UrbanPlazaBackdrop auditorium={auditorium} />}
@@ -2516,6 +2643,25 @@ function Seats({
     [],
   );
   const seatColors = useMemo(() => {
+    if (sceneStyle === "minimalist_cream") {
+      return {
+        available: {
+          upholstery: new Color("#181a1f"),
+          shell: new Color("#0f1013"),
+          panel: new Color("#252830"),
+        },
+        selected: {
+          upholstery: new Color("#0284c7"),
+          shell: new Color("#0369a1"),
+          panel: new Color("#38bdf8"),
+        },
+        occupied: {
+          upholstery: new Color("#0b0c0e"),
+          shell: new Color("#060708"),
+          panel: new Color("#121417"),
+        },
+      };
+    }
     if (sceneStyle === "imax_giant") {
       return {
         available: {
@@ -3085,6 +3231,7 @@ function SceneLighting({
   const houseSpotRefs = useRef<Array<SpotLight | null>>([]);
   const housePointRef = useRef<PointLight>(null);
   const litBackground = useMemo(() => {
+    if (sceneStyle === "minimalist_cream") return new Color("#30281e");
     if (sceneStyle === "imax_giant") return new Color("#0b0d12");
     if (sceneStyle === "warm_wood_lounge") return new Color("#18110a");
     if (sceneStyle === "snowy_greek") return new Color("#0a1128");
@@ -3096,6 +3243,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const darkBackground = useMemo(() => {
+    if (sceneStyle === "minimalist_cream") return new Color("#16120d");
     if (sceneStyle === "imax_giant") return new Color("#040507");
     if (sceneStyle === "warm_wood_lounge") return new Color("#0c0804");
     if (sceneStyle === "snowy_greek") return new Color("#060b1b");
@@ -3107,6 +3255,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const litFog = useMemo(() => {
+    if (sceneStyle === "minimalist_cream") return new Color("#3a3126");
     if (sceneStyle === "imax_giant") return new Color("#0e1118");
     if (sceneStyle === "warm_wood_lounge") return new Color("#21180e");
     if (sceneStyle === "snowy_greek") return new Color("#0c1535");
@@ -3118,6 +3267,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const darkFog = useMemo(() => {
+    if (sceneStyle === "minimalist_cream") return new Color("#1a1510");
     if (sceneStyle === "imax_giant") return new Color("#050608");
     if (sceneStyle === "warm_wood_lounge") return new Color("#0d0804");
     if (sceneStyle === "snowy_greek") return new Color("#070d22");
@@ -3141,6 +3291,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const darkAmbient = useMemo(() => {
+    if (sceneStyle === "minimalist_cream") return new Color("#713f12");
     if (sceneStyle === "imax_giant") return new Color("#334155");
     if (sceneStyle === "warm_wood_lounge") return new Color("#78350f");
     if (sceneStyle === "snowy_greek") return new Color("#1d4ed8");
@@ -3153,6 +3304,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const skyColor = useMemo(() => {
+    if (sceneStyle === "minimalist_cream") return new Color("#fde047");
     if (sceneStyle === "warm_wood_lounge") return new Color("#fef08a");
     if (sceneStyle === "snowy_greek") return new Color("#38bdf8");
     if (sceneStyle === "drive_in") return new Color("#818cf8");
@@ -3164,6 +3316,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const groundColor = useMemo(() => {
+    if (sceneStyle === "minimalist_cream") return new Color("#d1caa0");
     if (sceneStyle === "warm_wood_lounge") return new Color("#452b14");
     if (sceneStyle === "snowy_greek") return new Color("#0f172a");
     if (sceneStyle === "drive_in") return new Color("#0f172a");
