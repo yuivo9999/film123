@@ -2890,10 +2890,108 @@ a:focus-visible {
   color: #0f172a;
 }
 
-.dropdown-item .item-active-check {
-  color: var(--item-theme-color, #f59e0b);
+/* Camera Perspective Floating Toolbar */
+.camera-perspective-toolbar {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: calc(100% - 32px);
+  pointer-events: auto;
+}
+
+.perspective-title-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(15, 20, 28, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 215, 0, 0.28);
+  border-radius: 20px;
+  color: #e2e8f0;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  width: fit-content;
+}
+
+.perspective-title-badge .current-preset-name {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.perspective-buttons-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  background: rgba(10, 14, 20, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.perspective-btn {
   display: flex;
   align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
+
+.perspective-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #f8fafc;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.perspective-btn.is-active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(217, 119, 6, 0.4));
+  border: 1px solid rgba(245, 158, 11, 0.7);
+  color: #fbbf24;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.25);
+}
+
+.perspective-icon {
+  font-size: 14px;
+}
+
+@media (max-width: 640px) {
+  .camera-perspective-toolbar {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    max-width: none;
+  }
+  .perspective-buttons-list {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+  }
+  .perspective-btn {
+    padding: 5px 9px;
+    font-size: 11px;
+  }
+}
+
 
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CinemaScene } from "./CinemaScene";
+import { CinemaScene, type CameraPreset } from "./CinemaScene";
 import { SceneStylePicker, type SceneStyle } from "./SceneStylePicker";
 import {
   ScreenCustomizerControl,
@@ -13,6 +13,7 @@ import {
   ArrowLeft,
   ArrowsIn,
   ArrowsOut,
+  Camera,
   CaretDown,
   CaretLeft,
   CaretRight,
@@ -60,6 +61,50 @@ function formatTime(seconds: number): string {
 }
 
 const idleViewCommand = { yaw: 0, pitch: 0, token: 0 };
+
+export const CAMERA_PRESETS: {
+  id: CameraPreset;
+  icon: string;
+  name: string;
+  desc: string;
+}[] = [
+  {
+    id: "seat",
+    icon: "💺",
+    name: "观影座位",
+    desc: "第一人称视角（当前选择的座位）",
+  },
+  {
+    id: "rear_center",
+    icon: "🏛️",
+    name: "后排全景",
+    desc: "后排高视角，俯瞰全厅排座与完整银幕",
+  },
+  {
+    id: "front_row",
+    icon: "📐",
+    name: "前排仰视",
+    desc: "前排低角度仰视，感受震撼巨幕包围感",
+  },
+  {
+    id: "stage_view",
+    icon: "🎭",
+    name: "银幕反向",
+    desc: "舞台/银幕视角，反向观察全厅阶梯排座与空间结构",
+  },
+  {
+    id: "birds_eye",
+    icon: "🦅",
+    name: "空间鸟瞰",
+    desc: "顶部鸟瞰视角，直观呈现影厅空间纵深与长宽比例",
+  },
+  {
+    id: "side_angle",
+    icon: "📐",
+    name: "侧翼斜角",
+    desc: "侧向45度透视，全面展示影厅坡度与壁侧结构",
+  },
+];
 type MobilePanelTab = "seats" | "info";
 type FitMode =
   | "fit_screen"
@@ -258,6 +303,7 @@ export function CinemaExperience({
   const [selectedSeatId, setSelectedSeatId] = useState(() =>
     getDefaultSeatId(initialAuditorium.id),
   );
+  const [cameraPreset, setCameraPreset] = useState<CameraPreset>("seat");
   const [filmMode, setFilmMode] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [playbackToken, setPlaybackToken] = useState(0);
@@ -509,6 +555,7 @@ export function CinemaExperience({
   const selectSeat = (seat: Seat) => {
     if (seat.status === "occupied") return;
     setSelectedSeatId(seat.id);
+    setCameraPreset("seat");
   };
 
   const toggleFilmMode = () => {
@@ -577,12 +624,43 @@ export function CinemaExperience({
             </div>
           )}
 
+          {/* Floating Camera Perspective Toolbar */}
+          <div
+            className="camera-perspective-toolbar"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="perspective-title-badge">
+              <Camera size={14} className="text-amber-400" />
+              <span>影厅视角漫游：</span>
+              <span className="current-preset-name">
+                {CAMERA_PRESETS.find((p) => p.id === cameraPreset)?.name || "观影座位"}
+              </span>
+            </div>
+            <div className="perspective-buttons-list">
+              {CAMERA_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className={`perspective-btn ${
+                    cameraPreset === preset.id ? "is-active" : ""
+                  }`}
+                  onClick={() => setCameraPreset(preset.id)}
+                  title={`${preset.name} - ${preset.desc}`}
+                >
+                  <span className="perspective-icon">{preset.icon}</span>
+                  <span className="perspective-label">{preset.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {isMounted ? (
             <CinemaScene
               auditorium={auditorium}
               seats={seats}
               selectedSeat={selectedSeat}
               filmMode={filmMode}
+              cameraPreset={cameraPreset}
               sceneStyle={sceneStyle}
               playing={playing}
               playbackToken={playbackToken}

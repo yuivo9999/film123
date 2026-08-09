@@ -71,11 +71,20 @@ type FitMode =
   | "cover"
   | "align_height";
 
+export type CameraPreset =
+  | "seat"
+  | "rear_center"
+  | "front_row"
+  | "stage_view"
+  | "birds_eye"
+  | "side_angle";
+
 type CinemaSceneProps = {
   auditorium: Auditorium;
   seats: Seat[];
   selectedSeat: Seat;
   filmMode: boolean;
+  cameraPreset?: CameraPreset;
   sceneStyle?:
     | "classic"
     | "urban_plaza"
@@ -444,9 +453,10 @@ function CameraRig({
   auditorium,
   selectedSeat,
   viewCommand,
+  cameraPreset = "seat",
 }: Pick<
   CinemaSceneProps,
-  "auditorium" | "selectedSeat" | "viewCommand"
+  "auditorium" | "selectedSeat" | "viewCommand" | "cameraPreset"
 >) {
   const { camera, gl, size } = useThree();
   const desiredPosition = useRef(new Vector3());
@@ -456,16 +466,63 @@ function CameraRig({
   const dragging = useRef(false);
 
   useEffect(() => {
-    const position = new Vector3(
-      selectedSeat.x,
-      getSeatEyeY(selectedSeat),
-      selectedSeat.z,
+    const lastRowZ =
+      auditorium.firstRowZ +
+      (auditorium.rowCount - 1) * auditorium.rowSpacing;
+    const roomDepth = lastRowZ - auditorium.screenZ + 14;
+    const roomCenterZ = auditorium.screenZ + roomDepth / 2 - 2;
+    const roomHeight = Math.max(
+      16,
+      auditorium.screenBottom + auditorium.screenHeight + 4,
     );
-    const target = new Vector3(
-      0,
-      auditorium.screenBottom + auditorium.screenHeight / 2,
-      auditorium.screenZ,
-    );
+    const screenCenterY = auditorium.screenBottom + auditorium.screenHeight / 2;
+
+    const position = new Vector3();
+    const target = new Vector3();
+
+    switch (cameraPreset) {
+      case "rear_center":
+        // 后排高视角，俯瞰全厅与完整银幕
+        position.set(0, auditorium.screenBottom + auditorium.screenHeight * 0.72, lastRowZ + 4.5);
+        target.set(0, auditorium.screenBottom + auditorium.screenHeight * 0.35, auditorium.screenZ);
+        break;
+
+      case "front_row":
+        // 前排低角度仰视，感受震撼巨幕包围感
+        position.set(0, 1.25, auditorium.firstRowZ - 1.5);
+        target.set(0, auditorium.screenBottom + auditorium.screenHeight * 0.6, auditorium.screenZ);
+        break;
+
+      case "stage_view":
+        // 银幕舞台反向视角，反看全厅阶梯座位与空间结构
+        position.set(0, auditorium.screenBottom + 2.2, auditorium.screenZ + 1.5);
+        target.set(0, 3.2, (auditorium.firstRowZ + lastRowZ) / 2);
+        break;
+
+      case "birds_eye":
+        // 顶部鸟瞰空间透视
+        position.set(0, roomHeight + 8, roomCenterZ + 4);
+        target.set(0, 1.5, (auditorium.screenZ + lastRowZ) / 2);
+        break;
+
+      case "side_angle":
+        // 侧翼45度斜角透视
+        position.set(auditorium.seatingWidth * 0.75 + 5, 7.5, roomCenterZ + 2);
+        target.set(0, screenCenterY * 0.8, (auditorium.screenZ + auditorium.firstRowZ) / 2);
+        break;
+
+      case "seat":
+      default:
+        // 第一人称当前选择座位视角
+        position.set(
+          selectedSeat.x,
+          getSeatEyeY(selectedSeat),
+          selectedSeat.z,
+        );
+        target.set(0, screenCenterY, auditorium.screenZ);
+        break;
+    }
+
     const quaternion = quaternionLookingAt(position, target);
 
     desiredPosition.current.copy(position);
@@ -476,7 +533,7 @@ function CameraRig({
       camera.fov = verticalFovForAspect(size.width / size.height);
       camera.updateProjectionMatrix();
     }
-  }, [auditorium, camera, selectedSeat, size.height, size.width]);
+  }, [auditorium, camera, selectedSeat, size.height, size.width, cameraPreset]);
 
   useEffect(() => {
     if (viewCommand.token === 0) return;
@@ -3630,6 +3687,7 @@ function SceneContents(
         auditorium={auditorium}
         selectedSeat={props.selectedSeat}
         viewCommand={props.viewCommand}
+        cameraPreset={props.cameraPreset}
       />
     </>
   );
