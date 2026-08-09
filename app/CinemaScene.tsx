@@ -2825,6 +2825,9 @@ function Seats({
     };
 
     const isGreek = sceneStyle === "snowy_greek";
+    const isMinimalistCream = sceneStyle === "minimalist_cream";
+    const isWarmWood = sceneStyle === "warm_wood_lounge";
+    const isImaxGiant = sceneStyle === "imax_giant";
     const isFlatFloor = sceneStyle === "urban_plaza";
 
     seats.forEach((seat, index) => {
@@ -2892,6 +2895,204 @@ function Seats({
           [seat.x, seat.y, seat.z],
           [0, 0, 0],
           [0, 0, 0],
+        );
+      } else if (isMinimalistCream) {
+        // 极简米色艺术影厅 - 完美复刻图片：黑色悬臂 Z型/S型流线雕塑椅
+        placePart(
+          cushionRef.current!,
+          index,
+          [seat.x, actualY + 0.42, seat.z - 0.02],
+          [-0.14, 0, 0],
+          [0.82, 0.65, 0.9],
+        );
+        placePart(
+          backRef.current!,
+          index,
+          [seat.x, actualY + 0.86, seat.z + 0.25],
+          [0.1, 0, 0],
+          [0.78, 0.62, 1.05],
+        );
+        // 隐藏传统塑料背壳
+        placePart(
+          backShellRef.current!,
+          index,
+          [seat.x, actualY, seat.z],
+          [0, 0, 0],
+          [0, 0, 0],
+        );
+
+        // 黑色悬臂 Z 型支柱底座：从底部斜向前上方倾斜拉出，支撑整体雕塑身形
+        placePart(
+          legRef.current!,
+          index * 2,
+          [seat.x, actualY + 0.2, seat.z - 0.08],
+          [-0.72, 0, 0],
+          [0.65, 0.48, 0.85],
+        );
+        placePart(
+          legRef.current!,
+          index * 2 + 1,
+          [seat.x, actualY, seat.z],
+          [0, 0, 0],
+          [0, 0, 0],
+        );
+
+        // 隐藏两侧传统扶手、侧面板与脚架，形成高雅的无界独栋悬臂椅
+        [-0.35, 0.35].forEach((xOffset, sideIndex) => {
+          placePart(
+            sidePanelRef.current!,
+            index * 2 + sideIndex,
+            [seat.x, actualY, seat.z],
+            [0, 0, 0],
+            [0, 0, 0],
+          );
+          placePart(
+            armCapRef.current!,
+            index * 2 + sideIndex,
+            [seat.x, actualY, seat.z],
+            [0, 0, 0],
+            [0, 0, 0],
+          );
+          placePart(
+            footRef.current!,
+            index * 2 + sideIndex,
+            [seat.x, actualY, seat.z],
+            [0, 0, 0],
+            [0, 0, 0],
+          );
+        });
+
+        placePart(
+          cupHolderRef.current!,
+          index,
+          [seat.x, actualY, seat.z],
+          [0, 0, 0],
+          [0, 0, 0],
+        );
+      } else if (isWarmWood) {
+        // 温馨木质/商务尊享影厅：头等舱全皮奢华电动卧躺沙发椅
+        placePart(
+          cushionRef.current!,
+          index,
+          [seat.x, actualY + 0.45, seat.z - 0.02],
+          [-0.05, 0, 0],
+          [1.15, 1.25, 1.15],
+        );
+        placePart(
+          backRef.current!,
+          index,
+          [seat.x, actualY + 0.92, seat.z + 0.24],
+          [0.22, 0, 0],
+          [1.12, 0.82, 1.25],
+        );
+        placePart(
+          backShellRef.current!,
+          index,
+          [seat.x, actualY + 0.92, seat.z + 0.32],
+          [0.22, 0, 0],
+          [1.18, 0.88, 1.3],
+        );
+
+        [-0.42, 0.42].forEach((xOffset, sideIndex) => {
+          placePart(
+            sidePanelRef.current!,
+            index * 2 + sideIndex,
+            [seat.x + xOffset, actualY + 0.36, seat.z + 0.04],
+            [-0.02, 0, 0],
+            [1.2, 1.15, 1.25],
+          );
+          placePart(
+            armCapRef.current!,
+            index * 2 + sideIndex,
+            [seat.x + xOffset, actualY + 0.52, seat.z + 0.04],
+            [-0.02, 0, 0],
+            [1.25, 1.2, 1.3],
+          );
+          // 倾斜向斜前方延伸的电动伸缩脚托 (Recliner Footrest)
+          placePart(
+            legRef.current!,
+            index * 2 + sideIndex,
+            [seat.x + xOffset * 0.75, actualY + 0.2, seat.z - 0.32],
+            [0.55, 0, 0],
+            [0.9, 0.6, 0.8],
+          );
+          placePart(
+            footRef.current!,
+            index * 2 + sideIndex,
+            [seat.x + xOffset * 0.75, actualY + 0.08, seat.z - 0.48],
+            [0.55, 0, 0],
+            [0.85, 0.5, 0.75],
+          );
+        });
+
+        placePart(
+          cupHolderRef.current!,
+          index,
+          [seat.x + 0.45, actualY + 0.54, seat.z - 0.25],
+          [Math.PI / 2, 0, 0],
+          [1.2, 1.2, 1.2],
+        );
+      } else if (isImaxGiant) {
+        // IMAX巨幕影厅：IMAX专属高背包覆式高科技人体工学座椅（高耸头枕加高靠背）
+        placePart(
+          cushionRef.current!,
+          index,
+          [seat.x, actualY + 0.44, seat.z - 0.04],
+          [-0.09, 0, 0],
+          [0.98, 1.05, 1.08],
+        );
+        placePart(
+          backShellRef.current!,
+          index,
+          [seat.x, actualY + 1.0, seat.z + 0.3],
+          [0.15, 0, 0],
+          [0.98, 0.72, 1.45],
+        );
+        placePart(
+          backRef.current!,
+          index,
+          [seat.x, actualY + 1.0, seat.z + 0.22],
+          [0.15, 0, 0],
+          [0.96, 0.7, 1.42],
+        );
+
+        [-0.36, 0.36].forEach((xOffset, sideIndex) => {
+          placePart(
+            sidePanelRef.current!,
+            index * 2 + sideIndex,
+            [seat.x + xOffset, actualY + 0.36, seat.z + 0.06],
+            [-0.055, 0, 0],
+            [0.92, 1.05, 1.1],
+          );
+          placePart(
+            armCapRef.current!,
+            index * 2 + sideIndex,
+            [seat.x + xOffset, actualY + 0.53, seat.z + 0.03],
+            [-0.055, 0, 0],
+            [0.95, 1.0, 1.15],
+          );
+          placePart(
+            legRef.current!,
+            index * 2 + sideIndex,
+            [seat.x + xOffset * 0.72, actualY + 0.2, seat.z + 0.16],
+            [0, 0, 0],
+            [1, 1, 1],
+          );
+          placePart(
+            footRef.current!,
+            index * 2 + sideIndex,
+            [seat.x + xOffset * 0.72, actualY + 0.03, seat.z + 0.12],
+            [0, 0, 0],
+            [1, 1, 1],
+          );
+        });
+
+        placePart(
+          cupHolderRef.current!,
+          index,
+          [seat.x + 0.36, actualY + 0.54, seat.z - 0.22],
+          [Math.PI / 2, 0, 0],
+          [1, 1, 1],
         );
       } else {
         placePart(
