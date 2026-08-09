@@ -83,7 +83,8 @@ type CinemaSceneProps = {
     | "space_station"
     | "warm_wood_lounge"
     | "imax_giant"
-    | "minimalist_cream";
+    | "minimalist_cream"
+    | "alpine_desert";
   playing: boolean;
   playbackToken: number;
   viewCommand: ViewCommand;
@@ -1597,6 +1598,147 @@ function SpaceStationBackdrop({ auditorium }: { auditorium: Auditorium }) {
   );
 }
 
+function AlpineDesertBackdrop({ auditorium }: { auditorium: Auditorium }) {
+  const baseZ = auditorium.screenZ;
+
+  return (
+    <group>
+      {/* Sky Canvas (Clear Azure Alpine Desert Sky) */}
+      <mesh position={[0, 52, baseZ - 75]}>
+        <planeGeometry args={[360, 180]} />
+        <meshBasicMaterial color="#38bdf8" toneMapped={false} />
+      </mesh>
+
+      {/* Warm Desert Horizon Atmospheric Glow */}
+      <mesh position={[0, 20, baseZ - 74]}>
+        <planeGeometry args={[360, 70]} />
+        <meshBasicMaterial
+          color="#bae6fd"
+          transparent
+          opacity={0.65}
+          toneMapped={false}
+        />
+      </mesh>
+
+      {/* Clear Bright Desert Sun */}
+      <mesh position={[50, 72, baseZ - 68]}>
+        <sphereGeometry args={[8.5, 32, 32]} />
+        <meshBasicMaterial color="#fffae0" toneMapped={false} />
+      </mesh>
+
+      {/* Sun Atmosphere Corona Halo */}
+      <mesh position={[50, 72, baseZ - 68.5]}>
+        <sphereGeometry args={[16, 24, 24]} />
+        <meshBasicMaterial
+          color="#fef08a"
+          transparent
+          opacity={0.3}
+          toneMapped={false}
+        />
+      </mesh>
+
+      {/* === CENTRAL ICONIC SNOW-CAPPED MATTERHORN MOUNTAIN PEAK === */}
+      {/* Standout Pyramid Snow Peak directly behind and centered above the giant cinema screen */}
+      <group position={[0, 36, baseZ - 58]}>
+        {/* Mountain Base Body (Brownish Slate Rock) */}
+        <mesh>
+          <coneGeometry args={[52, 90, 12]} />
+          <meshStandardMaterial color="#4a3f35" roughness={0.88} metalness={0.05} />
+        </mesh>
+        
+        {/* Pure Snow Cap Summit */}
+        <mesh position={[0, 26, 0]}>
+          <coneGeometry args={[38, 48, 12]} />
+          <meshStandardMaterial
+            color="#ffffff"
+            roughness={0.25}
+            metalness={0.05}
+            emissive="#e0f2fe"
+            emissiveIntensity={0.32}
+          />
+        </mesh>
+        
+        {/* Secondary Glacier Ice Ridges down the peak face */}
+        <mesh position={[0, 12, 2]}>
+          <coneGeometry args={[30, 32, 8]} />
+          <meshStandardMaterial
+            color="#f1f5f9"
+            roughness={0.35}
+            emissive="#bae6fd"
+            emissiveIntensity={0.2}
+          />
+        </mesh>
+      </group>
+
+      {/* === FLANKING DESERT MOUNTAIN RANGES & PLATEAU HILLS === */}
+      {/* Left Desert Mountain Range */}
+      <group position={[-65, 24, baseZ - 62]}>
+        <mesh>
+          <coneGeometry args={[55, 65, 10]} />
+          <meshStandardMaterial color="#8c6747" roughness={0.9} />
+        </mesh>
+        <mesh position={[0, 18, 0]}>
+          <coneGeometry args={[32, 30, 10]} />
+          <meshStandardMaterial color="#f8fafc" roughness={0.4} />
+        </mesh>
+      </group>
+      
+      {/* Far Left Rolling Desert Hills */}
+      <mesh position={[-115, 14, baseZ - 65]}>
+        <coneGeometry args={[65, 48, 8]} />
+        <meshStandardMaterial color="#7a5a3e" roughness={0.95} />
+      </mesh>
+
+      {/* Right Desert Mountain Range */}
+      <group position={[65, 26, baseZ - 62]}>
+        <mesh>
+          <coneGeometry args={[58, 68, 10]} />
+          <meshStandardMaterial color="#96704d" roughness={0.9} />
+        </mesh>
+        <mesh position={[0, 20, 0]}>
+          <coneGeometry args={[34, 32, 10]} />
+          <meshStandardMaterial color="#f8fafc" roughness={0.4} />
+        </mesh>
+      </group>
+
+      {/* Far Right Rolling Desert Hills */}
+      <mesh position={[115, 16, baseZ - 65]}>
+        <coneGeometry args={[70, 52, 8]} />
+        <meshStandardMaterial color="#805d40" roughness={0.95} />
+      </mesh>
+
+      {/* === DESERT GRAVEL PLATEAU GROUND EXTENSION === */}
+      <mesh position={[0, -0.4, baseZ - 20]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[360, 120]} />
+        <meshStandardMaterial color="#ab8c6a" roughness={0.92} />
+      </mesh>
+
+      {/* === GIANT OUTDOOR CINEMA SCREEN FRAME & SUPPORT PILLARS === */}
+      {/* Left & Right Vertical Black Steel Posts holding the screen */}
+      {[-auditorium.screenWidth / 2 - 0.8, auditorium.screenWidth / 2 + 0.8].map((x, sideIdx) => (
+        <group key={sideIdx} position={[x, auditorium.screenBottom + auditorium.screenHeight / 2 - 0.5, baseZ + 0.1]}>
+          <mesh>
+            <boxGeometry args={[0.8, auditorium.screenHeight + 4.5, 0.8]} />
+            <meshStandardMaterial color="#1e293b" metalness={0.8} roughness={0.3} />
+          </mesh>
+        </group>
+      ))}
+      
+      {/* Bottom Heavy Steel Base Frame across the desert ground */}
+      <mesh position={[0, auditorium.screenBottom - 0.8, baseZ + 0.1]}>
+        <boxGeometry args={[auditorium.screenWidth + 2.8, 1.2, 1.2]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.85} roughness={0.25} />
+      </mesh>
+      
+      {/* Top Outer Border Frame */}
+      <mesh position={[0, auditorium.screenBottom + auditorium.screenHeight + 0.5, baseZ + 0.1]}>
+        <boxGeometry args={[auditorium.screenWidth + 2.8, 0.8, 0.8]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.85} roughness={0.25} />
+      </mesh>
+    </group>
+  );
+}
+
 function WarmWoodLoungeBackdrop({ auditorium }: { auditorium: Auditorium }) {
   const baseZ = auditorium.screenZ;
   const lastRowZ =
@@ -2229,6 +2371,7 @@ function AuditoriumArchitecture({
     if (sceneStyle === "imax_giant") return "#111318";
     if (sceneStyle === "warm_wood_lounge") return "#8c5e34";
     if (sceneStyle === "snowy_greek") return "#f1f5f9";
+    if (sceneStyle === "alpine_desert") return "#b89874";
     if (sceneStyle === "space_station") return "#1e293b";
     if (sceneStyle === "urban_plaza") return "#475569";
     return "#202329";
@@ -2239,6 +2382,7 @@ function AuditoriumArchitecture({
     if (sceneStyle === "imax_giant") return 0.85;
     if (sceneStyle === "warm_wood_lounge") return 0.45;
     if (sceneStyle === "snowy_greek") return 0.4;
+    if (sceneStyle === "alpine_desert") return 0.92;
     if (sceneStyle === "space_station") return 0.3;
     return 0.9;
   }, [sceneStyle]);
@@ -2248,6 +2392,7 @@ function AuditoriumArchitecture({
     if (sceneStyle === "imax_giant") return "#090a0e";
     if (sceneStyle === "warm_wood_lounge") return "#784e2a";
     if (sceneStyle === "snowy_greek") return "#cbd5e1";
+    if (sceneStyle === "alpine_desert") return "#9c7c5c";
     if (sceneStyle === "space_station") return "#0f172a";
     if (sceneStyle === "urban_plaza") return "#1e293b";
     return "#191b1f";
@@ -2264,6 +2409,7 @@ function AuditoriumArchitecture({
       {sceneStyle === "urban_plaza" && <UrbanPlazaBackdrop auditorium={auditorium} />}
       {sceneStyle === "snowy_greek" && <SnowMountainBackdrop auditorium={auditorium} />}
       {sceneStyle === "space_station" && <SpaceStationBackdrop auditorium={auditorium} />}
+      {sceneStyle === "alpine_desert" && <AlpineDesertBackdrop auditorium={auditorium} />}
 
       {/* Ground plane */}
       <mesh position={[0, -0.5, roomCenterZ]} receiveShadow>
@@ -2479,6 +2625,25 @@ function Seats({
           upholstery: new Color("#334155"),
           shell: new Color("#1e293b"),
           panel: new Color("#475569"),
+        },
+      };
+    }
+    if (sceneStyle === "alpine_desert") {
+      return {
+        available: {
+          upholstery: new Color("#dc2626"),
+          shell: new Color("#991b1b"),
+          panel: new Color("#7f1d1d"),
+        },
+        selected: {
+          upholstery: new Color("#38bdf8"),
+          shell: new Color("#0284c7"),
+          panel: new Color("#7dd3fc"),
+        },
+        occupied: {
+          upholstery: new Color("#450a0a"),
+          shell: new Color("#290606"),
+          panel: new Color("#1c0404"),
         },
       };
     }
@@ -3047,6 +3212,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const litAmbient = useMemo(() => {
+    if (sceneStyle === "alpine_desert") return new Color("#fef3c7");
     if (sceneStyle === "imax_giant") return new Color("#cbd5e1");
     if (sceneStyle === "warm_wood_lounge") return new Color("#fde68a");
     if (sceneStyle === "snowy_greek") return new Color("#e2e8f0");
@@ -3056,6 +3222,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const darkAmbient = useMemo(() => {
+    if (sceneStyle === "alpine_desert") return new Color("#2a1210");
     if (sceneStyle === "minimalist_cream") return new Color("#713f12");
     if (sceneStyle === "imax_giant") return new Color("#334155");
     if (sceneStyle === "warm_wood_lounge") return new Color("#78350f");
@@ -3066,6 +3233,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const skyColor = useMemo(() => {
+    if (sceneStyle === "alpine_desert") return new Color("#38bdf8");
     if (sceneStyle === "minimalist_cream") return new Color("#fde047");
     if (sceneStyle === "warm_wood_lounge") return new Color("#fef08a");
     if (sceneStyle === "snowy_greek") return new Color("#38bdf8");
@@ -3075,6 +3243,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const groundColor = useMemo(() => {
+    if (sceneStyle === "alpine_desert") return new Color("#b89874");
     if (sceneStyle === "minimalist_cream") return new Color("#d1caa0");
     if (sceneStyle === "warm_wood_lounge") return new Color("#452b14");
     if (sceneStyle === "snowy_greek") return new Color("#0f172a");
@@ -3227,6 +3396,9 @@ function SceneContents(
       )}
       {sceneStyle === "snowy_greek" && (
         <SnowMountainBackdrop auditorium={auditorium} />
+      )}
+      {sceneStyle === "alpine_desert" && (
+        <AlpineDesertBackdrop auditorium={auditorium} />
       )}
       <Screen
         auditorium={auditorium}

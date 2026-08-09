@@ -10,7 +10,8 @@ export type SceneStyle =
   | "space_station"
   | "warm_wood_lounge"
   | "imax_giant"
-  | "minimalist_cream";
+  | "minimalist_cream"
+  | "alpine_desert";
 
 export interface SceneStyleOption {
   id: SceneStyle;
@@ -78,6 +79,14 @@ export const SCENE_STYLES: SceneStyleOption[] = [
     badge: "科幻极致",
     themeColor: "#f59e0b",
   },
+  {
+    id: "alpine_desert",
+    icon: "🏔️",
+    name: "雪山荒野露天影院",
+    subtitle: "巍峨雪山连绵荒漠 · 经典红色绒面剧院排椅 · 露天巨幕",
+    badge: "雪漠巨幕",
+    themeColor: "#ef4444",
+  },
 ];
 
 interface SceneStylePickerProps {
@@ -137,7 +146,7 @@ export function SceneStylePicker({
         <div className="style-picker-header">
           <span className="style-picker-label">
             <Sparkle size={18} className="text-amber-400 inline mr-1" />
-            切换 3D 影院主题（7大实景风格）：
+            切换 3D 影院主题（8大实景风格）：
           </span>
           {toastMessage && (
             <span className="style-picker-toast-badge animate-bounce">
@@ -202,7 +211,7 @@ export function SceneStylePicker({
       {isOpen && (
         <div className="style-picker-dropdown-menu" role="menu">
           <div className="dropdown-menu-header">
-            <span>选择 3D 影厅视觉风格 (7种)</span>
+            <span>选择 3D 影厅视觉风格 (8种)</span>
           </div>
           <div className="dropdown-menu-list">
             {SCENE_STYLES.map((option) => {
