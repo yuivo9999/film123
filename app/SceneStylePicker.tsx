@@ -11,7 +11,8 @@ export type SceneStyle =
   | "cyberpunk"
   | "forest_camp"
   | "space_station"
-  | "warm_wood_lounge";
+  | "warm_wood_lounge"
+  | "imax_giant";
 
 export interface SceneStyleOption {
   id: SceneStyle;
@@ -30,6 +31,14 @@ export const SCENE_STYLES: SceneStyleOption[] = [
     subtitle: "顶级IMAX/杜比包厢 · 沉浸环绕声学环境",
     badge: "经典标配",
     themeColor: "#d04b43",
+  },
+  {
+    id: "imax_giant",
+    icon: "🎞️",
+    name: "IMAX巨幕正视角影厅",
+    subtitle: "墙到墙微弧顶天立地巨幕 · 金属悬吊天花网格 · 侧壁高保真黑音箱",
+    badge: "巨幕全景",
+    themeColor: "#38bdf8",
   },
   {
     id: "warm_wood_lounge",
@@ -146,7 +155,7 @@ export function SceneStylePicker({
         <div className="style-picker-header">
           <span className="style-picker-label">
             <Sparkle size={18} className="text-amber-400 inline mr-1" />
-            切换 3D 影院主题（8大实景风格）：
+            切换 3D 影院主题（9大实景风格）：
           </span>
           {toastMessage && (
             <span className="style-picker-toast-badge animate-bounce">
@@ -211,7 +220,7 @@ export function SceneStylePicker({
       {isOpen && (
         <div className="style-picker-dropdown-menu" role="menu">
           <div className="dropdown-menu-header">
-            <span>选择 3D 影厅视觉风格 (8种)</span>
+            <span>选择 3D 影厅视觉风格 (9种)</span>
           </div>
           <div className="dropdown-menu-list">
             {SCENE_STYLES.map((option) => {

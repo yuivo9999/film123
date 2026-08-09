@@ -84,7 +84,8 @@ type CinemaSceneProps = {
     | "cyberpunk"
     | "forest_camp"
     | "space_station"
-    | "warm_wood_lounge";
+    | "warm_wood_lounge"
+    | "imax_giant";
   playing: boolean;
   playbackToken: number;
   viewCommand: ViewCommand;
@@ -1999,6 +2000,148 @@ function WarmWoodLoungeBackdrop({ auditorium }: { auditorium: Auditorium }) {
   );
 }
 
+function ImaxGiantBackdrop({ auditorium }: { auditorium: Auditorium }) {
+  const lastRowZ =
+    auditorium.firstRowZ +
+    (auditorium.rowCount - 1) * auditorium.rowSpacing;
+  const roomDepth = lastRowZ - auditorium.screenZ + 12;
+  const roomCenterZ = auditorium.screenZ + roomDepth / 2 - 2;
+  const roomHeight = Math.max(
+    15,
+    auditorium.screenBottom + auditorium.screenHeight + 3,
+  );
+  const roomWidth = Math.max(36, auditorium.seatingWidth + 8);
+  const halfRoomWidth = roomWidth / 2;
+  const baseZ = auditorium.screenZ;
+
+  return (
+    <group>
+      {/* Dark Ceiling Grid & Industrial Truss System (黑色网格天花与金属悬吊桁架) */}
+      <group position={[0, roomHeight, roomCenterZ]}>
+        {/* Main Ceiling Slab */}
+        <mesh receiveShadow>
+          <boxGeometry args={[roomWidth + 2, 0.2, roomDepth + 4]} />
+          <meshStandardMaterial color="#0a0c10" roughness={0.9} />
+        </mesh>
+
+        {/* Hanging Ceiling Grid */}
+        {Array.from({ length: 14 }).map((_, i) => {
+          const gz = -roomDepth / 2 + (roomDepth / 13) * i;
+          return (
+            <mesh key={`cgrid-z-${i}`} position={[0, -0.3, gz]}>
+              <boxGeometry args={[roomWidth, 0.05, 0.05]} />
+              <meshStandardMaterial color="#1e293b" metalness={0.8} roughness={0.3} />
+            </mesh>
+          );
+        })}
+        {Array.from({ length: 18 }).map((_, i) => {
+          const gx = -roomWidth / 2 + (roomWidth / 17) * i;
+          return (
+            <mesh key={`cgrid-x-${i}`} position={[gx, -0.3, 0]}>
+              <boxGeometry args={[0.05, 0.05, roomDepth]} />
+              <meshStandardMaterial color="#1e293b" metalness={0.8} roughness={0.3} />
+            </mesh>
+          );
+        })}
+
+        {/* Ceiling Track Lights */}
+        {[-halfRoomWidth * 0.6, 0, halfRoomWidth * 0.6].map((tx, tIdx) => (
+          <group key={`track-${tIdx}`} position={[tx, -0.42, 0]}>
+            <mesh>
+              <boxGeometry args={[0.08, 0.08, roomDepth * 0.8]} />
+              <meshStandardMaterial color="#0f172a" metalness={0.9} roughness={0.2} />
+            </mesh>
+            {[0.2, 0.4, 0.6, 0.8].map((f, sIdx) => {
+              const sz = -roomDepth * 0.4 + roomDepth * 0.8 * f;
+              return (
+                <mesh key={`spot-${sIdx}`} position={[0, -0.15, sz]} rotation={[0.4, 0, 0]}>
+                  <cylinderGeometry args={[0.12, 0.15, 0.3, 16]} />
+                  <meshStandardMaterial color="#1e293b" metalness={0.8} />
+                </mesh>
+              );
+            })}
+          </group>
+        ))}
+      </group>
+
+      {/* Side Acoustic Wall Panels with Vertical Bronze Trim Strips */}
+      {[-halfRoomWidth, halfRoomWidth].map((x, sideIdx) => {
+        const isRight = sideIdx === 1;
+        return (
+          <group key={`imax-side-${sideIdx}`}>
+            {/* Main Dark Charcoal Wall */}
+            <mesh position={[x, roomHeight / 2, roomCenterZ]} receiveShadow>
+              <boxGeometry args={[0.4, roomHeight, roomDepth + 4]} />
+              <meshStandardMaterial color="#0f1115" roughness={0.95} />
+            </mesh>
+
+            {/* Vertical Bronze Trim Strips */}
+            <mesh position={[isRight ? halfRoomWidth - 0.35 : -halfRoomWidth + 0.35, roomHeight / 2, baseZ + 2]}>
+              <boxGeometry args={[0.06, roomHeight, 0.06]} />
+              <meshStandardMaterial color="#b45309" metalness={0.85} roughness={0.25} />
+            </mesh>
+            <mesh position={[isRight ? halfRoomWidth - 0.35 : -halfRoomWidth + 0.35, roomHeight / 2, lastRowZ - 2]}>
+              <boxGeometry args={[0.06, roomHeight, 0.06]} />
+              <meshStandardMaterial color="#b45309" metalness={0.85} roughness={0.25} />
+            </mesh>
+
+            {/* Wall-Mounted Surround Speakers */}
+            {[0.25, 0.55, 0.82].map((f, spIdx) => {
+              const spZ = baseZ + roomDepth * f;
+              const spY = roomHeight * 0.62;
+              const posX = isRight ? halfRoomWidth - 0.6 : -halfRoomWidth + 0.6;
+              const rotY = isRight ? -0.35 : 0.35;
+              return (
+                <group key={`spk-${spIdx}`} position={[posX, spY, spZ]} rotation={[0.15, rotY, 0]}>
+                  <mesh position={[isRight ? 0.2 : -0.2, -0.1, 0]}>
+                    <boxGeometry args={[0.25, 0.08, 0.25]} />
+                    <meshStandardMaterial color="#1e293b" metalness={0.8} />
+                  </mesh>
+                  <mesh castShadow receiveShadow>
+                    <boxGeometry args={[0.5, 0.75, 0.4]} />
+                    <meshStandardMaterial color="#090a0f" roughness={0.4} metalness={0.3} />
+                  </mesh>
+                  <mesh position={[0, 0, 0.21]}>
+                    <planeGeometry args={[0.44, 0.68]} />
+                    <meshStandardMaterial color="#1e293b" roughness={0.9} />
+                  </mesh>
+                </group>
+              );
+            })}
+          </group>
+        );
+      })}
+
+      {/* Front Stage Carpet & Illuminated Logo Plate */}
+      <group position={[0, 0.02, baseZ + 3.5]}>
+        <mesh receiveShadow>
+          <planeGeometry args={[roomWidth - 2, 6]} rotation={[-Math.PI / 2, 0, 0]} />
+          <meshStandardMaterial color="#0d0e12" roughness={0.9} />
+        </mesh>
+        <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[4.2, 1.2]} />
+          <meshBasicMaterial color="#38bdf8" transparent opacity={0.18} />
+        </mesh>
+      </group>
+
+      {/* Green Emergency / Exit Floor Indicator Lights */}
+      {[-halfRoomWidth + 1.2, halfRoomWidth - 1.2].map((ex, eIdx) => (
+        <group key={`exit-${eIdx}`} position={[ex, 0.4, baseZ + 1]}>
+          <mesh>
+            <boxGeometry args={[0.3, 0.5, 0.15]} />
+            <meshStandardMaterial color="#090a0f" />
+          </mesh>
+          <mesh position={[0, 0, 0.08]}>
+            <planeGeometry args={[0.24, 0.4]} />
+            <meshBasicMaterial color="#22c55e" toneMapped={false} />
+          </mesh>
+          <pointLight color="#22c55e" intensity={12} distance={3} decay={2} />
+        </group>
+      ))}
+    </group>
+  );
+}
+
 function SkySphere({
   sceneStyle,
   filmMode,
@@ -2199,6 +2342,7 @@ function AuditoriumArchitecture({
   });
 
   const platformColor = useMemo(() => {
+    if (sceneStyle === "imax_giant") return "#111318";
     if (sceneStyle === "warm_wood_lounge") return "#8c5e34";
     if (sceneStyle === "snowy_greek") return "#f1f5f9";
     if (sceneStyle === "cyberpunk") return "#0f172a";
@@ -2210,6 +2354,7 @@ function AuditoriumArchitecture({
   }, [sceneStyle]);
 
   const platformRoughness = useMemo(() => {
+    if (sceneStyle === "imax_giant") return 0.85;
     if (sceneStyle === "warm_wood_lounge") return 0.45;
     if (sceneStyle === "snowy_greek") return 0.4;
     if (sceneStyle === "cyberpunk") return 0.2;
@@ -2218,6 +2363,7 @@ function AuditoriumArchitecture({
   }, [sceneStyle]);
 
   const groundColor = useMemo(() => {
+    if (sceneStyle === "imax_giant") return "#090a0e";
     if (sceneStyle === "warm_wood_lounge") return "#784e2a";
     if (sceneStyle === "snowy_greek") return "#cbd5e1";
     if (sceneStyle === "cyberpunk") return "#08070e";
@@ -2233,6 +2379,7 @@ function AuditoriumArchitecture({
       <SkySphere sceneStyle={sceneStyle} filmMode={filmMode} auditorium={auditorium} />
 
       {/* Render theme backdrop */}
+      {sceneStyle === "imax_giant" && <ImaxGiantBackdrop auditorium={auditorium} />}
       {sceneStyle === "warm_wood_lounge" && <WarmWoodLoungeBackdrop auditorium={auditorium} />}
       {sceneStyle === "urban_plaza" && <UrbanPlazaBackdrop auditorium={auditorium} />}
       {sceneStyle === "snowy_greek" && <SnowMountainBackdrop auditorium={auditorium} />}
@@ -2369,6 +2516,25 @@ function Seats({
     [],
   );
   const seatColors = useMemo(() => {
+    if (sceneStyle === "imax_giant") {
+      return {
+        available: {
+          upholstery: new Color("#1c222b"),
+          shell: new Color("#11151c"),
+          panel: new Color("#2a323d"),
+        },
+        selected: {
+          upholstery: new Color("#0284c7"),
+          shell: new Color("#0369a1"),
+          panel: new Color("#38bdf8"),
+        },
+        occupied: {
+          upholstery: new Color("#0f1217"),
+          shell: new Color("#0a0c0f"),
+          panel: new Color("#161a21"),
+        },
+      };
+    }
     if (sceneStyle === "warm_wood_lounge") {
       return {
         available: {
@@ -2919,6 +3085,7 @@ function SceneLighting({
   const houseSpotRefs = useRef<Array<SpotLight | null>>([]);
   const housePointRef = useRef<PointLight>(null);
   const litBackground = useMemo(() => {
+    if (sceneStyle === "imax_giant") return new Color("#0b0d12");
     if (sceneStyle === "warm_wood_lounge") return new Color("#18110a");
     if (sceneStyle === "snowy_greek") return new Color("#0a1128");
     if (sceneStyle === "drive_in") return new Color("#040714");
@@ -2929,6 +3096,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const darkBackground = useMemo(() => {
+    if (sceneStyle === "imax_giant") return new Color("#040507");
     if (sceneStyle === "warm_wood_lounge") return new Color("#0c0804");
     if (sceneStyle === "snowy_greek") return new Color("#060b1b");
     if (sceneStyle === "drive_in") return new Color("#02040a");
@@ -2939,6 +3107,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const litFog = useMemo(() => {
+    if (sceneStyle === "imax_giant") return new Color("#0e1118");
     if (sceneStyle === "warm_wood_lounge") return new Color("#21180e");
     if (sceneStyle === "snowy_greek") return new Color("#0c1535");
     if (sceneStyle === "drive_in") return new Color("#060a1e");
@@ -2949,6 +3118,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const darkFog = useMemo(() => {
+    if (sceneStyle === "imax_giant") return new Color("#050608");
     if (sceneStyle === "warm_wood_lounge") return new Color("#0d0804");
     if (sceneStyle === "snowy_greek") return new Color("#070d22");
     if (sceneStyle === "drive_in") return new Color("#03050f");
@@ -2959,6 +3129,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const litAmbient = useMemo(() => {
+    if (sceneStyle === "imax_giant") return new Color("#cbd5e1");
     if (sceneStyle === "warm_wood_lounge") return new Color("#fde68a");
     if (sceneStyle === "snowy_greek") return new Color("#e2e8f0");
     if (sceneStyle === "drive_in") return new Color("#cbd5e1");
@@ -2970,6 +3141,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const darkAmbient = useMemo(() => {
+    if (sceneStyle === "imax_giant") return new Color("#334155");
     if (sceneStyle === "warm_wood_lounge") return new Color("#78350f");
     if (sceneStyle === "snowy_greek") return new Color("#1d4ed8");
     if (sceneStyle === "drive_in") return new Color("#384e68");
