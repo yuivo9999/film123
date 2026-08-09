@@ -1,350 +1,278 @@
-import {
-  cinemaListings,
-  getCinemaListingByHallId,
-  inventoryHalls,
-  type InventoryHall,
-} from "./cinema-inventory";
-import seatLayoutsJson from "./seat-layouts.json";
-import {
-  getScreenDataAudit,
-  type ScreenDataAudit,
-} from "./screen-data-audit";
-
-export type SeatStatus = "available" | "occupied";
-
-export type Seat = {
+export interface SeatPosition {
   id: string;
-  row: number;
-  rowLabel: string;
-  number: string;
-  gridSlot: number;
-  x: number;
-  /** Finished floor elevation for this seating row. */
-  y: number;
-  z: number;
-  status: SeatStatus;
-};
+  row: string;
+  col: number;
+  label: string;
+  pos: [number, number, number]; // [x, y, z] camera offset relative to seat center
+  lookAt: [number, number, number]; // [x, y, z] target
+  fov: number;
+  isVip?: boolean;
+}
 
-type CapturedSeatLayout = {
-  gridColumns: number;
-  physicalSeats: number;
-  inventorySeats: number | null;
-  countMatchesInventory: boolean | null;
-  hallName: string;
-  capturedAt: string;
-  sourceUrl: string;
-  isPriority: boolean;
-  priorityRank: number | null;
-  priorityScore: number | null;
-  rows: Array<{
-    label: string;
-    cells: Array<[seat: string, slot: number]>;
-  }>;
-};
-
-const capturedSeatLayouts = seatLayoutsJson.layouts as unknown as Record<
-  string,
-  CapturedSeatLayout
->;
-
-export type Auditorium = {
+export interface Auditorium {
   id: string;
-  cinemaId: string;
   name: string;
-  format: string;
-  screenWidth: number;
-  screenHeight: number;
-  screenBottom: number;
-  screenZ: number;
-  screenAspect: string;
-  screenDataAudit: ScreenDataAudit | null;
-  projectionTechnology: string;
-  projectionDetails: string[];
-  screenSurface: {
-    name: string;
-    gain: number;
-    halfGainAngle: number;
-    perforationMm: number;
-    openAreaPercent: number;
-    curvatureDepth: number;
-  };
-  rowCount: number;
-  rowSpacing: number;
-  rowRise: number;
-  firstRowZ: number;
-  rowSeatCounts: number[];
-  seatingWidth: number;
-  seatLayout: CapturedSeatLayout | null;
-  sourceNote: string;
-};
-
-export type Cinema = {
-  id: string;
-  city: string;
-  name: string;
-  address: string;
-  latitude: number | null;
-  longitude: number | null;
-};
-
-export const cinemaSeatGeometry = {
-  rowFloorBaseY: 0.4,
-  centerGap: 0.9,
-  centerSpacing: 0.82,
-  cushionCenterAboveFloor: 0.37,
-  cushionTopAboveFloor: 0.46,
-  backCenterAboveFloor: 0.76,
-  backrestReclineRadians: (16 * Math.PI) / 180,
-  armrestAboveFloor: 0.65,
-  seatedEyeHeightAboveCushion: 0.765,
-} as const;
-
-const estimatedRowSpacing = 1.2;
-const estimatedFirstRowZ = -3.8;
-const minimumFirstRowScreenDistance = 8;
-const maximumFirstRowScreenDistance = 12;
-const compactScreenWidth = 12;
-const giantScreenWidth = 30;
-
-function firstRowScreenDistance(screenWidth: number) {
-  const widthProgress = Math.max(
-    0,
-    Math.min(
-      1,
-      (screenWidth - compactScreenWidth) /
-        (giantScreenWidth - compactScreenWidth),
-    ),
-  );
-
-  return (
-    minimumFirstRowScreenDistance +
-    widthProgress *
-      (maximumFirstRowScreenDistance - minimumFirstRowScreenDistance)
-  );
+  englishName: string;
+  category: "featured" | "giant" | "dolby" | "imax" | "cinity" | "vip";
+  screenWidth: number; // meters
+  screenHeight: number; // meters
+  aspectRatioText: string;
+  soundSystem: string;
+  projector: string;
+  seatsCount: number;
+  description: string;
+  tags: string[];
+  seats: SeatPosition[];
+  defaultSeatId: string;
+  ambientColor: string; // Hex color string for ambient/wall theme
+  accentColor: string;
+  woodTheme?: boolean;
 }
 
-function approximateRows(hall: InventoryHall) {
-  const screenWidth = hall.width ?? 18;
-  const sourceSeats = hall.seats ?? 200;
-  const rowCount = Math.max(8, Math.min(14, Math.round(sourceSeats / 22)));
-  const maximumAcross = Math.max(
-    14,
-    Math.min(26, Math.round(screenWidth / 1.08)),
-  );
-  const averageAcross = Math.max(
-    14,
-    Math.min(maximumAcross, Math.round(sourceSeats / rowCount)),
-  );
-
-  return Array.from({ length: rowCount }, (_, row) => {
-    const progression = Math.round((row / Math.max(rowCount - 1, 1)) * 4 - 2);
-    const count = Math.max(12, Math.min(maximumAcross, averageAcross + progression));
-    return count % 2 === 0 ? count : count + 1;
-  });
-}
-
-function projectionDetails(hall: InventoryHall) {
-  const details = [
-    hall.projection || hall.brand,
-    hall.ratio ? `${hall.ratio} 银幕比例` : "银幕比例待补",
-    hall.seats ? `${hall.seats} 个登记座位` : "座位数待补",
-  ];
-
-  if (hall.brand === "Dolby Cinema") {
-    details.push("Dolby Atmos 沉浸式音效");
-  } else if (hall.brand === "IMAX") {
-    details.push("IMAX 专用音响系统");
-  } else {
-    details.push("精选高规格巨幕影厅");
-  }
-
-  return details;
-}
-
-function hallToAuditorium(hall: InventoryHall): Auditorium {
-  const cinema = getCinemaListingByHallId(hall.id);
-  const screenWidth = hall.width ?? 18;
-  const screenHeight =
-    hall.height ??
-    (hall.ratio
-      ? screenWidth /
-        Math.max(Number.parseFloat(hall.ratio.split(":")[0]), 1.43)
-      : screenWidth / 1.9);
-  const seatLayout = capturedSeatLayouts[hall.id] ?? null;
-  const rowSeatCounts =
-    seatLayout?.rows.map((row) => row.cells.length) ?? approximateRows(hall);
-  const seatingColumns =
-    seatLayout?.gridColumns ?? Math.max(...rowSeatCounts, 1);
-  const seatingWidth =
-    seatingColumns * cinemaSeatGeometry.centerSpacing +
-    (seatLayout ? 0 : cinemaSeatGeometry.centerGap);
-  const capturedCountNote =
-    seatLayout && seatLayout.countMatchesInventory === false
-      ? `；当前选座图为 ${seatLayout.physicalSeats} 座，与登记容量 ${
-          seatLayout.inventorySeats ?? "待补"
-        } 座存在版本或统计口径差异`
-      : "";
-  const rowCount = rowSeatCounts.length;
-  const estimatedFrontDistance = firstRowScreenDistance(screenWidth);
-
-  return {
-    id: hall.id,
-    cinemaId: cinema?.id ?? `cinema-${hall.id}`,
-    name:
-      hall.brand === "Other PLF"
-        ? "精选巨幕厅"
-        : `${hall.brand} 厅`,
-    format: `${hall.brand} · ${hall.projection || "放映技术待补"}`,
-    screenWidth,
-    screenHeight,
-    screenBottom: 1.5,
-    screenZ: estimatedFirstRowZ - estimatedFrontDistance,
-    screenAspect: hall.ratio || "比例待补",
-    screenDataAudit: getScreenDataAudit(hall),
-    projectionTechnology: hall.projection || hall.brand,
-    projectionDetails: projectionDetails(hall),
-    screenSurface: {
-      name: "高增益穿孔银幕（光学模拟）",
-      gain: hall.brand === "IMAX" ? 1.4 : hall.brand === "Other PLF" ? 1.3 : 1.2,
-      halfGainAngle: hall.brand === "IMAX" ? 85 : 90,
-      perforationMm: 0.9,
-      openAreaPercent: 4.16,
-      curvatureDepth: Math.min(0.42, screenWidth / 90),
-    },
-    rowCount,
-    rowSpacing: estimatedRowSpacing,
-    rowRise: 0.48,
-    firstRowZ: estimatedFirstRowZ,
-    rowSeatCounts,
-    seatingWidth,
-    seatLayout,
-    sourceNote: seatLayout
-      ? `银幕规格与放映制式来自公开数据库；逐排座号和空槽来自猫眼选座网格抓取${capturedCountNote}；厅深按银幕宽度估算，第一排距银幕约 ${estimatedFrontDistance.toFixed(1)} m（范围 8–12 m），座间距、排距和高差仍为几何估算`
-      : `银幕规格、放映制式与容量来自公开数据库；该厅尚无逐排抓取数据，座位排列按容量近似；厅深按银幕宽度估算，第一排距银幕约 ${estimatedFrontDistance.toFixed(1)} m（范围 8–12 m），不代表影院官方测绘`,
-  };
-}
-
-export const cinemas: Cinema[] = cinemaListings.map((cinema) => ({
-  id: cinema.id,
-  city: cinema.city,
-  name: cinema.name,
-  address: cinema.address,
-  latitude: cinema.latitude,
-  longitude: cinema.longitude,
-}));
-
-export const auditoriums: Auditorium[] = inventoryHalls.map(hallToAuditorium);
-
-export function getAuditoriumById(id: string) {
-  const legacyId = id === "cnfm-imax" ? "hall-0019" : id;
-  return auditoriums.find((auditorium) => auditorium.id === legacyId);
-}
-
-const occupiedSeatIds = new Set([
-  "hall-0019-C-5",
-  "hall-0019-C-6",
-  "hall-0019-F-13",
-  "hall-0019-G-3",
-  "hall-0019-H-18",
-]);
-
-export function buildSeats(auditorium: Auditorium): Seat[] {
-  if (auditorium.seatLayout) {
-    const centerSlot = (auditorium.seatLayout.gridColumns + 1) / 2;
-
-    return auditorium.seatLayout.rows.flatMap((layoutRow, row) =>
-      layoutRow.cells.map(([seatNumber, gridSlot]) => {
-        const id = `${auditorium.id}-${layoutRow.label}-${seatNumber}`;
-
-        return {
-          id,
-          row,
-          rowLabel: layoutRow.label,
-          number: seatNumber,
-          gridSlot,
-          x:
-            (gridSlot - centerSlot) *
-            cinemaSeatGeometry.centerSpacing,
-          y:
-            cinemaSeatGeometry.rowFloorBaseY +
-            row * auditorium.rowRise,
-          z: auditorium.firstRowZ + row * auditorium.rowSpacing,
-          status: "available",
-        };
-      }),
-    );
-  }
-
-  return auditorium.rowSeatCounts.flatMap((count, row) => {
-    const rowLabel = String.fromCharCode(65 + row);
-
-    return Array.from({ length: count }, (_, index) => {
-      const sideOffset =
-        index < count / 2
-          ? -cinemaSeatGeometry.centerGap / 2
-          : cinemaSeatGeometry.centerGap / 2;
-      const x =
-        (index - (count - 1) / 2) * cinemaSeatGeometry.centerSpacing +
-        sideOffset;
-      const id = `${auditorium.id}-${rowLabel}-${index + 1}`;
-
-      return {
-        id,
-        row,
-        rowLabel,
-        number: String(index + 1),
-        gridSlot: index + 1,
-        x,
-        y:
-          cinemaSeatGeometry.rowFloorBaseY +
-          row * auditorium.rowRise,
-        z: auditorium.firstRowZ + row * auditorium.rowSpacing,
-        status: occupiedSeatIds.has(id) ? "occupied" : "available",
-      };
-    });
-  });
-}
-
-export function getSeatEyeY(seat: Seat) {
-  return (
-    seat.y +
-    cinemaSeatGeometry.cushionTopAboveFloor +
-    cinemaSeatGeometry.seatedEyeHeightAboveCushion
-  );
-}
-
-export function getSeatMetrics(auditorium: Auditorium, seat: Seat) {
-  const eyeY = getSeatEyeY(seat);
-  const screenCenterY = auditorium.screenBottom + auditorium.screenHeight / 2;
-  const distance = Math.abs(seat.z - auditorium.screenZ);
-  const horizontalFov =
-    (2 * Math.atan(auditorium.screenWidth / (2 * distance)) * 180) / Math.PI;
-  const verticalAngle =
-    (Math.atan2(screenCenterY - eyeY, distance) * 180) / Math.PI;
-
-  let verdict = "均衡";
-  let note = "银幕占比和仰角都比较自然，适合大多数影片。";
-
-  if (horizontalFov > 84) {
-    verdict = "强沉浸";
-    note = "银幕会占满视野，动作场面很有冲击力，字幕阅读更费力。";
-  } else if (horizontalFov > 69) {
-    verdict = "沉浸";
-    note = "画面包围感明显，仍能比较轻松地覆盖整块银幕。";
-  } else if (horizontalFov < 47) {
-    verdict = "全景";
-    note = "容易看清完整构图，沉浸感相对克制。";
-  }
-
-  if (Math.abs(seat.x) > auditorium.screenWidth * 0.3) {
-    note = "侧向观看感较明显，人物和字幕会产生一定透视变形。";
-  }
-
-  return {
-    distance,
-    horizontalFov,
-    verticalAngle,
-    verdict,
-    note,
-  };
-}
+export const AUDITORIUMS: Auditorium[] = [
+  {
+    id: "japandi_wood",
+    name: "日系原木私影",
+    englishName: "Japandi Warm Wood Cinema",
+    category: "featured",
+    screenWidth: 11.5,
+    screenHeight: 5.2,
+    aspectRatioText: "2.21 : 1",
+    soundSystem: "Dolby Atmos 7.1.4 建筑隐藏式杜比全景声",
+    projector: "Barco 4K 激光影院级投射系统",
+    seatsCount: 12,
+    description:
+      "1:1 完美复刻极简日系与北欧原木风精品私影。包含重型木梁天花、上射暖光筒灯、胡桃木抬高地台与嵌入式阶梯LED灯带、橄榄绿皮革意式沙发及羊绒搭毯、发光银幕与木质边柜。",
+    tags: ["实木天花横梁", "意式绿皮革沙发", "地台发光阶梯", "2700K 暖光氛围", "精品私影"],
+    woodTheme: true,
+    ambientColor: "#221a14",
+    accentColor: "#e6ad65",
+    defaultSeatId: "B2",
+    seats: [
+      {
+        id: "A1",
+        row: "A",
+        col: "1",
+        label: "前排左侧 A-1",
+        pos: [-2.2, 1.25, 3.8],
+        lookAt: [0, 1.6, -5.5],
+        fov: 65,
+      },
+      {
+        id: "A2",
+        row: "A",
+        col: "2",
+        label: "前排中央 A-2",
+        pos: [0, 1.25, 3.8],
+        lookAt: [0, 1.6, -5.5],
+        fov: 65,
+      },
+      {
+        id: "A3",
+        row: "A",
+        col: "3",
+        label: "前排右侧 A-3",
+        pos: [2.2, 1.25, 3.8],
+        lookAt: [0, 1.6, -5.5],
+        fov: 65,
+      },
+      {
+        id: "B1",
+        row: "B",
+        col: "1",
+        label: "中排左侧 B-1",
+        pos: [-2.5, 1.75, 6.2],
+        lookAt: [0, 1.8, -5.5],
+        fov: 58,
+      },
+      {
+        id: "B2",
+        row: "B",
+        col: "2",
+        label: "皇帝位中排 B-2 (最佳视野)",
+        pos: [0.3, 1.75, 6.2],
+        lookAt: [0, 1.8, -5.5],
+        fov: 58,
+        isVip: true,
+      },
+      {
+        id: "B3",
+        row: "B",
+        col: "3",
+        label: "中排右侧 B-3",
+        pos: [2.5, 1.75, 6.2],
+        lookAt: [0, 1.8, -5.5],
+        fov: 58,
+      },
+      {
+        id: "C1",
+        row: "C",
+        col: "1",
+        label: "后排地台 C-1",
+        pos: [-2.5, 2.25, 8.8],
+        lookAt: [0, 2.0, -5.5],
+        fov: 52,
+      },
+      {
+        id: "C2",
+        row: "C",
+        col: "2",
+        label: "后排地台 C-2",
+        pos: [0.3, 2.25, 8.8],
+        lookAt: [0, 2.0, -5.5],
+        fov: 52,
+        isVip: true,
+      },
+      {
+        id: "C3",
+        row: "C",
+        col: "3",
+        label: "后排右侧 C-3",
+        pos: [2.5, 2.25, 8.8],
+        lookAt: [0, 2.0, -5.5],
+        fov: 52,
+      },
+    ],
+  },
+  {
+    id: "shanghai_sho_1",
+    name: "上海影城 SHO 1号厅",
+    englishName: "Shanghai Film Art Center Hall 1 (Master Screen)",
+    category: "giant",
+    screenWidth: 22.4,
+    screenHeight: 12.5,
+    aspectRatioText: "1.79 : 1",
+    soundSystem: "Dolby Atmos 杜比全景声 44声道",
+    projector: "Christie 4K RGB 6P 激光双机",
+    seatsCount: 1058,
+    description: "亚洲顶级千人巨幕剧院，配备杜比全景声与高透光金金属巨幕，视线包围感极强。",
+    tags: ["千人巨幕", "杜比全景声", "高帧率支持", "旗舰影城"],
+    ambientColor: "#11141e",
+    accentColor: "#3b82f6",
+    defaultSeatId: "H15",
+    seats: [
+      {
+        id: "E15",
+        row: "E",
+        col: "15",
+        label: "前排视角 E-15",
+        pos: [0, 1.8, 8.5],
+        lookAt: [0, 3.5, -8],
+        fov: 72,
+      },
+      {
+        id: "H15",
+        row: "H",
+        col: "15",
+        label: "黄金皇帝位 H-15",
+        pos: [0, 3.2, 14.2],
+        lookAt: [0, 4.0, -8],
+        fov: 62,
+        isVip: true,
+      },
+      {
+        id: "L15",
+        row: "L",
+        col: "15",
+        label: "全景中后排 L-15",
+        pos: [0, 4.8, 20.0],
+        lookAt: [0, 4.2, -8],
+        fov: 54,
+      },
+    ],
+  },
+  {
+    id: "dolby_cinema",
+    name: "杜比影院 Dolby Cinema",
+    englishName: "Dolby Cinema Experience",
+    category: "dolby",
+    screenWidth: 18.8,
+    screenHeight: 10.2,
+    aspectRatioText: "1.84 : 1",
+    soundSystem: "Dolby Atmos 阵列式全景音响",
+    projector: "Dolby Vision 双激光 HDR 投射系统",
+    seatsCount: 380,
+    description: "黑黑黑的极致对比度与蚕茧式动态吸音墙面，蚕丝黑吸光皮革座椅。",
+    tags: ["Dolby Vision", "Dolby Atmos", "百万对比度", "吸光黑色内饰"],
+    ambientColor: "#08090d",
+    accentColor: "#00d2ff",
+    defaultSeatId: "F12",
+    seats: [
+      {
+        id: "D12",
+        row: "D",
+        col: "12",
+        label: "前排中心 D-12",
+        pos: [0, 2.0, 9.0],
+        lookAt: [0, 3.2, -7],
+        fov: 68,
+      },
+      {
+        id: "F12",
+        row: "F",
+        col: "12",
+        label: "黄金皇帝位 F-12",
+        pos: [0, 3.0, 13.5],
+        lookAt: [0, 3.5, -7],
+        fov: 59,
+        isVip: true,
+      },
+      {
+        id: "J12",
+        row: "J",
+        col: "12",
+        label: "后排统览 J-12",
+        pos: [0, 4.2, 18.0],
+        lookAt: [0, 3.5, -7],
+        fov: 52,
+      },
+    ],
+  },
+  {
+    id: "imax_laser",
+    name: "IMAX 商业激光厅",
+    englishName: "Commercial Laser IMAX Theater",
+    category: "imax",
+    screenWidth: 25.8,
+    screenHeight: 14.2,
+    aspectRatioText: "1.82 : 1",
+    soundSystem: "IMAX 12.1 声道源声系统",
+    projector: "IMAX Commercial Laser 4K",
+    seatsCount: 420,
+    description: "标志性通天银幕与坡度倾斜座椅，配合 IMAX 专属 12.1 极佳沉浸音质。",
+    tags: ["IMAX 12.1声道", "坡度大视角", "巨幅通天幕"],
+    ambientColor: "#0a0c10",
+    accentColor: "#2563eb",
+    defaultSeatId: "G14",
+    seats: [
+      {
+        id: "D14",
+        row: "D",
+        col: "14",
+        label: "前排包围 D-14",
+        pos: [0, 2.2, 10.0],
+        lookAt: [0, 4.2, -8],
+        fov: 70,
+      },
+      {
+        id: "G14",
+        row: "G",
+        col: "14",
+        label: "黄金视角 G-14",
+        pos: [0, 3.6, 15.5],
+        lookAt: [0, 4.5, -8],
+        fov: 60,
+        isVip: true,
+      },
+      {
+        id: "K14",
+        row: "K",
+        col: "14",
+        label: "后排看全景 K-14",
+        pos: [0, 5.0, 21.0],
+        lookAt: [0, 4.5, -8],
+        fov: 52,
+      },
+    ],
+  },
+];
