@@ -1218,12 +1218,20 @@ function Screen({
     }
   });
 
+  const isMinimalistCream = sceneStyle === "minimalist_cream";
+  const surroundWidth = isMinimalistCream
+    ? auditorium.screenWidth + 0.1
+    : auditorium.screenWidth + 0.8;
+  const surroundHeight = isMinimalistCream
+    ? auditorium.screenHeight + 0.1
+    : auditorium.screenHeight + 0.8;
+  const surroundDepth = isMinimalistCream ? 0.04 : 0.3;
+  const surroundZOffset = isMinimalistCream ? 0.02 : 0.1;
+
   return (
     <group>
-      <mesh position={[0, centerY, auditorium.screenZ - 0.1]}>
-        <boxGeometry
-          args={[auditorium.screenWidth + 0.8, auditorium.screenHeight + 0.8, 0.3]}
-        />
+      <mesh position={[0, centerY, auditorium.screenZ - surroundZOffset]}>
+        <boxGeometry args={[surroundWidth, surroundHeight, surroundDepth]} />
         <meshPhysicalMaterial
           ref={screenSurroundMaterialRef}
           color={initialHouseLights ? "#111315" : "#000000"}
@@ -2262,10 +2270,10 @@ function MinimalistCreamBackdrop({ auditorium }: { auditorium: Auditorium }) {
         </mesh>
       </group>
 
-      {/* Polished Micro-cement Floor Front Stage Area */}
+      {/* Dark Carpet Floor Front Stage Area */}
       <mesh position={[0, 0.01, baseZ + 3]} receiveShadow>
         <planeGeometry args={[roomWidth, 8]} rotation={[-Math.PI / 2, 0, 0]} />
-        <meshStandardMaterial color="#c8c0b2" roughness={0.35} metalness={0.05} />
+        <meshStandardMaterial color="#222428" roughness={0.92} metalness={0.02} />
       </mesh>
     </group>
   );
@@ -2599,7 +2607,7 @@ function AuditoriumArchitecture({
   });
 
   const platformColor = useMemo(() => {
-    if (sceneStyle === "minimalist_cream") return "#c8c0b2";
+    if (sceneStyle === "minimalist_cream") return "#222428";
     if (sceneStyle === "imax_giant") return "#111318";
     if (sceneStyle === "warm_wood_lounge") return "#8c5e34";
     if (sceneStyle === "snowy_greek") return "#f1f5f9";
@@ -2611,7 +2619,7 @@ function AuditoriumArchitecture({
   }, [sceneStyle]);
 
   const platformRoughness = useMemo(() => {
-    if (sceneStyle === "minimalist_cream") return 0.35;
+    if (sceneStyle === "minimalist_cream") return 0.92;
     if (sceneStyle === "imax_giant") return 0.85;
     if (sceneStyle === "warm_wood_lounge") return 0.45;
     if (sceneStyle === "snowy_greek") return 0.4;
@@ -2621,7 +2629,7 @@ function AuditoriumArchitecture({
   }, [sceneStyle]);
 
   const groundColor = useMemo(() => {
-    if (sceneStyle === "minimalist_cream") return "#b8b0a2";
+    if (sceneStyle === "minimalist_cream") return "#222428";
     if (sceneStyle === "imax_giant") return "#090a0e";
     if (sceneStyle === "warm_wood_lounge") return "#784e2a";
     if (sceneStyle === "snowy_greek") return "#cbd5e1";
@@ -3498,7 +3506,7 @@ function SceneLighting({
 
   const groundColor = useMemo(() => {
     if (sceneStyle === "alpine_desert") return new Color("#b89874");
-    if (sceneStyle === "minimalist_cream") return new Color("#d1caa0");
+    if (sceneStyle === "minimalist_cream") return new Color("#1f2024");
     if (sceneStyle === "warm_wood_lounge") return new Color("#452b14");
     if (sceneStyle === "snowy_greek") return new Color("#0f172a");
     if (sceneStyle === "space_station") return new Color("#0f172a");
