@@ -7,9 +7,6 @@ export type SceneStyle =
   | "classic"
   | "urban_plaza"
   | "snowy_greek"
-  | "drive_in"
-  | "cyberpunk"
-  | "forest_camp"
   | "space_station"
   | "warm_wood_lounge"
   | "imax_giant"
@@ -72,30 +69,6 @@ export const SCENE_STYLES: SceneStyleOption[] = [
     subtitle: "欧洲最高雪山阿尔卑斯 · 千年大理石阶梯长凳",
     badge: "雪山史诗",
     themeColor: "#38bdf8",
-  },
-  {
-    id: "drive_in",
-    icon: "🌌",
-    name: "星空露天汽车影院",
-    subtitle: "旷野璀璨星河 · 复古汽车露天电影场",
-    badge: "星光浪漫",
-    themeColor: "#a855f7",
-  },
-  {
-    id: "cyberpunk",
-    icon: "⛩️",
-    name: "赛博朋克霓虹影剧院",
-    subtitle: "未来霓虹光轨 · 极客高能视听黑科技",
-    badge: "赛博未来",
-    themeColor: "#ec4899",
-  },
-  {
-    id: "forest_camp",
-    icon: "🌲",
-    name: "森林营地露天影院",
-    subtitle: "松林篝火晚风 · 萤火点缀自然巨幕",
-    badge: "自然沉浸",
-    themeColor: "#22c55e",
   },
   {
     id: "space_station",
@@ -164,7 +137,7 @@ export function SceneStylePicker({
         <div className="style-picker-header">
           <span className="style-picker-label">
             <Sparkle size={18} className="text-amber-400 inline mr-1" />
-            切换 3D 影院主题（10大实景风格）：
+            切换 3D 影院主题（7大实景风格）：
           </span>
           {toastMessage && (
             <span className="style-picker-toast-badge animate-bounce">
@@ -229,7 +202,7 @@ export function SceneStylePicker({
       {isOpen && (
         <div className="style-picker-dropdown-menu" role="menu">
           <div className="dropdown-menu-header">
-            <span>选择 3D 影厅视觉风格 (10种)</span>
+            <span>选择 3D 影厅视觉风格 (7种)</span>
           </div>
           <div className="dropdown-menu-list">
             {SCENE_STYLES.map((option) => {

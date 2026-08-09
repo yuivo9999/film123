@@ -80,9 +80,6 @@ type CinemaSceneProps = {
     | "classic"
     | "urban_plaza"
     | "snowy_greek"
-    | "drive_in"
-    | "cyberpunk"
-    | "forest_camp"
     | "space_station"
     | "warm_wood_lounge"
     | "imax_giant"
@@ -1565,211 +1562,7 @@ function pseudoRandom(seed: number) {
   return x - Math.floor(x);
 }
 
-function DriveInBackdrop({ auditorium }: { auditorium: Auditorium }) {
-  const baseZ = auditorium.screenZ;
-  const starPositions = useMemo(() => {
-    const pos = new Float32Array(250 * 3);
-    for (let i = 0; i < 250; i++) {
-      pos[i * 3] = (pseudoRandom(i * 3) - 0.5) * 280;
-      pos[i * 3 + 1] = pseudoRandom(i * 3 + 1) * 90 + 10;
-      pos[i * 3 + 2] = baseZ - 60 + (pseudoRandom(i * 3 + 2) - 0.5) * 30;
-    }
-    return pos;
-  }, [baseZ]);
 
-  return (
-    <group>
-      <points>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            args={[starPositions, 3]}
-          />
-        </bufferGeometry>
-        <pointsMaterial size={1.2} color="#f8fafc" transparent opacity={0.85} sizeAttenuation toneMapped={false} />
-      </points>
-
-      <mesh position={[-60, 68, baseZ - 58]}>
-        <sphereGeometry args={[6.5, 32, 32]} />
-        <meshBasicMaterial color="#fef9c3" toneMapped={false} />
-      </mesh>
-
-      {[
-        { x: -32, z: baseZ + 18, color: "#991b1b" },
-        { x: -14, z: baseZ + 24, color: "#1e3a8a" },
-        { x: 14, z: baseZ + 24, color: "#065f46" },
-        { x: 32, z: baseZ + 18, color: "#854d0e" },
-        { x: -48, z: baseZ + 32, color: "#374151" },
-        { x: 48, z: baseZ + 32, color: "#581c87" },
-      ].map((car, idx) => (
-        <group key={idx} position={[car.x, 0.8, car.z]}>
-          <mesh position={[0, 0.3, 0]}>
-            <boxGeometry args={[3.2, 1.1, 5.2]} />
-            <meshStandardMaterial color={car.color} roughness={0.3} metalness={0.7} />
-          </mesh>
-          <mesh position={[0, 1.1, -0.2]}>
-            <boxGeometry args={[2.8, 0.8, 2.6]} />
-            <meshStandardMaterial color="#1e293b" roughness={0.2} metalness={0.8} />
-          </mesh>
-          {[-1.2, 1.2].map((hx, hIdx) => (
-            <group key={hIdx} position={[hx, 0.4, -2.55]}>
-              <mesh>
-                <sphereGeometry args={[0.22, 16, 16]} />
-                <meshBasicMaterial color="#fef08a" toneMapped={false} />
-              </mesh>
-            </group>
-          ))}
-          {[-1.5, 1.5].map((wx) =>
-            [-1.6, 1.6].map((wz, wIdx) => (
-              <mesh key={`${wx}-${wz}-${wIdx}`} position={[wx, -0.3, wz]} rotation={[0, 0, Math.PI / 2]}>
-                <cylinderGeometry args={[0.45, 0.45, 0.3, 16]} />
-                <meshStandardMaterial color="#111827" roughness={0.8} />
-              </mesh>
-            ))
-          )}
-        </group>
-      ))}
-
-      {[-auditorium.screenWidth / 2 - 1, auditorium.screenWidth / 2 + 1].map((x, sideIdx) => (
-        <mesh key={sideIdx} position={[x, auditorium.screenBottom + auditorium.screenHeight / 2, baseZ + 0.1]}>
-          <boxGeometry args={[0.6, auditorium.screenHeight + 3.5, 0.6]} />
-          <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.3} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-function CyberpunkBackdrop({ auditorium }: { auditorium: Auditorium }) {
-  const baseZ = auditorium.screenZ;
-
-  return (
-    <group>
-      {[
-        { x: -58, h: 90, w: 24, signColor: "#00f0ff" },
-        { x: -35, h: 75, w: 20, signColor: "#ff007f" },
-        { x: 35, h: 80, w: 22, signColor: "#ff007f" },
-        { x: 60, h: 95, w: 26, signColor: "#00f0ff" },
-      ].map((b, idx) => (
-        <group key={idx} position={[b.x, b.h / 2 - 2, baseZ - 52]}>
-          <mesh>
-            <boxGeometry args={[b.w, b.h, 22]} />
-            <meshStandardMaterial color="#0c0714" roughness={0.6} metalness={0.4} />
-          </mesh>
-          <mesh position={[0, 10, 11.2]}>
-            <planeGeometry args={[b.w * 0.7, 18]} />
-            <meshBasicMaterial color={b.signColor} transparent opacity={0.85} toneMapped={false} />
-          </mesh>
-        </group>
-      ))}
-
-      {[-auditorium.screenWidth / 2 - 0.4, auditorium.screenWidth / 2 + 0.4].map((x, sideIdx) => (
-        <group key={sideIdx} position={[x, auditorium.screenBottom + auditorium.screenHeight / 2, baseZ + 0.1]}>
-          <mesh>
-            <boxGeometry args={[0.25, auditorium.screenHeight + 1.2, 0.25]} />
-            <meshBasicMaterial color={sideIdx === 0 ? "#00f0ff" : "#ff007f"} toneMapped={false} />
-          </mesh>
-          <pointLight
-            color={sideIdx === 0 ? "#00f0ff" : "#ff007f"}
-            intensity={180}
-            distance={22}
-          />
-        </group>
-      ))}
-      <mesh position={[0, auditorium.screenBottom + auditorium.screenHeight + 0.5, baseZ + 0.1]}>
-        <boxGeometry args={[auditorium.screenWidth + 1.2, 0.25, 0.25]} />
-        <meshBasicMaterial color="#38bdf8" toneMapped={false} />
-      </mesh>
-    </group>
-  );
-}
-
-function ForestCampBackdrop({ auditorium }: { auditorium: Auditorium }) {
-  const baseZ = auditorium.screenZ;
-
-  const sideFireflies = useMemo(() => {
-    const list: [number, number, number][] = [];
-    for (let i = 0; i < 20; i++) {
-      const side = i % 2 === 0 ? 1 : -1;
-      const x = (24 + pseudoRandom(i * 3) * 20) * side;
-      const y = 1.5 + pseudoRandom(i * 3 + 1) * 6;
-      const z = baseZ - 20 + pseudoRandom(i * 3 + 2) * 35;
-      list.push([x, y, z]);
-    }
-    return list;
-  }, [baseZ]);
-
-  return (
-    <group>
-      {/* Pine Trees Surroundings */}
-      {[
-        { x: -38, z: baseZ - 20, s: 1.2 },
-        { x: -28, z: baseZ - 30, s: 1.5 },
-        { x: -45, z: baseZ + 10, s: 1.4 },
-        { x: 38, z: baseZ - 20, s: 1.3 },
-        { x: 28, z: baseZ - 30, s: 1.6 },
-        { x: 45, z: baseZ + 10, s: 1.4 },
-        { x: -55, z: baseZ + 25, s: 1.7 },
-        { x: 55, z: baseZ + 25, s: 1.7 },
-      ].map((tree, idx) => (
-        <group key={idx} position={[tree.x, 0, tree.z]} scale={[tree.s, tree.s, tree.s]}>
-          <mesh position={[0, 3, 0]}>
-            <cylinderGeometry args={[0.5, 0.8, 6, 8]} />
-            <meshStandardMaterial color="#3d2616" roughness={0.9} />
-          </mesh>
-          <mesh position={[0, 7, 0]}>
-            <coneGeometry args={[4.5, 7, 8]} />
-            <meshStandardMaterial color="#047857" roughness={0.7} />
-          </mesh>
-          <mesh position={[0, 11, 0]}>
-            <coneGeometry args={[3.5, 6, 8]} />
-            <meshStandardMaterial color="#059669" roughness={0.7} />
-          </mesh>
-          <mesh position={[0, 14.5, 0]}>
-            <coneGeometry args={[2.4, 5, 8]} />
-            <meshStandardMaterial color="#10b981" roughness={0.7} />
-          </mesh>
-        </group>
-      ))}
-
-      {/* Central Campfire */}
-      <group position={[0, 0.1, baseZ + 12]}>
-        <mesh>
-          <torusGeometry args={[1.2, 0.3, 8, 16]} />
-          <meshStandardMaterial color="#475569" roughness={0.85} />
-        </mesh>
-        <mesh rotation={[0.4, 0.8, 0]}>
-          <cylinderGeometry args={[0.15, 0.15, 2.2, 8]} />
-          <meshStandardMaterial color="#292524" roughness={0.9} />
-        </mesh>
-        <pointLight color="#f97316" intensity={220} distance={28} decay={1.8} />
-      </group>
-
-      {/* Side Gentle Firefly Orbs (Out of direct screen view) */}
-      {sideFireflies.map(([fx, fy, fz], fIdx) => (
-        <mesh key={fIdx} position={[fx, fy, fz]}>
-          <sphereGeometry args={[0.08, 8, 8]} />
-          <meshBasicMaterial color="#a3e635" toneMapped={false} />
-        </mesh>
-      ))}
-
-      {/* Screen Timber Supporting Posts */}
-      {[-auditorium.screenWidth / 2 - 0.8, auditorium.screenWidth / 2 + 0.8].map((x, sideIdx) => (
-        <mesh key={sideIdx} position={[x, auditorium.screenBottom + auditorium.screenHeight / 2, baseZ + 0.1]}>
-          <cylinderGeometry args={[0.4, 0.45, auditorium.screenHeight + 2.5, 12]} />
-          <meshStandardMaterial color="#451a03" roughness={0.8} />
-        </mesh>
-      ))}
-
-      {/* Sunlight for Forest Day / Lights On mode */}
-      <directionalLight
-        position={[25, 50, baseZ - 10]}
-        intensity={1.8}
-        color="#fef08a"
-      />
-    </group>
-  );
-}
 
 function SpaceStationBackdrop({ auditorium }: { auditorium: Auditorium }) {
   const baseZ = auditorium.screenZ;
@@ -2310,15 +2103,6 @@ function SkySphere({
         sun.addColorStop(1, "rgba(254, 240, 138, 0)");
         ctx.fillStyle = sun;
         ctx.fillRect(0, 0, w, h);
-      } else if (sceneStyle === "cyberpunk") {
-        // Sunset Magenta & Neon Purple Horizon
-        const grad = ctx.createLinearGradient(0, 0, 0, h);
-        grad.addColorStop(0, "#1e1b4b");
-        grad.addColorStop(0.35, "#581c87");
-        grad.addColorStop(0.7, "#be185d");
-        grad.addColorStop(1, "#0284c7");
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, w, h);
       } else if (sceneStyle === "space_station") {
         // Space Orbit Curve
         const grad = ctx.createLinearGradient(0, 0, 0, h);
@@ -2329,7 +2113,7 @@ function SkySphere({
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, w, h);
       } else {
-        // General Day Sky (drive_in, forest_camp, urban_plaza)
+        // General Day Sky (urban_plaza)
         const grad = ctx.createLinearGradient(0, 0, 0, h);
         grad.addColorStop(0, "#0369a1");
         grad.addColorStop(0.45, "#38bdf8");
@@ -2352,11 +2136,7 @@ function SkySphere({
     } else {
       // === NIGHTTIME STARRY SKY DOME (360 DEGREES) ===
       const grad = ctx.createLinearGradient(0, 0, 0, h);
-      if (sceneStyle === "cyberpunk") {
-        grad.addColorStop(0, "#030206");
-        grad.addColorStop(0.65, "#0f0a1c");
-        grad.addColorStop(1, "#2e1065");
-      } else if (sceneStyle === "space_station") {
+      if (sceneStyle === "space_station") {
         grad.addColorStop(0, "#010206");
         grad.addColorStop(0.6, "#030712");
         grad.addColorStop(1, "#0369a1");
@@ -2370,7 +2150,7 @@ function SkySphere({
 
       // Cosmic Nebula / Milky Way Glow overhead
       const neb = ctx.createRadialGradient(w * 0.5, h * 0.2, 10, w * 0.5, h * 0.2, 350);
-      neb.addColorStop(0, sceneStyle === "cyberpunk" ? "rgba(236, 72, 153, 0.35)" : "rgba(56, 189, 248, 0.28)");
+      neb.addColorStop(0, "rgba(56, 189, 248, 0.28)");
       neb.addColorStop(1, "rgba(0, 0, 0, 0)");
       ctx.fillStyle = neb;
       ctx.fillRect(0, 0, w, h);
@@ -2469,9 +2249,6 @@ function AuditoriumArchitecture({
     if (sceneStyle === "imax_giant") return "#111318";
     if (sceneStyle === "warm_wood_lounge") return "#8c5e34";
     if (sceneStyle === "snowy_greek") return "#f1f5f9";
-    if (sceneStyle === "cyberpunk") return "#0f172a";
-    if (sceneStyle === "forest_camp") return "#3d2616";
-    if (sceneStyle === "drive_in") return "#334155";
     if (sceneStyle === "space_station") return "#1e293b";
     if (sceneStyle === "urban_plaza") return "#475569";
     return "#202329";
@@ -2482,7 +2259,6 @@ function AuditoriumArchitecture({
     if (sceneStyle === "imax_giant") return 0.85;
     if (sceneStyle === "warm_wood_lounge") return 0.45;
     if (sceneStyle === "snowy_greek") return 0.4;
-    if (sceneStyle === "cyberpunk") return 0.2;
     if (sceneStyle === "space_station") return 0.3;
     return 0.9;
   }, [sceneStyle]);
@@ -2492,9 +2268,6 @@ function AuditoriumArchitecture({
     if (sceneStyle === "imax_giant") return "#090a0e";
     if (sceneStyle === "warm_wood_lounge") return "#784e2a";
     if (sceneStyle === "snowy_greek") return "#cbd5e1";
-    if (sceneStyle === "cyberpunk") return "#08070e";
-    if (sceneStyle === "forest_camp") return "#14532d";
-    if (sceneStyle === "drive_in") return "#1e293b";
     if (sceneStyle === "space_station") return "#0f172a";
     if (sceneStyle === "urban_plaza") return "#1e293b";
     return "#191b1f";
@@ -2510,9 +2283,6 @@ function AuditoriumArchitecture({
       {sceneStyle === "warm_wood_lounge" && <WarmWoodLoungeBackdrop auditorium={auditorium} />}
       {sceneStyle === "urban_plaza" && <UrbanPlazaBackdrop auditorium={auditorium} />}
       {sceneStyle === "snowy_greek" && <SnowMountainBackdrop auditorium={auditorium} />}
-      {sceneStyle === "drive_in" && <DriveInBackdrop auditorium={auditorium} />}
-      {sceneStyle === "cyberpunk" && <CyberpunkBackdrop auditorium={auditorium} />}
-      {sceneStyle === "forest_camp" && <ForestCampBackdrop auditorium={auditorium} />}
       {sceneStyle === "space_station" && <SpaceStationBackdrop auditorium={auditorium} />}
 
       {/* Ground plane */}
@@ -2532,13 +2302,7 @@ function AuditoriumArchitecture({
               <meshStandardMaterial color={platformColor} roughness={platformRoughness} />
             </mesh>
 
-            {/* Glowing Edge Strips for Cyberpunk & Space Station */}
-            {sceneStyle === "cyberpunk" && (
-              <mesh position={[0, y - 0.01, z - auditorium.rowSpacing / 2 + 0.05]}>
-                <boxGeometry args={[platformWidth, 0.04, 0.08]} />
-                <meshBasicMaterial color="#00f0ff" toneMapped={false} />
-              </mesh>
-            )}
+            {/* Glowing Edge Strips for Space Station */}
             {sceneStyle === "space_station" && (
               <mesh position={[0, y - 0.01, z - auditorium.rowSpacing / 2 + 0.05]}>
                 <boxGeometry args={[platformWidth, 0.04, 0.08]} />
@@ -2719,44 +2483,6 @@ function Seats({
         },
       };
     }
-    if (sceneStyle === "cyberpunk") {
-      return {
-        available: {
-          upholstery: new Color("#0f172a"),
-          shell: new Color("#0284c7"),
-          panel: new Color("#00f0ff"),
-        },
-        selected: {
-          upholstery: new Color("#ff007f"),
-          shell: new Color("#d946ef"),
-          panel: new Color("#f43f5e"),
-        },
-        occupied: {
-          upholstery: new Color("#1e1b4b"),
-          shell: new Color("#312e81"),
-          panel: new Color("#1e293b"),
-        },
-      };
-    }
-    if (sceneStyle === "forest_camp") {
-      return {
-        available: {
-          upholstery: new Color("#78350f"),
-          shell: new Color("#451a03"),
-          panel: new Color("#92400e"),
-        },
-        selected: {
-          upholstery: new Color("#15803d"),
-          shell: new Color("#166534"),
-          panel: new Color("#22c55e"),
-        },
-        occupied: {
-          upholstery: new Color("#27272a"),
-          shell: new Color("#18181b"),
-          panel: new Color("#3f3f46"),
-        },
-      };
-    }
     if (sceneStyle === "space_station") {
       return {
         available: {
@@ -2826,8 +2552,6 @@ function Seats({
 
     const isGreek = sceneStyle === "snowy_greek";
     const isMinimalistCream = sceneStyle === "minimalist_cream";
-    const isWarmWood = sceneStyle === "warm_wood_lounge";
-    const isImaxGiant = sceneStyle === "imax_giant";
     const isFlatFloor = sceneStyle === "urban_plaza";
 
     seats.forEach((seat, index) => {
@@ -2968,131 +2692,6 @@ function Seats({
           [seat.x, actualY, seat.z],
           [0, 0, 0],
           [0, 0, 0],
-        );
-      } else if (isWarmWood) {
-        // 温馨木质/商务尊享影厅：头等舱全皮奢华电动卧躺沙发椅
-        placePart(
-          cushionRef.current!,
-          index,
-          [seat.x, actualY + 0.45, seat.z - 0.02],
-          [-0.05, 0, 0],
-          [1.15, 1.25, 1.15],
-        );
-        placePart(
-          backRef.current!,
-          index,
-          [seat.x, actualY + 0.92, seat.z + 0.24],
-          [0.22, 0, 0],
-          [1.12, 0.82, 1.25],
-        );
-        placePart(
-          backShellRef.current!,
-          index,
-          [seat.x, actualY + 0.92, seat.z + 0.32],
-          [0.22, 0, 0],
-          [1.18, 0.88, 1.3],
-        );
-
-        [-0.42, 0.42].forEach((xOffset, sideIndex) => {
-          placePart(
-            sidePanelRef.current!,
-            index * 2 + sideIndex,
-            [seat.x + xOffset, actualY + 0.36, seat.z + 0.04],
-            [-0.02, 0, 0],
-            [1.2, 1.15, 1.25],
-          );
-          placePart(
-            armCapRef.current!,
-            index * 2 + sideIndex,
-            [seat.x + xOffset, actualY + 0.52, seat.z + 0.04],
-            [-0.02, 0, 0],
-            [1.25, 1.2, 1.3],
-          );
-          // 倾斜向斜前方延伸的电动伸缩脚托 (Recliner Footrest)
-          placePart(
-            legRef.current!,
-            index * 2 + sideIndex,
-            [seat.x + xOffset * 0.75, actualY + 0.2, seat.z - 0.32],
-            [0.55, 0, 0],
-            [0.9, 0.6, 0.8],
-          );
-          placePart(
-            footRef.current!,
-            index * 2 + sideIndex,
-            [seat.x + xOffset * 0.75, actualY + 0.08, seat.z - 0.48],
-            [0.55, 0, 0],
-            [0.85, 0.5, 0.75],
-          );
-        });
-
-        placePart(
-          cupHolderRef.current!,
-          index,
-          [seat.x + 0.45, actualY + 0.54, seat.z - 0.25],
-          [Math.PI / 2, 0, 0],
-          [1.2, 1.2, 1.2],
-        );
-      } else if (isImaxGiant) {
-        // IMAX巨幕影厅：IMAX专属高背包覆式高科技人体工学座椅（高耸头枕加高靠背）
-        placePart(
-          cushionRef.current!,
-          index,
-          [seat.x, actualY + 0.44, seat.z - 0.04],
-          [-0.09, 0, 0],
-          [0.98, 1.05, 1.08],
-        );
-        placePart(
-          backShellRef.current!,
-          index,
-          [seat.x, actualY + 1.0, seat.z + 0.3],
-          [0.15, 0, 0],
-          [0.98, 0.72, 1.45],
-        );
-        placePart(
-          backRef.current!,
-          index,
-          [seat.x, actualY + 1.0, seat.z + 0.22],
-          [0.15, 0, 0],
-          [0.96, 0.7, 1.42],
-        );
-
-        [-0.36, 0.36].forEach((xOffset, sideIndex) => {
-          placePart(
-            sidePanelRef.current!,
-            index * 2 + sideIndex,
-            [seat.x + xOffset, actualY + 0.36, seat.z + 0.06],
-            [-0.055, 0, 0],
-            [0.92, 1.05, 1.1],
-          );
-          placePart(
-            armCapRef.current!,
-            index * 2 + sideIndex,
-            [seat.x + xOffset, actualY + 0.53, seat.z + 0.03],
-            [-0.055, 0, 0],
-            [0.95, 1.0, 1.15],
-          );
-          placePart(
-            legRef.current!,
-            index * 2 + sideIndex,
-            [seat.x + xOffset * 0.72, actualY + 0.2, seat.z + 0.16],
-            [0, 0, 0],
-            [1, 1, 1],
-          );
-          placePart(
-            footRef.current!,
-            index * 2 + sideIndex,
-            [seat.x + xOffset * 0.72, actualY + 0.03, seat.z + 0.12],
-            [0, 0, 0],
-            [1, 1, 1],
-          );
-        });
-
-        placePart(
-          cupHolderRef.current!,
-          index,
-          [seat.x + 0.36, actualY + 0.54, seat.z - 0.22],
-          [Math.PI / 2, 0, 0],
-          [1, 1, 1],
         );
       } else {
         placePart(
@@ -3436,9 +3035,6 @@ function SceneLighting({
     if (sceneStyle === "imax_giant") return new Color("#0b0d12");
     if (sceneStyle === "warm_wood_lounge") return new Color("#18110a");
     if (sceneStyle === "snowy_greek") return new Color("#0a1128");
-    if (sceneStyle === "drive_in") return new Color("#040714");
-    if (sceneStyle === "cyberpunk") return new Color("#07030e");
-    if (sceneStyle === "forest_camp") return new Color("#030805");
     if (sceneStyle === "space_station") return new Color("#02040a");
     return new Color("#111317");
   }, [sceneStyle]);
@@ -3448,9 +3044,6 @@ function SceneLighting({
     if (sceneStyle === "imax_giant") return new Color("#040507");
     if (sceneStyle === "warm_wood_lounge") return new Color("#0c0804");
     if (sceneStyle === "snowy_greek") return new Color("#060b1b");
-    if (sceneStyle === "drive_in") return new Color("#02040a");
-    if (sceneStyle === "cyberpunk") return new Color("#030107");
-    if (sceneStyle === "forest_camp") return new Color("#010402");
     if (sceneStyle === "space_station") return new Color("#010205");
     return new Color("#07080a");
   }, [sceneStyle]);
@@ -3460,9 +3053,6 @@ function SceneLighting({
     if (sceneStyle === "imax_giant") return new Color("#0e1118");
     if (sceneStyle === "warm_wood_lounge") return new Color("#21180e");
     if (sceneStyle === "snowy_greek") return new Color("#0c1535");
-    if (sceneStyle === "drive_in") return new Color("#060a1e");
-    if (sceneStyle === "cyberpunk") return new Color("#0d051c");
-    if (sceneStyle === "forest_camp") return new Color("#040f09");
     if (sceneStyle === "space_station") return new Color("#030712");
     return new Color("#15171b");
   }, [sceneStyle]);
@@ -3472,9 +3062,6 @@ function SceneLighting({
     if (sceneStyle === "imax_giant") return new Color("#050608");
     if (sceneStyle === "warm_wood_lounge") return new Color("#0d0804");
     if (sceneStyle === "snowy_greek") return new Color("#070d22");
-    if (sceneStyle === "drive_in") return new Color("#03050f");
-    if (sceneStyle === "cyberpunk") return new Color("#05020a");
-    if (sceneStyle === "forest_camp") return new Color("#020604");
     if (sceneStyle === "space_station") return new Color("#010308");
     return new Color("#08090b");
   }, [sceneStyle]);
@@ -3483,9 +3070,6 @@ function SceneLighting({
     if (sceneStyle === "imax_giant") return new Color("#cbd5e1");
     if (sceneStyle === "warm_wood_lounge") return new Color("#fde68a");
     if (sceneStyle === "snowy_greek") return new Color("#e2e8f0");
-    if (sceneStyle === "drive_in") return new Color("#cbd5e1");
-    if (sceneStyle === "cyberpunk") return new Color("#e0e7ff");
-    if (sceneStyle === "forest_camp") return new Color("#a7f3d0");
     if (sceneStyle === "space_station") return new Color("#e0f2fe");
     if (sceneStyle === "urban_plaza") return new Color("#dbeafe");
     return new Color("#fef08a");
@@ -3496,9 +3080,6 @@ function SceneLighting({
     if (sceneStyle === "imax_giant") return new Color("#334155");
     if (sceneStyle === "warm_wood_lounge") return new Color("#78350f");
     if (sceneStyle === "snowy_greek") return new Color("#1d4ed8");
-    if (sceneStyle === "drive_in") return new Color("#384e68");
-    if (sceneStyle === "cyberpunk") return new Color("#7e22ce");
-    if (sceneStyle === "forest_camp") return new Color("#047857");
     if (sceneStyle === "space_station") return new Color("#0284c7");
     if (sceneStyle === "urban_plaza") return new Color("#1e3a8a");
     return new Color("#881337");
@@ -3508,9 +3089,6 @@ function SceneLighting({
     if (sceneStyle === "minimalist_cream") return new Color("#fde047");
     if (sceneStyle === "warm_wood_lounge") return new Color("#fef08a");
     if (sceneStyle === "snowy_greek") return new Color("#38bdf8");
-    if (sceneStyle === "drive_in") return new Color("#818cf8");
-    if (sceneStyle === "cyberpunk") return new Color("#f0abfc");
-    if (sceneStyle === "forest_camp") return new Color("#34d399");
     if (sceneStyle === "space_station") return new Color("#38bdf8");
     if (sceneStyle === "urban_plaza") return new Color("#60a5fa");
     return new Color("#fb7185");
@@ -3520,9 +3098,6 @@ function SceneLighting({
     if (sceneStyle === "minimalist_cream") return new Color("#d1caa0");
     if (sceneStyle === "warm_wood_lounge") return new Color("#452b14");
     if (sceneStyle === "snowy_greek") return new Color("#0f172a");
-    if (sceneStyle === "drive_in") return new Color("#0f172a");
-    if (sceneStyle === "cyberpunk") return new Color("#1e1b4b");
-    if (sceneStyle === "forest_camp") return new Color("#064e3b");
     if (sceneStyle === "space_station") return new Color("#0f172a");
     if (sceneStyle === "urban_plaza") return new Color("#0f172a");
     return new Color("#1c1917");
@@ -3643,10 +3218,6 @@ function SceneLighting({
         color={
           sceneStyle === "snowy_greek"
             ? "#e0f2fe"
-            : sceneStyle === "forest_camp"
-            ? "#a7f3d0"
-            : sceneStyle === "cyberpunk"
-            ? "#f472b6"
             : sceneStyle === "space_station"
             ? "#bae6fd"
             : sceneStyle === "urban_plaza"
