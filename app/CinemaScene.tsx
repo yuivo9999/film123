@@ -83,7 +83,8 @@ type CinemaSceneProps = {
     | "drive_in"
     | "cyberpunk"
     | "forest_camp"
-    | "space_station";
+    | "space_station"
+    | "warm_wood_lounge";
   playing: boolean;
   playbackToken: number;
   viewCommand: ViewCommand;
@@ -1801,6 +1802,203 @@ function SpaceStationBackdrop({ auditorium }: { auditorium: Auditorium }) {
   );
 }
 
+function WarmWoodLoungeBackdrop({ auditorium }: { auditorium: Auditorium }) {
+  const baseZ = auditorium.screenZ;
+  const lastRowZ =
+    auditorium.firstRowZ +
+    (auditorium.rowCount - 1) * auditorium.rowSpacing;
+  const roomDepth = lastRowZ - auditorium.screenZ + 12;
+  const roomCenterZ = auditorium.screenZ + roomDepth / 2 - 2;
+  const roomHeight = Math.max(
+    14,
+    auditorium.screenBottom + auditorium.screenHeight + 2.5,
+  );
+  const roomWidth = Math.max(34, auditorium.seatingWidth + 6);
+  const halfRoomWidth = roomWidth / 2;
+
+  return (
+    <group>
+      {/* Heavy Wooden Ceiling Beams (横向重型原木天花大梁) with Concealed Warm LED Strip */}
+      {[0.15, 0.45, 0.75].map((factor, idx) => {
+        const beamZ = auditorium.screenZ + roomDepth * factor;
+        return (
+          <group key={`beam-${idx}`} position={[0, roomHeight - 0.4, beamZ]}>
+            {/* Main Oak Beam */}
+            <mesh receiveShadow castShadow>
+              <boxGeometry args={[roomWidth + 2, 0.8, 1.2]} />
+              <meshStandardMaterial
+                color="#7c522e"
+                roughness={0.55}
+                metalness={0.05}
+              />
+            </mesh>
+            {/* Concealed Cove Light Strip Above Beam */}
+            <mesh position={[0, 0.42, 0]}>
+              <boxGeometry args={[roomWidth, 0.06, 0.8]} />
+              <meshBasicMaterial color="#fef08a" toneMapped={false} />
+            </mesh>
+            <pointLight
+              color="#fde047"
+              intensity={90}
+              distance={16}
+              decay={2}
+              position={[0, 0.5, 0]}
+            />
+          </group>
+        );
+      })}
+
+      {/* Ceiling Surface (高雅米白天花板) */}
+      <mesh position={[0, roomHeight + 0.1, roomCenterZ]} receiveShadow>
+        <boxGeometry args={[roomWidth + 2, 0.2, roomDepth]} />
+        <meshStandardMaterial color="#f5f0e6" roughness={0.9} />
+      </mesh>
+
+      {/* Acoustic Fabric Side Wall Panels & Solid Wood Pillars (吸音织物软包墙面与坚实原木柱) */}
+      {[-halfRoomWidth, halfRoomWidth].map((x, sideIdx) => {
+        const isRight = sideIdx === 1;
+        return (
+          <group key={`wall-${sideIdx}`}>
+            {/* Main Beige Linen Fabric Wall Panel */}
+            <mesh position={[x, roomHeight / 2, roomCenterZ]} receiveShadow>
+              <boxGeometry args={[0.4, roomHeight, roomDepth]} />
+              <meshStandardMaterial color="#c8b8a2" roughness={0.92} />
+            </mesh>
+
+            {/* Vertical Solid Oak Pillars along Side Wall */}
+            {[0.1, 0.38, 0.68, 0.92].map((f, pIdx) => {
+              const pZ = auditorium.screenZ + roomDepth * f;
+              const posX = isRight ? halfRoomWidth - 0.35 : -halfRoomWidth + 0.35;
+              return (
+                <group key={`pillar-${pIdx}`} position={[posX, roomHeight / 2, pZ]}>
+                  <mesh receiveShadow castShadow>
+                    <boxGeometry args={[0.6, roomHeight, 0.8]} />
+                    <meshStandardMaterial color="#784e2a" roughness={0.5} metalness={0.08} />
+                  </mesh>
+
+                  {/* Vertical Cove Light Strip behind pillar */}
+                  <mesh position={[isRight ? -0.32 : 0.32, 0, 0]}>
+                    <boxGeometry args={[0.04, roomHeight * 0.88, 0.12]} />
+                    <meshBasicMaterial color="#fbbf24" toneMapped={false} />
+                  </mesh>
+
+                  {/* Downward Spotlight Cones (弧形暖光锥) creating wall light arches */}
+                  <spotLight
+                    position={[isRight ? -0.4 : 0.4, roomHeight - 1, 0]}
+                    target-position={[isRight ? -1.8 : 1.8, 1, 0]}
+                    angle={0.42}
+                    penumbra={0.88}
+                    intensity={280}
+                    distance={18}
+                    decay={1.8}
+                    color="#ffbd7a"
+                  />
+                </group>
+              );
+            })}
+          </group>
+        );
+      })}
+
+      {/* Back Wall Acoustic Fabric & Trim */}
+      <mesh
+        position={[0, roomHeight / 2, lastRowZ + 6]}
+        receiveShadow
+      >
+        <boxGeometry args={[roomWidth, roomHeight, 0.4]} />
+        <meshStandardMaterial color="#bdae99" roughness={0.92} />
+      </mesh>
+
+      {/* Under-step LED Footlight Strips on Platform Risers (隐形下沉阶梯金光脚灯) */}
+      {Array.from({ length: auditorium.rowCount }, (_, row) => {
+        const y = cinemaSeatGeometry.rowFloorBaseY + row * auditorium.rowRise;
+        const z = auditorium.firstRowZ + row * auditorium.rowSpacing;
+        return (
+          <group key={`step-light-${row}`}>
+            {/* Glowing Golden LED Strip along step riser */}
+            <mesh position={[0, y - 0.72, z - auditorium.rowSpacing / 2 + 0.02]}>
+              <boxGeometry args={[auditorium.seatingWidth + 12, 0.05, 0.08]} />
+              <meshBasicMaterial color="#f59e0b" toneMapped={false} />
+            </mesh>
+            <pointLight
+              position={[0, y - 0.75, z - auditorium.rowSpacing / 2 + 0.3]}
+              color="#fbbf24"
+              intensity={45}
+              distance={6}
+              decay={2}
+            />
+          </group>
+        );
+      })}
+
+      {/* Step Stairs on Side Aisle (阶梯小脚灯) */}
+      {[-auditorium.seatingWidth / 2 - 2, auditorium.seatingWidth / 2 + 2].map((x, aIdx) => (
+        <group key={`stair-${aIdx}`} position={[x, 0.3, auditorium.firstRowZ - 2]}>
+          <mesh position={[0, 0.15, 0]}>
+            <boxGeometry args={[2.2, 0.3, 1.2]} />
+            <meshStandardMaterial color="#8c5e34" roughness={0.5} />
+          </mesh>
+          <mesh position={[0, 0.02, -0.58]}>
+            <boxGeometry args={[2.0, 0.03, 0.06]} />
+            <meshBasicMaterial color="#f59e0b" toneMapped={false} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Right Foreground Console Cabinet & Snack Canisters (右前精装木质茶水柜与玻璃罐) */}
+      <group position={[halfRoomWidth - 3.2, 1.1, auditorium.firstRowZ - 3.8]}>
+        {/* Fluted Wood Cabinet Body */}
+        <mesh receiveShadow castShadow>
+          <boxGeometry args={[2.6, 2.2, 1.4]} />
+          <meshStandardMaterial color="#6e4423" roughness={0.55} metalness={0.05} />
+        </mesh>
+        {/* White Marble Countertop */}
+        <mesh position={[0, 1.12, 0]} receiveShadow castShadow>
+          <boxGeometry args={[2.7, 0.1, 1.5]} />
+          <meshStandardMaterial color="#f1f5f9" roughness={0.25} metalness={0.02} />
+        </mesh>
+        {/* Gold Handles */}
+        {[-0.5, 0.5].map((hx, hIdx) => (
+          <mesh key={hIdx} position={[hx, 0.2, 0.72]}>
+            <cylinderGeometry args={[0.03, 0.03, 0.6, 12]} />
+            <meshStandardMaterial color="#f59e0b" metalness={0.9} roughness={0.15} />
+          </mesh>
+        ))}
+        {/* Glass Snack Jars on Top */}
+        {[
+          { x: -0.6, z: -0.2, h: 0.42, r: 0.18, foodColor: "#fde047" },
+          { x: 0.2, z: 0.1, h: 0.5, r: 0.22, foodColor: "#d97706" },
+        ].map((jar, jIdx) => (
+          <group key={jIdx} position={[jar.x, 1.35, jar.z]}>
+            {/* Glass Container */}
+            <mesh>
+              <cylinderGeometry args={[jar.r, jar.r, jar.h, 16]} />
+              <meshPhysicalMaterial
+                color="#fef08a"
+                transmission={0.85}
+                roughness={0.12}
+                ior={1.45}
+                transparent
+                opacity={0.7}
+              />
+            </mesh>
+            {/* Snacks inside */}
+            <mesh position={[0, -0.05, 0]}>
+              <cylinderGeometry args={[jar.r - 0.03, jar.r - 0.03, jar.h - 0.1, 12]} />
+              <meshStandardMaterial color={jar.foodColor} roughness={0.7} />
+            </mesh>
+            {/* Lid */}
+            <mesh position={[0, jar.h / 2 + 0.04, 0]}>
+              <cylinderGeometry args={[jar.r + 0.02, jar.r + 0.02, 0.06, 16]} />
+              <meshStandardMaterial color="#8c5e34" roughness={0.4} />
+            </mesh>
+          </group>
+        ))}
+      </group>
+    </group>
+  );
+}
+
 function SkySphere({
   sceneStyle,
   filmMode,
@@ -2001,6 +2199,7 @@ function AuditoriumArchitecture({
   });
 
   const platformColor = useMemo(() => {
+    if (sceneStyle === "warm_wood_lounge") return "#8c5e34";
     if (sceneStyle === "snowy_greek") return "#f1f5f9";
     if (sceneStyle === "cyberpunk") return "#0f172a";
     if (sceneStyle === "forest_camp") return "#3d2616";
@@ -2011,6 +2210,7 @@ function AuditoriumArchitecture({
   }, [sceneStyle]);
 
   const platformRoughness = useMemo(() => {
+    if (sceneStyle === "warm_wood_lounge") return 0.45;
     if (sceneStyle === "snowy_greek") return 0.4;
     if (sceneStyle === "cyberpunk") return 0.2;
     if (sceneStyle === "space_station") return 0.3;
@@ -2018,6 +2218,7 @@ function AuditoriumArchitecture({
   }, [sceneStyle]);
 
   const groundColor = useMemo(() => {
+    if (sceneStyle === "warm_wood_lounge") return "#784e2a";
     if (sceneStyle === "snowy_greek") return "#cbd5e1";
     if (sceneStyle === "cyberpunk") return "#08070e";
     if (sceneStyle === "forest_camp") return "#14532d";
@@ -2032,6 +2233,7 @@ function AuditoriumArchitecture({
       <SkySphere sceneStyle={sceneStyle} filmMode={filmMode} auditorium={auditorium} />
 
       {/* Render theme backdrop */}
+      {sceneStyle === "warm_wood_lounge" && <WarmWoodLoungeBackdrop auditorium={auditorium} />}
       {sceneStyle === "urban_plaza" && <UrbanPlazaBackdrop auditorium={auditorium} />}
       {sceneStyle === "snowy_greek" && <SnowMountainBackdrop auditorium={auditorium} />}
       {sceneStyle === "drive_in" && <DriveInBackdrop auditorium={auditorium} />}
@@ -2167,6 +2369,25 @@ function Seats({
     [],
   );
   const seatColors = useMemo(() => {
+    if (sceneStyle === "warm_wood_lounge") {
+      return {
+        available: {
+          upholstery: new Color("#1c3d2e"),
+          shell: new Color("#663e20"),
+          panel: new Color("#7a4b26"),
+        },
+        selected: {
+          upholstery: new Color("#2f6d50"),
+          shell: new Color("#8a5328"),
+          panel: new Color("#d97706"),
+        },
+        occupied: {
+          upholstery: new Color("#112419"),
+          shell: new Color("#3d2412"),
+          panel: new Color("#2d1a0d"),
+        },
+      };
+    }
     if (sceneStyle === "snowy_greek") {
       return {
         available: {
@@ -2646,6 +2867,42 @@ function Seats({
           metalness={0.52}
         />
       </instancedMesh>
+
+      {/* Soft Draped Knitted Throw Blankets for Warm Wood Lounge Theme */}
+      {sceneStyle === "warm_wood_lounge" &&
+        seats.map((seat, idx) => {
+          if (idx === 0 || idx === 2 || idx === 4) {
+            return (
+              <group
+                key={`blanket-${seat.id}`}
+                position={[seat.x + 0.12, seat.y + 0.48, seat.z - 0.02]}
+                rotation={[-0.15, 0.1, -0.08]}
+              >
+                {/* Main blanket draped over seat cushion & armrest */}
+                <mesh castShadow receiveShadow>
+                  <boxGeometry args={[0.38, 0.35, 0.42]} />
+                  <meshStandardMaterial
+                    color="#dfdad8"
+                    roughness={0.92}
+                    metalness={0.02}
+                  />
+                </mesh>
+                <mesh
+                  position={[-0.12, -0.15, 0.18]}
+                  rotation={[0.3, -0.1, 0.2]}
+                  castShadow
+                >
+                  <boxGeometry args={[0.32, 0.28, 0.18]} />
+                  <meshStandardMaterial
+                    color="#c8c2c0"
+                    roughness={0.92}
+                  />
+                </mesh>
+              </group>
+            );
+          }
+          return null;
+        })}
     </group>
   );
 }
@@ -2662,6 +2919,7 @@ function SceneLighting({
   const houseSpotRefs = useRef<Array<SpotLight | null>>([]);
   const housePointRef = useRef<PointLight>(null);
   const litBackground = useMemo(() => {
+    if (sceneStyle === "warm_wood_lounge") return new Color("#18110a");
     if (sceneStyle === "snowy_greek") return new Color("#0a1128");
     if (sceneStyle === "drive_in") return new Color("#040714");
     if (sceneStyle === "cyberpunk") return new Color("#07030e");
@@ -2671,6 +2929,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const darkBackground = useMemo(() => {
+    if (sceneStyle === "warm_wood_lounge") return new Color("#0c0804");
     if (sceneStyle === "snowy_greek") return new Color("#060b1b");
     if (sceneStyle === "drive_in") return new Color("#02040a");
     if (sceneStyle === "cyberpunk") return new Color("#030107");
@@ -2680,6 +2939,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const litFog = useMemo(() => {
+    if (sceneStyle === "warm_wood_lounge") return new Color("#21180e");
     if (sceneStyle === "snowy_greek") return new Color("#0c1535");
     if (sceneStyle === "drive_in") return new Color("#060a1e");
     if (sceneStyle === "cyberpunk") return new Color("#0d051c");
@@ -2689,6 +2949,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const darkFog = useMemo(() => {
+    if (sceneStyle === "warm_wood_lounge") return new Color("#0d0804");
     if (sceneStyle === "snowy_greek") return new Color("#070d22");
     if (sceneStyle === "drive_in") return new Color("#03050f");
     if (sceneStyle === "cyberpunk") return new Color("#05020a");
@@ -2698,6 +2959,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const litAmbient = useMemo(() => {
+    if (sceneStyle === "warm_wood_lounge") return new Color("#fde68a");
     if (sceneStyle === "snowy_greek") return new Color("#e2e8f0");
     if (sceneStyle === "drive_in") return new Color("#cbd5e1");
     if (sceneStyle === "cyberpunk") return new Color("#e0e7ff");
@@ -2708,6 +2970,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const darkAmbient = useMemo(() => {
+    if (sceneStyle === "warm_wood_lounge") return new Color("#78350f");
     if (sceneStyle === "snowy_greek") return new Color("#1d4ed8");
     if (sceneStyle === "drive_in") return new Color("#384e68");
     if (sceneStyle === "cyberpunk") return new Color("#7e22ce");
@@ -2718,6 +2981,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const skyColor = useMemo(() => {
+    if (sceneStyle === "warm_wood_lounge") return new Color("#fef08a");
     if (sceneStyle === "snowy_greek") return new Color("#38bdf8");
     if (sceneStyle === "drive_in") return new Color("#818cf8");
     if (sceneStyle === "cyberpunk") return new Color("#f0abfc");
@@ -2728,6 +2992,7 @@ function SceneLighting({
   }, [sceneStyle]);
 
   const groundColor = useMemo(() => {
+    if (sceneStyle === "warm_wood_lounge") return new Color("#452b14");
     if (sceneStyle === "snowy_greek") return new Color("#0f172a");
     if (sceneStyle === "drive_in") return new Color("#0f172a");
     if (sceneStyle === "cyberpunk") return new Color("#1e1b4b");

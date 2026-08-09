@@ -10,7 +10,8 @@ export type SceneStyle =
   | "drive_in"
   | "cyberpunk"
   | "forest_camp"
-  | "space_station";
+  | "space_station"
+  | "warm_wood_lounge";
 
 export interface SceneStyleOption {
   id: SceneStyle;
@@ -29,6 +30,14 @@ export const SCENE_STYLES: SceneStyleOption[] = [
     subtitle: "顶级IMAX/杜比包厢 · 沉浸环绕声学环境",
     badge: "经典标配",
     themeColor: "#d04b43",
+  },
+  {
+    id: "warm_wood_lounge",
+    icon: "🪵",
+    name: "原木臻选私享影厅",
+    subtitle: "温润木梁与织物吸音墙 · 墨绿皮革独栋软椅 · 隐形下沉阶梯脚灯",
+    badge: "原木奢享",
+    themeColor: "#d97706",
   },
   {
     id: "urban_plaza",
@@ -137,7 +146,7 @@ export function SceneStylePicker({
         <div className="style-picker-header">
           <span className="style-picker-label">
             <Sparkle size={18} className="text-amber-400 inline mr-1" />
-            切换 3D 影院主题（7大实景风格）：
+            切换 3D 影院主题（8大实景风格）：
           </span>
           {toastMessage && (
             <span className="style-picker-toast-badge animate-bounce">
@@ -202,7 +211,7 @@ export function SceneStylePicker({
       {isOpen && (
         <div className="style-picker-dropdown-menu" role="menu">
           <div className="dropdown-menu-header">
-            <span>选择 3D 影厅视觉风格 (7种)</span>
+            <span>选择 3D 影厅视觉风格 (8种)</span>
           </div>
           <div className="dropdown-menu-list">
             {SCENE_STYLES.map((option) => {
