@@ -1613,6 +1613,15 @@ function WarmWoodLoungeBackdrop({ auditorium }: { auditorium: Auditorium }) {
 
   return (
     <group>
+      {/* Single Key Room Soft Warm Fill Light instead of 25+ individual point/spot lights */}
+      <pointLight
+        color="#fef08a"
+        intensity={120}
+        distance={45}
+        decay={1.8}
+        position={[0, roomHeight - 2, roomCenterZ]}
+      />
+
       {/* Heavy Wooden Ceiling Beams (横向重型原木天花大梁) with Concealed Warm LED Strip */}
       {[0.15, 0.45, 0.75].map((factor, idx) => {
         const beamZ = auditorium.screenZ + roomDepth * factor;
@@ -1632,13 +1641,6 @@ function WarmWoodLoungeBackdrop({ auditorium }: { auditorium: Auditorium }) {
               <boxGeometry args={[roomWidth, 0.06, 0.8]} />
               <meshBasicMaterial color="#fef08a" toneMapped={false} />
             </mesh>
-            <pointLight
-              color="#fde047"
-              intensity={90}
-              distance={16}
-              decay={2}
-              position={[0, 0.5, 0]}
-            />
           </group>
         );
       })}
@@ -1676,18 +1678,6 @@ function WarmWoodLoungeBackdrop({ auditorium }: { auditorium: Auditorium }) {
                     <boxGeometry args={[0.04, roomHeight * 0.88, 0.12]} />
                     <meshBasicMaterial color="#fbbf24" toneMapped={false} />
                   </mesh>
-
-                  {/* Downward Spotlight Cones (弧形暖光锥) creating wall light arches */}
-                  <spotLight
-                    position={[isRight ? -0.4 : 0.4, roomHeight - 1, 0]}
-                    target-position={[isRight ? -1.8 : 1.8, 1, 0]}
-                    angle={0.42}
-                    penumbra={0.88}
-                    intensity={280}
-                    distance={18}
-                    decay={1.8}
-                    color="#ffbd7a"
-                  />
                 </group>
               );
             })}
@@ -1715,13 +1705,6 @@ function WarmWoodLoungeBackdrop({ auditorium }: { auditorium: Auditorium }) {
               <boxGeometry args={[auditorium.seatingWidth + 12, 0.05, 0.08]} />
               <meshBasicMaterial color="#f59e0b" toneMapped={false} />
             </mesh>
-            <pointLight
-              position={[0, y - 0.75, z - auditorium.rowSpacing / 2 + 0.3]}
-              color="#fbbf24"
-              intensity={45}
-              distance={6}
-              decay={2}
-            />
           </group>
         );
       })}
@@ -1765,26 +1748,24 @@ function WarmWoodLoungeBackdrop({ auditorium }: { auditorium: Auditorium }) {
           { x: 0.2, z: 0.1, h: 0.5, r: 0.22, foodColor: "#d97706" },
         ].map((jar, jIdx) => (
           <group key={jIdx} position={[jar.x, 1.35, jar.z]}>
-            {/* Glass Container */}
+            {/* Lightweight Translucent Glass Container */}
             <mesh>
-              <cylinderGeometry args={[jar.r, jar.r, jar.h, 16]} />
-              <meshPhysicalMaterial
+              <cylinderGeometry args={[jar.r, jar.r, jar.h, 12]} />
+              <meshStandardMaterial
                 color="#fef08a"
-                transmission={0.85}
-                roughness={0.12}
-                ior={1.45}
+                roughness={0.2}
                 transparent
-                opacity={0.7}
+                opacity={0.45}
               />
             </mesh>
             {/* Snacks inside */}
             <mesh position={[0, -0.05, 0]}>
-              <cylinderGeometry args={[jar.r - 0.03, jar.r - 0.03, jar.h - 0.1, 12]} />
+              <cylinderGeometry args={[jar.r - 0.03, jar.r - 0.03, jar.h - 0.1, 10]} />
               <meshStandardMaterial color={jar.foodColor} roughness={0.7} />
             </mesh>
             {/* Lid */}
             <mesh position={[0, jar.h / 2 + 0.04, 0]}>
-              <cylinderGeometry args={[jar.r + 0.02, jar.r + 0.02, 0.06, 16]} />
+              <cylinderGeometry args={[jar.r + 0.02, jar.r + 0.02, 0.06, 12]} />
               <meshStandardMaterial color="#8c5e34" roughness={0.4} />
             </mesh>
           </group>
@@ -1941,8 +1922,8 @@ function ImaxGiantBackdrop({ auditorium }: { auditorium: Auditorium }) {
         </mesh>
 
         {/* Hanging Ceiling Grid */}
-        {Array.from({ length: 14 }).map((_, i) => {
-          const gz = -roomDepth / 2 + (roomDepth / 13) * i;
+        {Array.from({ length: 6 }).map((_, i) => {
+          const gz = -roomDepth / 2 + (roomDepth / 5) * i;
           return (
             <mesh key={`cgrid-z-${i}`} position={[0, -0.3, gz]}>
               <boxGeometry args={[roomWidth, 0.05, 0.05]} />
@@ -1950,8 +1931,8 @@ function ImaxGiantBackdrop({ auditorium }: { auditorium: Auditorium }) {
             </mesh>
           );
         })}
-        {Array.from({ length: 18 }).map((_, i) => {
-          const gx = -roomWidth / 2 + (roomWidth / 17) * i;
+        {Array.from({ length: 7 }).map((_, i) => {
+          const gx = -roomWidth / 2 + (roomWidth / 6) * i;
           return (
             <mesh key={`cgrid-x-${i}`} position={[gx, -0.3, 0]}>
               <boxGeometry args={[0.05, 0.05, roomDepth]} />
@@ -2051,7 +2032,6 @@ function ImaxGiantBackdrop({ auditorium }: { auditorium: Auditorium }) {
             <planeGeometry args={[0.24, 0.4]} />
             <meshBasicMaterial color="#22c55e" toneMapped={false} />
           </mesh>
-          <pointLight color="#22c55e" intensity={12} distance={3} decay={2} />
         </group>
       ))}
     </group>
