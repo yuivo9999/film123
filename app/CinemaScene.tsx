@@ -84,7 +84,8 @@ type CinemaSceneProps = {
     | "warm_wood_lounge"
     | "imax_giant"
     | "minimalist_cream"
-    | "alpine_desert";
+    | "alpine_desert"
+    | "baroque_opera";
   playing: boolean;
   playbackToken: number;
   viewCommand: ViewCommand;
@@ -1739,6 +1740,180 @@ function AlpineDesertBackdrop({ auditorium }: { auditorium: Auditorium }) {
   );
 }
 
+function BaroqueOperaBackdrop({ auditorium }: { auditorium: Auditorium }) {
+  const baseZ = auditorium.screenZ;
+  const lastRowZ =
+    auditorium.firstRowZ +
+    (auditorium.rowCount - 1) * auditorium.rowSpacing;
+  const roomDepth = lastRowZ - auditorium.screenZ + 14;
+  const roomCenterZ = auditorium.screenZ + roomDepth / 2 - 2;
+  const roomHeight = Math.max(
+    16,
+    auditorium.screenBottom + auditorium.screenHeight + 4,
+  );
+  const roomWidth = Math.max(36, auditorium.seatingWidth + 8);
+  const halfWidth = roomWidth / 2;
+
+  const goldMaterialProps = {
+    color: "#eab308",
+    roughness: 0.25,
+    metalness: 0.85,
+  };
+
+  const darkGoldProps = {
+    color: "#ca8a04",
+    roughness: 0.3,
+    metalness: 0.8,
+  };
+
+  const redVelvetProps = {
+    color: "#881337",
+    roughness: 0.9,
+    metalness: 0.05,
+  };
+
+  return (
+    <group>
+      {/* Warm Ambient Opera House Chandelier Light */}
+      <pointLight
+        color="#fef08a"
+        intensity={180}
+        distance={50}
+        decay={1.8}
+        position={[0, roomHeight - 2, roomCenterZ]}
+      />
+
+      {/* Ornate Coffered Ceiling (金边格栅奢华天花穹顶) */}
+      <mesh position={[0, roomHeight, roomCenterZ]} rotation={[Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[roomWidth, roomDepth]} />
+        <meshStandardMaterial color="#451a03" roughness={0.7} />
+      </mesh>
+
+      {/* Ceiling Gold Moldings Grid */}
+      {[0.2, 0.5, 0.8].map((factor, idx) => {
+        const cz = auditorium.screenZ + roomDepth * factor;
+        return (
+          <group key={`c-grid-${idx}`} position={[0, roomHeight - 0.2, cz]}>
+            <mesh>
+              <boxGeometry args={[roomWidth, 0.3, 0.4]} />
+              <meshStandardMaterial {...goldMaterialProps} />
+            </mesh>
+          </group>
+        );
+      })}
+
+      {/* Rear Opera Wall */}
+      <mesh position={[0, roomHeight / 2, lastRowZ + 6]}>
+        <planeGeometry args={[roomWidth, roomHeight]} />
+        <meshStandardMaterial {...redVelvetProps} />
+      </mesh>
+
+      {/* Side Walls - Deep Red Damask Velvet */}
+      {[-halfWidth, halfWidth].map((xPos, sideIdx) => {
+        const isRight = sideIdx === 1;
+        return (
+          <group key={`side-wall-${sideIdx}`}>
+            {/* Wall base plane */}
+            <mesh
+              position={[xPos, roomHeight / 2, roomCenterZ]}
+              rotation={[0, isRight ? -Math.PI / 2 : Math.PI / 2, 0]}
+            >
+              <planeGeometry args={[roomDepth, roomHeight]} />
+              <meshStandardMaterial {...redVelvetProps} />
+            </mesh>
+
+            {/* === MULTI-TIER OPERA BALCONY BOXES (双层弧形金色歌剧院包厢) === */}
+            {[0.38, 0.68].map((tierFactor, tierIdx) => {
+              const tierY = roomHeight * tierFactor;
+              return (
+                <group key={`tier-${tierIdx}`}>
+                  {/* Continuous Balcony Deck Projection */}
+                  <mesh
+                    position={[
+                      isRight ? xPos - 1.8 : xPos + 1.8,
+                      tierY,
+                      roomCenterZ,
+                    ]}
+                    rotation={[0, isRight ? -Math.PI / 2 : Math.PI / 2, 0]}
+                  >
+                    <boxGeometry args={[roomDepth * 0.85, 0.35, 3.2]} />
+                    <meshStandardMaterial {...goldMaterialProps} />
+                  </mesh>
+
+                  {/* Front Gold Ornate Carved Railing (金雕排线栏杆) */}
+                  <mesh
+                    position={[
+                      isRight ? xPos - 3.3 : xPos + 3.3,
+                      tierY + 0.5,
+                      roomCenterZ,
+                    ]}
+                    rotation={[0, isRight ? -Math.PI / 2 : Math.PI / 2, 0]}
+                  >
+                    <boxGeometry args={[roomDepth * 0.85, 0.65, 0.25]} />
+                    <meshStandardMaterial {...darkGoldProps} />
+                  </mesh>
+
+                  {/* Individual Box Partition Arches & Velvet Drapery (个别包厢隔间与红色丝绒帷幔) */}
+                  {[0.25, 0.48, 0.71].map((boxZFactor, boxIdx) => {
+                    const boxZ = auditorium.screenZ + roomDepth * boxZFactor;
+                    return (
+                      <group key={`box-${boxIdx}`} position={[xPos, tierY, boxZ]}>
+                        {/* Velvet Draped Curtain Sides */}
+                        <mesh position={[isRight ? -1.2 : 1.2, 1.2, 0]}>
+                          <cylinderGeometry args={[0.35, 0.45, 1.8, 12]} />
+                          <meshStandardMaterial color="#991b1b" roughness={0.88} />
+                        </mesh>
+                        {/* Box Sconce Light */}
+                        <mesh position={[isRight ? -1.8 : 1.8, 1.4, 0]}>
+                          <sphereGeometry args={[0.15, 12, 12]} />
+                          <meshBasicMaterial color="#fef08a" toneMapped={false} />
+                        </mesh>
+                      </group>
+                    );
+                  })}
+                </group>
+              );
+            })}
+          </group>
+        );
+      })}
+
+      {/* === GRAND GOLD BAROQUE PROSCENIUM ARCH (金碧辉煌台口雕花拱门) === */}
+      <group position={[0, 0, baseZ - 0.2]}>
+        {/* Left Fluted Gold Column */}
+        <mesh position={[-auditorium.screenWidth / 2 - 1.2, auditorium.screenBottom + auditorium.screenHeight / 2, 0]}>
+          <cylinderGeometry args={[0.9, 1.1, auditorium.screenHeight + 3, 24]} />
+          <meshStandardMaterial {...goldMaterialProps} />
+        </mesh>
+
+        {/* Right Fluted Gold Column */}
+        <mesh position={[auditorium.screenWidth / 2 + 1.2, auditorium.screenBottom + auditorium.screenHeight / 2, 0]}>
+          <cylinderGeometry args={[0.9, 1.1, auditorium.screenHeight + 3, 24]} />
+          <meshStandardMaterial {...goldMaterialProps} />
+        </mesh>
+
+        {/* Top Carved Proscenium Archway Header */}
+        <mesh position={[0, auditorium.screenBottom + auditorium.screenHeight + 1.8, 0]}>
+          <boxGeometry args={[auditorium.screenWidth + 5.2, 2.2, 1.4]} />
+          <meshStandardMaterial {...goldMaterialProps} />
+        </mesh>
+
+        {/* Central Crown Crest Pediment above Proscenium */}
+        <mesh position={[0, auditorium.screenBottom + auditorium.screenHeight + 3.4, 0.2]}>
+          <coneGeometry args={[2.8, 1.8, 4]} rotation={[0, 0, Math.PI / 4]} />
+          <meshStandardMaterial {...goldMaterialProps} />
+        </mesh>
+
+        {/* Bottom Stage Base Rail */}
+        <mesh position={[0, auditorium.screenBottom - 0.9, 0]}>
+          <boxGeometry args={[auditorium.screenWidth + 4.8, 1.2, 1.5]} />
+          <meshStandardMaterial color="#451a03" roughness={0.4} />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
 function WarmWoodLoungeBackdrop({ auditorium }: { auditorium: Auditorium }) {
   const baseZ = auditorium.screenZ;
   const lastRowZ =
@@ -2372,6 +2547,7 @@ function AuditoriumArchitecture({
     if (sceneStyle === "warm_wood_lounge") return "#8c5e34";
     if (sceneStyle === "snowy_greek") return "#f1f5f9";
     if (sceneStyle === "alpine_desert") return "#b89874";
+    if (sceneStyle === "baroque_opera") return "#881337";
     if (sceneStyle === "space_station") return "#1e293b";
     if (sceneStyle === "urban_plaza") return "#475569";
     return "#202329";
@@ -2393,6 +2569,7 @@ function AuditoriumArchitecture({
     if (sceneStyle === "warm_wood_lounge") return "#784e2a";
     if (sceneStyle === "snowy_greek") return "#cbd5e1";
     if (sceneStyle === "alpine_desert") return "#9c7c5c";
+    if (sceneStyle === "baroque_opera") return "#451a03";
     if (sceneStyle === "space_station") return "#0f172a";
     if (sceneStyle === "urban_plaza") return "#1e293b";
     return "#191b1f";
@@ -2410,6 +2587,7 @@ function AuditoriumArchitecture({
       {sceneStyle === "snowy_greek" && <SnowMountainBackdrop auditorium={auditorium} />}
       {sceneStyle === "space_station" && <SpaceStationBackdrop auditorium={auditorium} />}
       {sceneStyle === "alpine_desert" && <AlpineDesertBackdrop auditorium={auditorium} />}
+      {sceneStyle === "baroque_opera" && <BaroqueOperaBackdrop auditorium={auditorium} />}
 
       {/* Ground plane */}
       <mesh position={[0, -0.5, roomCenterZ]} receiveShadow>
@@ -2644,6 +2822,25 @@ function Seats({
           upholstery: new Color("#450a0a"),
           shell: new Color("#290606"),
           panel: new Color("#1c0404"),
+        },
+      };
+    }
+    if (sceneStyle === "baroque_opera") {
+      return {
+        available: {
+          upholstery: new Color("#991b1b"),
+          shell: new Color("#451a03"),
+          panel: new Color("#eab308"),
+        },
+        selected: {
+          upholstery: new Color("#f59e0b"),
+          shell: new Color("#ca8a04"),
+          panel: new Color("#fef08a"),
+        },
+        occupied: {
+          upholstery: new Color("#450a0a"),
+          shell: new Color("#1a0702"),
+          panel: new Color("#854d0e"),
         },
       };
     }
@@ -3399,6 +3596,9 @@ function SceneContents(
       )}
       {sceneStyle === "alpine_desert" && (
         <AlpineDesertBackdrop auditorium={auditorium} />
+      )}
+      {sceneStyle === "baroque_opera" && (
+        <BaroqueOperaBackdrop auditorium={auditorium} />
       )}
       <Screen
         auditorium={auditorium}
