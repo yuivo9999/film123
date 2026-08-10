@@ -494,19 +494,21 @@ function createWhiteFloorTexture() {
  */
 function createWhiteFineGridTexture() {
   const size = 1024;
-  const tilesPerSide = 16;
-  const gapPx = 4;
-  const cell = size / tilesPerSide;
+  const bigTilesPerSide = 4; // 大方格 4x4
+  const smallTilesPerBig = 4; // 每个大方格内 4x4=16 个小格
+  const bigCell = size / bigTilesPerSide; // 256
+  const smallCell = bigCell / smallTilesPerBig; // 64
+  const smallGapPx = 2;
+  const bigGapPx = 5;
 
   const c = document.createElement("canvas");
   c.width = c.height = size;
   const ctx = c.getContext("2d");
   if (!ctx) throw new Error("CanvasTexture context unavailable");
 
-  // 白色细密方格
+  // 白色基色
   ctx.fillStyle = "#fafaf6";
   ctx.fillRect(0, 0, size, size);
-  // 极淡纹理
   for (let i = 0; i < 250; i++) {
     ctx.fillStyle = `rgba(70, 70, 70, ${0.015 + Math.random() * 0.025})`;
     ctx.fillRect(
@@ -516,11 +518,35 @@ function createWhiteFineGridTexture() {
       1 + Math.random() * 1.5,
     );
   }
-  // 深色细勾缝
-  ctx.fillStyle = "#5d6168";
-  for (let i = 0; i < tilesPerSide; i++) {
-    ctx.fillRect(Math.round(i * cell) - gapPx / 2, 0, gapPx, size);
-    ctx.fillRect(0, Math.round(i * cell) - gapPx / 2, size, gapPx);
+
+  // 1. 小格浅色勾缝（在每个大方格内部）
+  ctx.fillStyle = "#6a6e75";
+  for (let bx = 0; bx < bigTilesPerSide; bx++) {
+    for (let by = 0; by < bigTilesPerSide; by++) {
+      const ox = bx * bigCell;
+      const oy = by * bigCell;
+      for (let s = 1; s < smallTilesPerBig; s++) {
+        ctx.fillRect(
+          ox + s * smallCell - smallGapPx / 2,
+          oy,
+          smallGapPx,
+          bigCell,
+        );
+        ctx.fillRect(
+          ox,
+          oy + s * smallCell - smallGapPx / 2,
+          bigCell,
+          smallGapPx,
+        );
+      }
+    }
+  }
+
+  // 2. 大方格深色粗勾缝
+  ctx.fillStyle = "#3d4045";
+  for (let i = 1; i < bigTilesPerSide; i++) {
+    ctx.fillRect(i * bigCell - bigGapPx / 2, 0, bigGapPx, size);
+    ctx.fillRect(0, i * bigCell - bigGapPx / 2, size, bigGapPx);
   }
 
   const baseMap = new CanvasTexture(c);
@@ -3401,12 +3427,12 @@ function WhiteTileCinemaBackdrop({
     return t;
   }, [ceilingTex, roomWidth, roomDepth]);
 
-  // 白色细密方格地板纹理（仿帕尔影城视觉）
+  // 白色细密方格地板纹理（4×4 大格，每大格内 16 个小格）
   const floorFineTexture = useMemo(() => {
     if (typeof document === "undefined") return null;
     const tex = createWhiteFineGridTexture();
     const t = tex.baseMap.clone();
-    t.repeat.set(roomWidth / 5, (roomDepth + 4) / 5);
+    t.repeat.set(roomWidth / 8, (roomDepth + 4) / 8);
     t.needsUpdate = true;
     return { map: t };
   }, [roomWidth, roomDepth]);
