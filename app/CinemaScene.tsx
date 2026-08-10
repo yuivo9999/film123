@@ -112,7 +112,10 @@ type CinemaSceneProps = {
     | "imax_giant"
     | "minimalist_cream"
     | "baroque_opera"
-    | "suzhou_garden";
+    | "suzhou_garden"
+    | "par_cinema"
+    | "white_tile_cinema"
+    | "himalaya";
   playing: boolean;
   playbackToken: number;
   viewCommand: ViewCommand;
@@ -554,6 +557,12 @@ function createWhiteCeilingTexture() {
   tex.anisotropy = 8;
   tex.needsUpdate = true;
   return tex;
+}
+
+/** 确定性伪随机函数（用于竹林等装饰的稳定分布） */
+function pseudoRandom(n: number) {
+  const x = Math.sin(n) * 43758.5453123;
+  return x - Math.floor(x);
 }
 
 type ScreenPoint = { x: number; y: number };
@@ -3703,73 +3712,11 @@ function Seats({
       seatObject.updateMatrix();
       matrix.copy(seatObject.matrix);
       mesh.setMatrixAt(instanceIndex, matrix);
-    };    const isMinimalistCream = sceneStyle === "minimalist_cream";    seats.forEach((seat, index) => {
-      const actualY = isFlatFloor ? 0 : seat.y;
-      if (isGreek) {
-        // Ancient Greek Stone Bench Seat Pad
-        placePart(
-          cushionRef.current!,
-          index,
-          [seat.x, seat.y + 0.38, seat.z + 0.04],
-          [0, 0, 0],
-          [0.85, 0.45, 0.85],
-        );
-        // Stone Bench Back Cushion
-        placePart(
-          backRef.current!,
-          index,
-          [seat.x, seat.y + 0.62, seat.z + 0.28],
-          [0, 0, 0],
-          [0.85, 0.45, 0.4],
-        );
-        // Hide modern backshell
-        placePart(
-          backShellRef.current!,
-          index,
-          [seat.x, seat.y, seat.z],
-          [0, 0, 0],
-          [0, 0, 0],
-        );
-
-        [-0.35, 0.35].forEach((xOffset, sideIndex) => {
-          placePart(
-            sidePanelRef.current!,
-            index * 2 + sideIndex,
-            [seat.x, seat.y, seat.z],
-            [0, 0, 0],
-            [0, 0, 0],
-          );
-          placePart(
-            armCapRef.current!,
-            index * 2 + sideIndex,
-            [seat.x, seat.y, seat.z],
-            [0, 0, 0],
-            [0, 0, 0],
-          );
-          placePart(
-            legRef.current!,
-            index * 2 + sideIndex,
-            [seat.x, seat.y, seat.z],
-            [0, 0, 0],
-            [0, 0, 0],
-          );
-          placePart(
-            footRef.current!,
-            index * 2 + sideIndex,
-            [seat.x, seat.y, seat.z],
-            [0, 0, 0],
-            [0, 0, 0],
-          );
-        });
-
-        placePart(
-          cupHolderRef.current!,
-          index,
-          [seat.x, seat.y, seat.z],
-          [0, 0, 0],
-          [0, 0, 0],
-        );
-      } else if (isMinimalistCream) {
+    };
+    const isMinimalistCream = sceneStyle === "minimalist_cream";
+    seats.forEach((seat, index) => {
+      const actualY = seat.y;
+      if (isMinimalistCream) {
         // 极简米色艺术影厅 - 完美复刻图片：黑色悬臂 Z型/S型流线雕塑椅
         placePart(
           cushionRef.current!,
