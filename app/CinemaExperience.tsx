@@ -23,6 +23,8 @@ import {
   FastForward,
   FilmStrip,
   Lightbulb,
+  Lock,
+  LockOpen,
   Pause,
   Play,
   Rewind,
@@ -424,6 +426,69 @@ export function CinemaExperience({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // ===== 影厅 UI 锁定 / 小锁按钮 =====
+  // isUiLocked: 是否锁定（隐藏所有 UI 按钮）
+  // isLockFabVisible: 小锁按钮是否可见（5s 自动隐藏 + 点击位置召唤）
+  const [isUiLocked, setIsUiLocked] = useState(false);
+  const [isLockFabVisible, setIsLockFabVisible] = useState(true);
+  const lockHideTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const resetLockFabHideTimer = useCallback(() => {
+    if (lockHideTimerRef.current) {
+      clearTimeout(lockHideTimerRef.current);
+    }
+    setIsLockFabVisible(true);
+    lockHideTimerRef.current = setTimeout(() => {
+      setIsLockFabVisible(false);
+    }, 5000);
+  }, []);
+
+  const toggleUiLock = useCallback(() => {
+    setIsUiLocked((prev) => !prev);
+  }, []);
+
+  // 锁定状态下：监听用户操作（mousemove / touchstart / keydown）重置 5s 计时器
+  // 解锁状态下：小锁按钮常驻显示，不参与 hide timer
+  useEffect(() => {
+    if (!isUiLocked) {
+      setIsLockFabVisible(true);
+      if (lockHideTimerRef.current) {
+        clearTimeout(lockHideTimerRef.current);
+        lockHideTimerRef.current = null;
+      }
+      return;
+    }
+    setIsLockFabVisible(true);
+    resetLockFabHideTimer();
+    const reset = () => resetLockFabHideTimer();
+    window.addEventListener("mousemove", reset);
+    window.addEventListener("touchstart", reset);
+    window.addEventListener("keydown", reset);
+    return () => {
+      window.removeEventListener("mousemove", reset);
+      window.removeEventListener("touchstart", reset);
+      window.removeEventListener("keydown", reset);
+      if (lockHideTimerRef.current) {
+        clearTimeout(lockHideTimerRef.current);
+        lockHideTimerRef.current = null;
+      }
+    };
+  }, [isUiLocked, resetLockFabHideTimer]);
+
+  // 进入全屏时自动解锁（避免锁定状态下进入全屏后 UI 混乱）
+  useEffect(() => {
+    if (isFullscreen && isUiLocked) {
+      setIsUiLocked(false);
+    }
+  }, [isFullscreen, isUiLocked]);
+
+  const handleLockHotZoneClick = useCallback(() => {
+    if (isUiLocked && !isLockFabVisible) {
+      setIsLockFabVisible(true);
+      resetLockFabHideTimer();
+    }
+  }, [isUiLocked, isLockFabVisible, resetLockFabHideTimer]);
+
   // Fullscreen change listener
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -673,7 +738,10 @@ export function CinemaExperience({
   };
 
   return (
-    <main className="cinema-app" data-dbd-zone="cinema-shell">
+    <main
+      className={`cinema-app ${isUiLocked ? "is-ui-locked" : ""}`}
+      data-dbd-zone="cinema-shell"
+    >
       <header className="topbar" data-dbd-zone="cinema-topbar">
         <Link
           className="back-to-cinemas"
@@ -1287,6 +1355,36 @@ export function CinemaExperience({
               </div>
             </div>
           </div>
+        )}
+
+        {/* 影厅 UI 锁定小锁按钮 + 隐形点击热区（非全屏时） */}
+        {!isFullscreen && isLockFabVisible && (
+          <button
+            type="button"
+            className="cinema-lock-fab"
+            aria-label={isUiLocked ? "解锁并恢复所有控件" : "锁定并隐藏所有控件"}
+            title={isUiLocked ? "点击恢复所有按钮" : "点击隐藏所有按钮，只剩影厅"}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleUiLock();
+            }}
+          >
+            {isUiLocked ? (
+              <LockOpen size={20} weight="bold" />
+            ) : (
+              <Lock size={20} weight="bold" />
+            )}
+          </button>
+        )}
+        {!isFullscreen && isUiLocked && !isLockFabVisible && (
+          <div
+            className="cinema-lock-hotzone"
+            aria-hidden="true"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleLockHotZoneClick();
+            }}
+          />
         )}
 
         {isMobilePanelOpen ? (

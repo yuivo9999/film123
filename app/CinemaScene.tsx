@@ -345,10 +345,15 @@ function createCinemaSeatBackGeometry() {
  * 白瓷砖影城专用：程序化生成 PBR 多层瓷砖贴图
  * 通过 HTML5 Canvas 离屏绘制，输出 baseColor / bumpMap / roughnessMap 三层纹理，
  * 用 PBR 材质贴到单面墙上即可获得精细瓷砖质感，无需堆叠 box/plane 几何体。
+ *
+ * 优化版（v2）：
+ * - tilesPerSide 24 → 48（更细密，每块约 2cm 真实边长）
+ * - bumpMap 增加对比度（勾缝更深 / 瓷砖面更亮）
+ * - baseMap 减淡石材云纹，避免反射后"全白一片"
  */
 function createWhiteTileTextures() {
   const size = 1024;
-  const tilesPerSide = 24;
+  const tilesPerSide = 48;
   const gapPx = 3;
   const cell = size / tilesPerSide;
 
@@ -362,20 +367,20 @@ function createWhiteTileTextures() {
 
   // 1. Base Color - 米白瓷砖
   const { c: baseCanvas, ctx: baseCtx } = makeCanvas();
-  baseCtx.fillStyle = "#f7f6f1";
+  baseCtx.fillStyle = "#ecead9";
   baseCtx.fillRect(0, 0, size, size);
   // 极淡的石材云纹
-  for (let i = 0; i < 600; i++) {
-    baseCtx.fillStyle = `rgba(60, 70, 80, ${0.02 + Math.random() * 0.04})`;
+  for (let i = 0; i < 400; i++) {
+    baseCtx.fillStyle = `rgba(60, 70, 80, ${0.015 + Math.random() * 0.025})`;
     baseCtx.fillRect(
       Math.random() * size,
       Math.random() * size,
-      1 + Math.random() * 2,
-      1 + Math.random() * 2,
+      1 + Math.random() * 1.5,
+      1 + Math.random() * 1.5,
     );
   }
   // 勾缝 (深灰)
-  baseCtx.fillStyle = "#a3a8b0";
+  baseCtx.fillStyle = "#7d8088";
   for (let i = 0; i < tilesPerSide; i++) {
     baseCtx.fillRect(Math.round(i * cell) - gapPx / 2, 0, gapPx, size);
     baseCtx.fillRect(0, Math.round(i * cell) - gapPx / 2, size, gapPx);
@@ -386,10 +391,9 @@ function createWhiteTileTextures() {
   baseMap.anisotropy = 16;
   baseMap.needsUpdate = true;
 
-  // 2. Bump Map - 瓷砖面凸/勾缝凹
+  // 2. Bump Map - 瓷砖面凸 / 勾缝凹（强烈对比，避免被反射遮盖）
   const { c: bumpCanvas, ctx: bumpCtx } = makeCanvas();
-  // 瓷砖主体（亮）= 高 = 凸
-  bumpCtx.fillStyle = "#f0f0f0";
+  bumpCtx.fillStyle = "#f4f4f4";
   bumpCtx.fillRect(0, 0, size, size);
   // 每块瓷砖上加微妙反光梯度
   for (let i = 0; i < tilesPerSide; i++) {
@@ -399,14 +403,14 @@ function createWhiteTileTextures() {
       const w = cell - gapPx;
       const g = bumpCtx.createLinearGradient(x, y, x + w, y + w);
       g.addColorStop(0, "#fafafa");
-      g.addColorStop(0.5, "#e8e8e8");
+      g.addColorStop(0.5, "#dedede");
       g.addColorStop(1, "#f4f4f4");
       bumpCtx.fillStyle = g;
       bumpCtx.fillRect(x, y, w, w);
     }
   }
-  // 勾缝（暗）= 低 = 凹
-  bumpCtx.fillStyle = "#7a7a7a";
+  // 勾缝（暗）= 低 = 凹（更暗）
+  bumpCtx.fillStyle = "#444";
   for (let i = 0; i < tilesPerSide; i++) {
     bumpCtx.fillRect(Math.round(i * cell) - gapPx / 2, 0, gapPx, size);
     bumpCtx.fillRect(0, Math.round(i * cell) - gapPx / 2, size, gapPx);
@@ -429,11 +433,9 @@ function createWhiteTileTextures() {
 
   // 3. Roughness Map - 瓷砖面光滑 / 勾缝粗糙
   const { c: roughCanvas, ctx: roughCtx } = makeCanvas();
-  // 瓷砖主体（暗=光滑，roughness ~ 0.27）
-  roughCtx.fillStyle = "#444";
+  roughCtx.fillStyle = "#5a5a5a";
   roughCtx.fillRect(0, 0, size, size);
-  // 勾缝（亮=粗糙，roughness ~ 0.7）
-  roughCtx.fillStyle = "#b0b0b0";
+  roughCtx.fillStyle = "#d8d8d8";
   for (let i = 0; i < tilesPerSide; i++) {
     roughCtx.fillRect(Math.round(i * cell) - gapPx / 2, 0, gapPx, size);
     roughCtx.fillRect(0, Math.round(i * cell) - gapPx / 2, size, gapPx);
@@ -447,18 +449,72 @@ function createWhiteTileTextures() {
 }
 
 /**
- * 程序化生成长方形天花板纹理（纯白微纹理）
+ * 米色地板瓷砖（中等大小方格）
+ */
+function createWhiteFloorTexture() {
+  const size = 1024;
+  const tilesPerSide = 12;
+  const gapPx = 5;
+  const cell = size / tilesPerSide;
+
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const ctx = c.getContext("2d");
+  if (!ctx) throw new Error("CanvasTexture context unavailable");
+
+  ctx.fillStyle = "#ecdcbe";
+  ctx.fillRect(0, 0, size, size);
+  for (let i = 0; i < 300; i++) {
+    ctx.fillStyle = `rgba(120, 100, 70, ${0.02 + Math.random() * 0.04})`;
+    ctx.fillRect(
+      Math.random() * size,
+      Math.random() * size,
+      1 + Math.random() * 2,
+      1 + Math.random() * 2,
+    );
+  }
+  ctx.fillStyle = "#a08e6c";
+  for (let i = 0; i < tilesPerSide; i++) {
+    ctx.fillRect(Math.round(i * cell) - gapPx / 2, 0, gapPx, size);
+    ctx.fillRect(0, Math.round(i * cell) - gapPx / 2, size, gapPx);
+  }
+
+  const baseMap = new CanvasTexture(c);
+  baseMap.wrapS = baseMap.wrapT = RepeatWrapping;
+  baseMap.colorSpace = SRGBColorSpace;
+  baseMap.anisotropy = 16;
+  baseMap.needsUpdate = true;
+
+  const cb = document.createElement("canvas");
+  cb.width = cb.height = size;
+  const cbCtx = cb.getContext("2d")!;
+  cbCtx.fillStyle = "#e0e0e0";
+  cbCtx.fillRect(0, 0, size, size);
+  cbCtx.fillStyle = "#666";
+  for (let i = 0; i < tilesPerSide; i++) {
+    cbCtx.fillRect(Math.round(i * cell) - gapPx / 2, 0, gapPx, size);
+    cbCtx.fillRect(0, Math.round(i * cell) - gapPx / 2, size, gapPx);
+  }
+  const bumpMap = new CanvasTexture(cb);
+  bumpMap.wrapS = bumpMap.wrapT = RepeatWrapping;
+  bumpMap.anisotropy = 16;
+  bumpMap.needsUpdate = true;
+
+  return { baseMap, bumpMap };
+}
+
+/**
+ * 米色天花板纹理（纯色 + 极淡纹理）
  */
 function createWhiteCeilingTexture() {
   const c = document.createElement("canvas");
   c.width = c.height = 512;
   const ctx = c.getContext("2d");
   if (!ctx) throw new Error("CanvasTexture context unavailable");
-  ctx.fillStyle = "#fbfaf6";
+  ctx.fillStyle = "#efe5d0";
   ctx.fillRect(0, 0, 512, 512);
-  // 极淡噪点
   for (let i = 0; i < 300; i++) {
-    ctx.fillStyle = `rgba(80, 80, 80, ${0.02 + Math.random() * 0.03})`;
+    ctx.fillStyle = `rgba(80, 70, 50, ${0.02 + Math.random() * 0.03})`;
     ctx.fillRect(
       Math.random() * 512,
       Math.random() * 512,
@@ -3282,10 +3338,14 @@ function WhiteTileCinemaBackdrop({
   const halfRoomWidth = roomWidth / 2;
   const baseZ = auditorium.screenZ;
 
-  // 程序化生成的 PBR 瓷砖纹理（baseColor + bumpMap + roughnessMap）
+  // 程序化生成的 PBR 纹理（墙白色小瓷砖 / 地板米色 / 天花板米色）
   const tileTextures = useMemo(() => {
     if (typeof document === "undefined") return null;
     return createWhiteTileTextures();
+  }, []);
+  const floorTextures = useMemo(() => {
+    if (typeof document === "undefined") return null;
+    return createWhiteFloorTexture();
   }, []);
   const ceilingTex = useMemo(() => {
     if (typeof document === "undefined") return null;
@@ -3293,16 +3353,14 @@ function WhiteTileCinemaBackdrop({
   }, []);
 
   // 弯曲一体化墙顶几何：圆角截面沿 Z 拉伸（ExtrudeGeometry）
-  // 截面：从左下 (-w/2, 0) 经圆弧到顶 (0, h) 再圆弧到右下 (w/2, 0)
   const curvedRoomGeometry = useMemo(() => {
     const w = roomWidth;
     const peakY = roomHeight;
     const shape = new Shape();
     shape.moveTo(-w / 2, 0);
-    shape.lineTo(-w / 2, 0.05); // 0.05 厚度底边
+    shape.lineTo(-w / 2, 0.05);
     // 左半圆弧
     shape.quadraticCurveTo(-w / 4, peakY * 0.85, 0, peakY);
-    // 顶面
     shape.lineTo(0, peakY);
     // 右半圆弧
     shape.quadraticCurveTo(w / 4, peakY * 0.85, w / 2, 0.05);
@@ -3315,39 +3373,49 @@ function WhiteTileCinemaBackdrop({
       bevelEnabled: false,
       curveSegments: 32,
     });
-    // ExtrudeGeometry 默认沿 +Z 拉伸，让房间从 baseZ 向后延展
     geo.translate(0, 0, baseZ - 2);
     geo.computeVertexNormals();
     return geo;
   }, [roomWidth, roomHeight, roomDepth, baseZ]);
 
-  // 配置瓷砖墙的纹理 repeat (根据尺寸)
+  // 白色小瓷砖纹理（用于左右侧墙 + 银幕后墙）：每块视觉约 2-3cm
   const wallSideTexture = useMemo(() => {
     if (!tileTextures) return null;
     const t = tileTextures.baseMap.clone();
     const n = tileTextures.bumpMap.clone();
     const r = tileTextures.roughnessMap.clone();
-    // 一面墙约 30m x 10m，让 1m ≈ 6 块瓷砖
-    t.repeat.set(roomWidth / 4, roomHeight / 4);
-    n.repeat.set(roomWidth / 4, roomHeight / 4);
-    r.repeat.set(roomWidth / 4, roomHeight / 4);
+    // 让一面 30m x 10m 的墙上显示约 1000+ 块瓷砖
+    t.repeat.set(roomWidth / 1.2, roomHeight / 1.2);
+    n.repeat.set(roomWidth / 1.2, roomHeight / 1.2);
+    r.repeat.set(roomWidth / 1.2, roomHeight / 1.2);
     t.needsUpdate = n.needsUpdate = r.needsUpdate = true;
     return { map: t, normalMap: n, roughnessMap: r };
   }, [tileTextures, roomWidth, roomHeight]);
 
-  const ceilingTexture = useMemo(() => {
+  const ceilingMaterialTexture = useMemo(() => {
     if (!ceilingTex) return null;
     const t = ceilingTex.clone();
-    t.repeat.set(roomWidth / 6, (roomDepth + 4) / 6);
+    t.repeat.set(roomWidth / 8, (roomDepth + 4) / 8);
     t.needsUpdate = true;
     return t;
   }, [ceilingTex, roomWidth, roomDepth]);
+
+  const floorMaterialTextures = useMemo(() => {
+    if (!floorTextures) return null;
+    const t = floorTextures.baseMap.clone();
+    const n = floorTextures.bumpMap.clone();
+    // 地板米色中等方格（视觉约 30cm 边长）
+    t.repeat.set(roomWidth / 4, (roomDepth + 4) / 4);
+    n.repeat.set(roomWidth / 4, (roomDepth + 4) / 4);
+    t.needsUpdate = n.needsUpdate = true;
+    return { map: t, normalMap: n };
+  }, [floorTextures, roomWidth, roomDepth]);
 
   return (
     <group>
       {wallSideTexture && (
         <>
-          {/* 弯曲一体化墙体+吊顶 (单 mesh，挤出几何) */}
+          {/* 弯曲一体化墙体+吊顶（白瓷砖材质） */}
           <mesh
             geometry={curvedRoomGeometry}
             position={[0, 0, 0]}
@@ -3357,114 +3425,91 @@ function WhiteTileCinemaBackdrop({
               map={wallSideTexture.map}
               normalMap={wallSideTexture.normalMap}
               roughnessMap={wallSideTexture.roughnessMap}
-              color="#ffffff"
-              normalScale={[0.7, 0.7]}
-              roughness={0.85}
-              metalness={0.02}
-              sheen={0.25}
-              sheenColor="#fafaf3"
-              sheenRoughness={0.7}
-              clearcoat={0.18}
-              clearcoatRoughness={0.4}
-              envMapIntensity={0.8}
+              color="#f4f1e3"
+              normalScale={[1.6, 1.6]}
+              roughness={0.88}
+              metalness={0.0}
+              envMapIntensity={0.18}
+              clearcoat={0.0}
+              clearcoatRoughness={1.0}
             />
           </mesh>
         </>
       )}
 
-      {/* 白瓷砖地板：用 PlaneGeometry + 多层贴图纹理，而非小方块堆叠 */}
-      <mesh
-        position={[0, 0.005, roomCenterZ]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        receiveShadow
-      >
-        <planeGeometry args={[roomWidth, roomDepth + 4, 32, 32]} />
-        {(() => {
-          // 重新为地面生成更大规格的瓷砖纹理 (大格子，类似图片)
-          if (typeof document === "undefined") return null;
-          const c = document.createElement("canvas");
-          c.width = c.height = 512;
-          const ctx = c.getContext("2d");
-          if (!ctx) return null;
-          ctx.fillStyle = "#f4f3ed";
-          ctx.fillRect(0, 0, 512, 512);
-          // 稍大一些的方格
-          const tileSize = 64;
-          ctx.strokeStyle = "#a0a4ab";
-          ctx.lineWidth = 3;
-          for (let i = 0; i < 512; i += tileSize) {
-            ctx.beginPath();
-            ctx.moveTo(i, 0);
-            ctx.lineTo(i, 512);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(0, i);
-            ctx.lineTo(512, i);
-            ctx.stroke();
-          }
-          // 给个不缝
-          ctx.fillStyle = "#7a7e85";
-          ctx.fillRect(0, 0, 3, 512);
-          ctx.fillRect(0, 0, 512, 3);
-          const t = new CanvasTexture(c);
-          t.wrapS = t.wrapT = RepeatWrapping;
-          t.colorSpace = SRGBColorSpace;
-          t.repeat.set(roomWidth / 5, (roomDepth + 4) / 5);
-          t.anisotropy = 16;
-          t.needsUpdate = true;
-          // 同时生成 bump
-          const cb = document.createElement("canvas");
-          cb.width = cb.height = 512;
-          const cbCtx = cb.getContext("2d")!;
-          cbCtx.fillStyle = "#e0e0e0";
-          cbCtx.fillRect(0, 0, 512, 512);
-          cbCtx.fillStyle = "#787878";
-          for (let i = 0; i < 512; i += tileSize) {
-            cbCtx.fillRect(i - 2, 0, 4, 512);
-            cbCtx.fillRect(0, i - 2, 512, 4);
-          }
-          const n = new CanvasTexture(cb);
-          n.wrapS = n.wrapT = RepeatWrapping;
-          n.repeat.set(roomWidth / 5, (roomDepth + 4) / 5);
-          n.anisotropy = 16;
-          n.needsUpdate = true;
+      {/* 银幕后墙 - 白瓷砖（独立 planeGeometry，与侧墙同材质） */}
+      {wallSideTexture && (
+        <mesh
+          position={[0, roomHeight / 2, baseZ - 0.3]}
+          receiveShadow
+        >
+          <planeGeometry args={[roomWidth + 2, roomHeight, 1, 1]} />
+          <meshPhysicalMaterial
+            map={wallSideTexture.map}
+            normalMap={wallSideTexture.normalMap}
+            roughnessMap={wallSideTexture.roughnessMap}
+            color="#f4f1e3"
+            normalScale={[1.6, 1.6]}
+            roughness={0.88}
+            metalness={0.0}
+            envMapIntensity={0.18}
+            side={2}
+          />
+        </mesh>
+      )}
 
-          return (
-            <meshPhysicalMaterial
-              map={t}
-              normalMap={n}
-              normalScale={[0.5, 0.5]}
-              color="#ffffff"
-              roughness={0.45}
-              metalness={0.05}
-              clearcoat={0.35}
-              clearcoatRoughness={0.3}
-              envMapIntensity={0.5}
-              side={1}
-            />
-          );
-        })()}
-      </mesh>
+      {/* 天花板 - 米色纯色 + 极淡纹理 */}
+      {ceilingMaterialTexture && (
+        <mesh
+          position={[0, roomHeight + 0.05, roomCenterZ]}
+          rotation={[Math.PI / 2, 0, 0]}
+          receiveShadow
+        >
+          <planeGeometry args={[roomWidth, roomDepth + 4, 1, 1]} />
+          <meshStandardMaterial
+            map={ceilingMaterialTexture}
+            color="#efe5d0"
+            roughness={0.95}
+            metalness={0.0}
+            side={2}
+          />
+        </mesh>
+      )}
 
-      {/* 黑色饰带 — 银幕底部 (图片中深色横条) */}
+      {/* 地板 - 米色中等方格 */}
+      {floorMaterialTextures && (
+        <mesh
+          position={[0, 0.005, roomCenterZ]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          receiveShadow
+        >
+          <planeGeometry args={[roomWidth, roomDepth + 4, 32, 32]} />
+          <meshStandardMaterial
+            map={floorMaterialTextures.map}
+            normalMap={floorMaterialTextures.normalMap}
+            normalScale={[0.5, 0.5]}
+            color="#ecdcbe"
+            roughness={0.6}
+            metalness={0.04}
+            side={2}
+          />
+        </mesh>
+      )}
+
+      {/* 黑色饰带 - 银幕底部 (图片中深色横条) */}
       <mesh position={[0, auditorium.screenBottom + 0.3, baseZ - 0.25]}>
-        <boxGeometry
-          args={[auditorium.screenWidth + 1, 0.7, 0.15]}
-        />
+        <boxGeometry args={[auditorium.screenWidth + 1, 0.7, 0.15]} />
         <meshStandardMaterial color="#0a0a0a" roughness={0.6} />
       </mesh>
 
-      {/* 银幕 (留出 placeholder，主体由 Screen 组件渲染) */}
-      {/* 这里仅放一个轻微的框提示，主银幕由其他组件覆盖 */}
-
-      {/* 强白色环境光（半球光 + 顶部定向光）营造纯净光感 */}
+      {/* 柔和白色环境光 */}
       <hemisphereLight
-        args={["#ffffff", "#e8e6dd", 2.2]}
+        args={["#ffffff", "#e8e6dd", 1.8]}
         position={[0, roomHeight + 2, roomCenterZ]}
       />
       <directionalLight
         position={[0, roomHeight + 4, baseZ + 2]}
-        intensity={1.0}
+        intensity={0.9}
         color="#fffaf0"
         castShadow={false}
       />
