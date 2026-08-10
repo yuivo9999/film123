@@ -8,6 +8,7 @@ import {
   AmbientLight,
   BackSide,
   CanvasTexture,
+  ClampToEdgeWrapping,
   Color,
   Euler,
   ExtrudeGeometry,
@@ -107,13 +108,9 @@ type CinemaSceneProps = {
   cameraPreset?: CameraPreset;
   sceneStyle?:
     | "classic"
-    | "urban_plaza"
-    | "snowy_greek"
-    | "space_station"
     | "warm_wood_lounge"
     | "imax_giant"
     | "minimalist_cream"
-    | "alpine_desert"
     | "baroque_opera"
     | "suzhou_garden";
   playing: boolean;
@@ -1499,11 +1496,11 @@ function Screen({
   const filmBounceRef = useRef<PointLight>(null);
   const screenSurroundMaterialRef = useRef<MeshPhysicalMaterial>(null);
   const screenSurroundLitColor = useMemo(
-    () => new Color(sceneStyle === "snowy_greek" ? "#1e293b" : "#111315"),
+    () => new Color("#111315"),
     [sceneStyle],
   );
   const screenSurroundDarkColor = useMemo(
-    () => new Color(sceneStyle === "snowy_greek" ? "#0f172a" : "#000000"),
+    () => new Color("#000000"),
     [sceneStyle],
   );
   const [initialHouseLights] = useState(() => (filmMode ? 0 : 1));
@@ -1642,483 +1639,6 @@ function Screen({
         distance={32}
         decay={2}
       />
-    </group>
-  );
-}
-
-function UrbanPlazaBackdrop({ auditorium }: { auditorium: Auditorium }) {
-  const baseZ = auditorium.screenZ;
-
-  return (
-    <group>
-      {/* City Midnight Sky Canvas */}
-      <mesh position={[0, 45, baseZ - 65]}>
-        <planeGeometry args={[320, 150]} />
-        <meshBasicMaterial color="#080c1a" toneMapped={false} />
-      </mesh>
-
-      {/* Urban Glow Light Pollution Horizon */}
-      <mesh position={[0, 16, baseZ - 64]}>
-        <planeGeometry args={[320, 50]} />
-        <meshBasicMaterial
-          color="#1e293b"
-          transparent
-          opacity={0.6}
-          toneMapped={false}
-        />
-      </mesh>
-
-      {/* City Moon */}
-      <mesh position={[-52, 65, baseZ - 60]}>
-        <sphereGeometry args={[6, 32, 32]} />
-        <meshBasicMaterial color="#fef08a" toneMapped={false} />
-      </mesh>
-
-      {/* Background Central High-rise Towers (高层公寓与摩天大楼群) */}
-      {[
-        { x: -55, h: 78, w: 22, d: 18, color: "#1e293b" },
-        { x: -32, h: 90, w: 20, d: 20, color: "#0f172a" },
-        { x: -12, h: 68, w: 18, d: 16, color: "#1e293b" },
-        { x: 12, h: 84, w: 22, d: 18, color: "#0f172a" },
-        { x: 35, h: 72, w: 20, d: 20, color: "#1e293b" },
-        { x: 58, h: 88, w: 24, d: 22, color: "#0f172a" },
-      ].map((b, idx) => (
-        <group key={idx} position={[b.x, b.h / 2 - 2, baseZ - 52]}>
-          {/* Main Building Body */}
-          <mesh>
-            <boxGeometry args={[b.w, b.h, b.d]} />
-            <meshStandardMaterial color={b.color} roughness={0.7} metalness={0.2} />
-          </mesh>
-          {/* Illuminated Windows (发光窗户方格矩阵) */}
-          {Array.from({ length: 8 }, (_, rowIdx) => (
-            <group key={rowIdx} position={[0, -b.h / 2 + 10 + rowIdx * 8, b.d / 2 + 0.1]}>
-              {[-b.w / 3, 0, b.w / 3].map((wx, colIdx) => (
-                <mesh key={colIdx} position={[wx, 0, 0]}>
-                  <planeGeometry args={[b.w * 0.22, 3.2]} />
-                  <meshBasicMaterial
-                    color={(rowIdx + colIdx) % 3 === 0 ? "#fef08a" : (rowIdx + colIdx) % 2 === 0 ? "#bae6fd" : "#38bdf8"}
-                    transparent
-                    opacity={(rowIdx * 7 + colIdx * 3) % 5 === 0 ? 0.35 : 0.85}
-                    toneMapped={false}
-                  />
-                </mesh>
-              ))}
-            </group>
-          ))}
-          {/* Roof Beacon Light (楼顶警示红灯) */}
-          <mesh position={[0, b.h / 2 + 0.8, 0]}>
-            <sphereGeometry args={[0.8, 16, 16]} />
-            <meshBasicMaterial color="#ef4444" toneMapped={false} />
-          </mesh>
-        </group>
-      ))}
-
-      {/* Left Flanking Apartment Skyscrapers (左侧近景大厦公寓) */}
-      {[
-        { x: -75, zOff: -20, h: 95, w: 26 },
-        { x: -82, zOff: 10, h: 85, w: 28 },
-      ].map((b, idx) => (
-        <group key={`left-b-${idx}`} position={[b.x, b.h / 2 - 2, baseZ + b.zOff]}>
-          <mesh>
-            <boxGeometry args={[b.w, b.h, 24]} />
-            <meshStandardMaterial color="#0f172a" roughness={0.8} />
-          </mesh>
-          {/* Flanking Windows */}
-          {Array.from({ length: 9 }, (_, rIdx) => (
-            <group key={rIdx} position={[b.w / 2 + 0.1, -b.h / 2 + 12 + rIdx * 8, 0]} rotation={[0, Math.PI / 2, 0]}>
-              {[-6, 0, 6].map((wx, cIdx) => (
-                <mesh key={cIdx} position={[wx, 0, 0]}>
-                  <planeGeometry args={[3.8, 3.2]} />
-                  <meshBasicMaterial
-                    color={cIdx % 2 === 0 ? "#fef08a" : "#bae6fd"}
-                    transparent
-                    opacity={0.8}
-                    toneMapped={false}
-                  />
-                </mesh>
-              ))}
-            </group>
-          ))}
-        </group>
-      ))}
-
-      {/* Right Flanking Apartment Skyscrapers (右侧近景大厦公寓) */}
-      {[
-        { x: 75, zOff: -20, h: 98, w: 26 },
-        { x: 82, zOff: 10, h: 88, w: 28 },
-      ].map((b, idx) => (
-        <group key={`right-b-${idx}`} position={[b.x, b.h / 2 - 2, baseZ + b.zOff]}>
-          <mesh>
-            <boxGeometry args={[b.w, b.h, 24]} />
-            <meshStandardMaterial color="#0f172a" roughness={0.8} />
-          </mesh>
-          {/* Flanking Windows */}
-          {Array.from({ length: 9 }, (_, rIdx) => (
-            <group key={rIdx} position={[-b.w / 2 - 0.1, -b.h / 2 + 12 + rIdx * 8, 0]} rotation={[0, -Math.PI / 2, 0]}>
-              {[-6, 0, 6].map((wx, cIdx) => (
-                <mesh key={cIdx} position={[wx, 0, 0]}>
-                  <planeGeometry args={[3.8, 3.2]} />
-                  <meshBasicMaterial
-                    color={cIdx % 2 === 0 ? "#fef08a" : "#93c5fd"}
-                    transparent
-                    opacity={0.8}
-                    toneMapped={false}
-                  />
-                </mesh>
-              ))}
-            </group>
-          ))}
-        </group>
-      ))}
-    </group>
-  );
-}
-
-function SnowMountainBackdrop({ auditorium }: { auditorium: Auditorium }) {
-  const baseZ = auditorium.screenZ;
-
-  return (
-    <group>
-      {/* European Sky Canvas (Clear Azure Alpine Sky behind Screen) */}
-      <mesh position={[0, 48, baseZ - 65]}>
-        <planeGeometry args={[320, 160]} />
-        <meshBasicMaterial color="#38bdf8" toneMapped={false} />
-      </mesh>
-
-      {/* Atmospheric Alpine Horizon Glow */}
-      <mesh position={[0, 18, baseZ - 64]}>
-        <planeGeometry args={[320, 60]} />
-        <meshBasicMaterial
-          color="#bae6fd"
-          transparent
-          opacity={0.65}
-          toneMapped={false}
-        />
-      </mesh>
-
-      {/* High Alpine Radiant Sun */}
-      <mesh position={[42, 62, baseZ - 60]}>
-        <sphereGeometry args={[7.5, 32, 32]} />
-        <meshBasicMaterial color="#fffbe1" toneMapped={false} />
-      </mesh>
-      {/* Sun Atmosphere Corona Halo */}
-      <mesh position={[42, 62, baseZ - 60.5]}>
-        <sphereGeometry args={[14, 24, 24]} />
-        <meshBasicMaterial
-          color="#fef08a"
-          transparent
-          opacity={0.35}
-          toneMapped={false}
-        />
-      </mesh>
-
-      {/* Floating Alpine Clouds */}
-      <group position={[-38, 54, baseZ - 56]}>
-        <mesh position={[0, 0, 0]}>
-          <sphereGeometry args={[8, 16, 16]} />
-          <meshStandardMaterial color="#ffffff" transparent opacity={0.88} roughness={0.9} />
-        </mesh>
-        <mesh position={[6, 2, 0]}>
-          <sphereGeometry args={[6.5, 16, 16]} />
-          <meshStandardMaterial color="#f8fafc" transparent opacity={0.85} roughness={0.9} />
-        </mesh>
-        <mesh position={[-6, -1, 0]}>
-          <sphereGeometry args={[5.5, 16, 16]} />
-          <meshStandardMaterial color="#ffffff" transparent opacity={0.85} roughness={0.9} />
-        </mesh>
-      </group>
-
-      <group position={[52, 48, baseZ - 54]}>
-        <mesh position={[0, 0, 0]}>
-          <sphereGeometry args={[7, 16, 16]} />
-          <meshStandardMaterial color="#ffffff" transparent opacity={0.85} roughness={0.9} />
-        </mesh>
-        <mesh position={[-5, 1, 0]}>
-          <sphereGeometry args={[5.5, 16, 16]} />
-          <meshStandardMaterial color="#f8fafc" transparent opacity={0.82} roughness={0.9} />
-        </mesh>
-      </group>
-
-      {/* === European Highest Snow Mountain (Mont Blanc / 勃朗峰巨型连绵雪山群) === */}
-
-      {/* Center Main Peak: Mont Blanc Summit (勃朗峰主峰) */}
-      <group position={[0, 32, baseZ - 52]}>
-        {/* Granite Rock Mountain Base Body */}
-        <mesh>
-          <coneGeometry args={[48, 72, 10]} />
-          <meshStandardMaterial color="#334155" roughness={0.85} metalness={0.05} />
-        </mesh>
-        {/* Massive Majestic Glistering Snow Cap & Ice Cliff Top */}
-        <mesh position={[0, 22, 0]}>
-          <coneGeometry args={[36, 42, 10]} />
-          <meshStandardMaterial
-            color="#ffffff"
-            roughness={0.25}
-            metalness={0.05}
-            emissive="#e0f2fe"
-            emissiveIntensity={0.35}
-          />
-        </mesh>
-        {/* Secondary Glacier Ice Ridges */}
-        <mesh position={[0, 10, 2]}>
-          <coneGeometry args={[28, 28, 8]} />
-          <meshStandardMaterial color="#f1f5f9" roughness={0.3} emissive="#bae6fd" emissiveIntensity={0.2} />
-        </mesh>
-      </group>
-
-      {/* Left Alpine Summit Peak (Aiguille du Midi / 南针峰群) */}
-      <group position={[-46, 24, baseZ - 46]}>
-        <mesh>
-          <coneGeometry args={[38, 56, 8]} />
-          <meshStandardMaterial color="#1e293b" roughness={0.9} />
-        </mesh>
-        <mesh position={[0, 16, 0]}>
-          <coneGeometry args={[28, 32, 8]} />
-          <meshStandardMaterial
-            color="#ffffff"
-            roughness={0.3}
-            emissive="#e0f2fe"
-            emissiveIntensity={0.25}
-          />
-        </mesh>
-      </group>
-
-      {/* Right Alpine Summit Peak (Grandes Jorasses / 大茹拉峰群) */}
-      <group position={[48, 26, baseZ - 48]}>
-        <mesh>
-          <coneGeometry args={[40, 58, 8]} />
-          <meshStandardMaterial color="#334155" roughness={0.88} />
-        </mesh>
-        <mesh position={[0, 18, 0]}>
-          <coneGeometry args={[30, 32, 8]} />
-          <meshStandardMaterial
-            color="#ffffff"
-            roughness={0.3}
-            emissive="#e0f2fe"
-            emissiveIntensity={0.25}
-          />
-        </mesh>
-      </group>
-
-      {/* Foreground Glacier Foothills & Snow Ridges */}
-      <mesh position={[0, 4, baseZ - 36]}>
-        <boxGeometry args={[190, 18, 16]} />
-        <meshStandardMaterial color="#e2e8f0" roughness={0.7} metalness={0.02} />
-      </mesh>
-      <mesh position={[-30, 8, baseZ - 38]}>
-        <coneGeometry args={[22, 22, 6]} />
-        <meshStandardMaterial color="#f1f5f9" roughness={0.6} />
-      </mesh>
-      <mesh position={[35, 9, baseZ - 39]}>
-        <coneGeometry args={[24, 24, 6]} />
-        <meshStandardMaterial color="#f1f5f9" roughness={0.6} />
-      </mesh>
-
-      {/* Flanking Ancient Greek Marble Columns */}
-      {[-auditorium.screenWidth / 2 - 1.2, auditorium.screenWidth / 2 + 1.2].map((x, sideIdx) => (
-        <group key={sideIdx} position={[x, auditorium.screenBottom + auditorium.screenHeight / 2, baseZ + 0.1]}>
-          <mesh>
-            <cylinderGeometry args={[0.45, 0.55, auditorium.screenHeight + 3, 16]} />
-            <meshStandardMaterial color="#f8fafc" roughness={0.3} metalness={0.05} />
-          </mesh>
-          <mesh position={[0, (auditorium.screenHeight + 3) / 2 + 0.3, 0]}>
-            <boxGeometry args={[1.3, 0.6, 1.3]} />
-            <meshStandardMaterial color="#f1f5f9" roughness={0.3} />
-          </mesh>
-          <mesh position={[0, -(auditorium.screenHeight + 3) / 2 - 0.3, 0]}>
-            <boxGeometry args={[1.4, 0.6, 1.4]} />
-            <meshStandardMaterial color="#e2e8f0" roughness={0.3} />
-          </mesh>
-        </group>
-      ))}
-
-      {/* Sun Light Source for Snow Mountain Peaks */}
-      <directionalLight
-        position={[40, 60, baseZ - 10]}
-        intensity={1.8}
-        color="#fffbeb"
-      />
-    </group>
-  );
-}
-
-function pseudoRandom(seed: number) {
-  const x = Math.sin(seed * 9999 + 1) * 10000;
-  return x - Math.floor(x);
-}
-
-
-
-function SpaceStationBackdrop({ auditorium }: { auditorium: Auditorium }) {
-  const baseZ = auditorium.screenZ;
-
-  return (
-    <group>
-      <group position={[42, 38, baseZ - 52]}>
-        <mesh>
-          <sphereGeometry args={[28, 32, 32]} />
-          <meshStandardMaterial color="#1d4ed8" roughness={0.6} metalness={0.2} emissive="#0284c7" emissiveIntensity={0.15} />
-        </mesh>
-        <mesh scale={[1.08, 1.08, 1.08]}>
-          <sphereGeometry args={[28, 24, 24]} />
-          <meshBasicMaterial color="#38bdf8" transparent opacity={0.25} toneMapped={false} />
-        </mesh>
-      </group>
-
-      {[-12, 12].map((x, idx) => (
-        <mesh key={idx} position={[x, 0.01, baseZ + 20]}>
-          <boxGeometry args={[0.3, 0.02, 120]} />
-          <meshBasicMaterial color="#06b6d4" toneMapped={false} />
-        </mesh>
-      ))}
-
-      {[-auditorium.screenWidth / 2 - 1.2, auditorium.screenWidth / 2 + 1.2].map((x, sideIdx) => (
-        <mesh key={sideIdx} position={[x, auditorium.screenBottom + auditorium.screenHeight / 2, baseZ + 0.1]}>
-          <boxGeometry args={[0.8, auditorium.screenHeight + 3.2, 0.8]} />
-          <meshStandardMaterial color="#334155" metalness={0.85} roughness={0.2} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-function AlpineDesertBackdrop({ auditorium }: { auditorium: Auditorium }) {
-  const baseZ = auditorium.screenZ;
-
-  return (
-    <group>
-      {/* Sky Canvas (Clear Azure Alpine Desert Sky) */}
-      <mesh position={[0, 52, baseZ - 75]}>
-        <planeGeometry args={[360, 180]} />
-        <meshBasicMaterial color="#38bdf8" toneMapped={false} />
-      </mesh>
-
-      {/* Warm Desert Horizon Atmospheric Glow */}
-      <mesh position={[0, 20, baseZ - 74]}>
-        <planeGeometry args={[360, 70]} />
-        <meshBasicMaterial
-          color="#bae6fd"
-          transparent
-          opacity={0.65}
-          toneMapped={false}
-        />
-      </mesh>
-
-      {/* Clear Bright Desert Sun */}
-      <mesh position={[50, 72, baseZ - 68]}>
-        <sphereGeometry args={[8.5, 32, 32]} />
-        <meshBasicMaterial color="#fffae0" toneMapped={false} />
-      </mesh>
-
-      {/* Sun Atmosphere Corona Halo */}
-      <mesh position={[50, 72, baseZ - 68.5]}>
-        <sphereGeometry args={[16, 24, 24]} />
-        <meshBasicMaterial
-          color="#fef08a"
-          transparent
-          opacity={0.3}
-          toneMapped={false}
-        />
-      </mesh>
-
-      {/* === CENTRAL ICONIC SNOW-CAPPED MATTERHORN MOUNTAIN PEAK === */}
-      {/* Standout Pyramid Snow Peak directly behind and centered above the giant cinema screen */}
-      <group position={[0, 36, baseZ - 58]}>
-        {/* Mountain Base Body (Brownish Slate Rock) */}
-        <mesh>
-          <coneGeometry args={[52, 90, 12]} />
-          <meshStandardMaterial color="#4a3f35" roughness={0.88} metalness={0.05} />
-        </mesh>
-        
-        {/* Pure Snow Cap Summit */}
-        <mesh position={[0, 26, 0]}>
-          <coneGeometry args={[38, 48, 12]} />
-          <meshStandardMaterial
-            color="#ffffff"
-            roughness={0.25}
-            metalness={0.05}
-            emissive="#e0f2fe"
-            emissiveIntensity={0.32}
-          />
-        </mesh>
-        
-        {/* Secondary Glacier Ice Ridges down the peak face */}
-        <mesh position={[0, 12, 2]}>
-          <coneGeometry args={[30, 32, 8]} />
-          <meshStandardMaterial
-            color="#f1f5f9"
-            roughness={0.35}
-            emissive="#bae6fd"
-            emissiveIntensity={0.2}
-          />
-        </mesh>
-      </group>
-
-      {/* === FLANKING DESERT MOUNTAIN RANGES & PLATEAU HILLS === */}
-      {/* Left Desert Mountain Range */}
-      <group position={[-65, 24, baseZ - 62]}>
-        <mesh>
-          <coneGeometry args={[55, 65, 10]} />
-          <meshStandardMaterial color="#8c6747" roughness={0.9} />
-        </mesh>
-        <mesh position={[0, 18, 0]}>
-          <coneGeometry args={[32, 30, 10]} />
-          <meshStandardMaterial color="#f8fafc" roughness={0.4} />
-        </mesh>
-      </group>
-      
-      {/* Far Left Rolling Desert Hills */}
-      <mesh position={[-115, 14, baseZ - 65]}>
-        <coneGeometry args={[65, 48, 8]} />
-        <meshStandardMaterial color="#7a5a3e" roughness={0.95} />
-      </mesh>
-
-      {/* Right Desert Mountain Range */}
-      <group position={[65, 26, baseZ - 62]}>
-        <mesh>
-          <coneGeometry args={[58, 68, 10]} />
-          <meshStandardMaterial color="#96704d" roughness={0.9} />
-        </mesh>
-        <mesh position={[0, 20, 0]}>
-          <coneGeometry args={[34, 32, 10]} />
-          <meshStandardMaterial color="#f8fafc" roughness={0.4} />
-        </mesh>
-      </group>
-
-      {/* Far Right Rolling Desert Hills */}
-      <mesh position={[115, 16, baseZ - 65]}>
-        <coneGeometry args={[70, 52, 8]} />
-        <meshStandardMaterial color="#805d40" roughness={0.95} />
-      </mesh>
-
-      {/* === DESERT GRAVEL PLATEAU GROUND EXTENSION === */}
-      <mesh position={[0, -0.4, baseZ - 20]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[360, 120]} />
-        <meshStandardMaterial color="#ab8c6a" roughness={0.92} />
-      </mesh>
-
-      {/* === GIANT OUTDOOR CINEMA SCREEN FRAME & SUPPORT PILLARS === */}
-      {/* Left & Right Vertical Black Steel Posts holding the screen */}
-      {[-auditorium.screenWidth / 2 - 0.8, auditorium.screenWidth / 2 + 0.8].map((x, sideIdx) => (
-        <group key={sideIdx} position={[x, auditorium.screenBottom + auditorium.screenHeight / 2 - 0.5, baseZ + 0.1]}>
-          <mesh>
-            <boxGeometry args={[0.8, auditorium.screenHeight + 4.5, 0.8]} />
-            <meshStandardMaterial color="#1e293b" metalness={0.8} roughness={0.3} />
-          </mesh>
-        </group>
-      ))}
-      
-      {/* Bottom Heavy Steel Base Frame across the desert ground */}
-      <mesh position={[0, auditorium.screenBottom - 0.8, baseZ + 0.1]}>
-        <boxGeometry args={[auditorium.screenWidth + 2.8, 1.2, 1.2]} />
-        <meshStandardMaterial color="#0f172a" metalness={0.85} roughness={0.25} />
-      </mesh>
-      
-      {/* Top Outer Border Frame */}
-      <mesh position={[0, auditorium.screenBottom + auditorium.screenHeight + 0.5, baseZ + 0.1]}>
-        <boxGeometry args={[auditorium.screenWidth + 2.8, 0.8, 0.8]} />
-        <meshStandardMaterial color="#0f172a" metalness={0.85} roughness={0.25} />
-      </mesh>
     </group>
   );
 }
@@ -2940,8 +2460,8 @@ function MinimalistCreamBackdrop({ auditorium }: { auditorium: Auditorium }) {
         </mesh>
       </group>
 
-      {/* Dark Carpet Floor Front Stage Area */}
-      <mesh position={[0, 0.01, baseZ + 3]} receiveShadow>
+      {/* Dark Carpet Floor Front Stage Area (贴齐地板 y=0) */}
+      <mesh position={[0, 0.001, baseZ + 3]} receiveShadow>
         <planeGeometry args={[roomWidth, 8]} rotation={[-Math.PI / 2, 0, 0]} />
         <meshStandardMaterial color="#222428" roughness={0.92} metalness={0.02} />
       </mesh>
@@ -3520,6 +3040,189 @@ function WhiteTileCinemaBackdrop({
   );
 }
 
+/**
+ * 喜马拉雅背景纹理：纯程序化绘制雪山 + 蓝天 + 沙地背景图
+ * 用 CanvasTexture 生成 1024x720 图片，作为银幕后墙贴图
+ */
+function createHimalayaBackdropTexture() {
+  const w = 1024;
+  const h = 720;
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext("2d");
+  if (!ctx) throw new Error("CanvasTexture context unavailable");
+
+  // 1. 天空渐变（顶部深蓝 → 中部浅蓝 → 地平线浅黄）
+  const sky = ctx.createLinearGradient(0, 0, 0, h * 0.65);
+  sky.addColorStop(0, "#1d4ed8");
+  sky.addColorStop(0.3, "#3b82f6");
+  sky.addColorStop(0.6, "#7dd3fc");
+  sky.addColorStop(0.85, "#bfdbfe");
+  sky.addColorStop(1, "#e0f2fe");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, w, h * 0.65);
+
+  // 2. 远山层（最浅、最淡）
+  ctx.fillStyle = "#94a3b8";
+  ctx.globalAlpha = 0.7;
+  ctx.beginPath();
+  ctx.moveTo(0, h * 0.55);
+  ctx.lineTo(w * 0.1, h * 0.45);
+  ctx.lineTo(w * 0.25, h * 0.5);
+  ctx.lineTo(w * 0.4, h * 0.42);
+  ctx.lineTo(w * 0.55, h * 0.48);
+  ctx.lineTo(w * 0.7, h * 0.43);
+  ctx.lineTo(w * 0.85, h * 0.5);
+  ctx.lineTo(w, h * 0.48);
+  ctx.lineTo(w, h * 0.65);
+  ctx.lineTo(0, h * 0.65);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // 3. 中间雪山（深灰带阴影）
+  ctx.fillStyle = "#64748b";
+  ctx.beginPath();
+  ctx.moveTo(0, h * 0.6);
+  ctx.lineTo(w * 0.08, h * 0.52);
+  ctx.lineTo(w * 0.22, h * 0.58);
+  ctx.lineTo(w * 0.35, h * 0.48);
+  ctx.lineTo(w * 0.5, h * 0.55);
+  ctx.lineTo(w * 0.65, h * 0.45);
+  ctx.lineTo(w * 0.8, h * 0.52);
+  ctx.lineTo(w, h * 0.58);
+  ctx.lineTo(w, h * 0.7);
+  ctx.lineTo(0, h * 0.7);
+  ctx.closePath();
+  ctx.fill();
+
+  // 4. 主峰（喜马拉雅式金字塔尖）
+  const peakX = w * 0.65;
+  const peakY = h * 0.18;
+  // 左侧暗面
+  ctx.fillStyle = "#94a3b8";
+  ctx.beginPath();
+  ctx.moveTo(peakX - 180, h * 0.5);
+  ctx.lineTo(peakX, peakY);
+  ctx.lineTo(peakX, h * 0.5);
+  ctx.closePath();
+  ctx.fill();
+  // 右侧亮面
+  ctx.fillStyle = "#cbd5e1";
+  ctx.beginPath();
+  ctx.moveTo(peakX, peakY);
+  ctx.lineTo(peakX + 180, h * 0.5);
+  ctx.lineTo(peakX, h * 0.5);
+  ctx.closePath();
+  ctx.fill();
+
+  // 5. 雪线（主峰上半部分白色雪）
+  ctx.fillStyle = "#f8fafc";
+  ctx.beginPath();
+  ctx.moveTo(peakX - 90, h * 0.32);
+  ctx.lineTo(peakX, peakY);
+  ctx.lineTo(peakX + 90, h * 0.32);
+  ctx.lineTo(peakX + 60, h * 0.42);
+  ctx.lineTo(peakX - 60, h * 0.42);
+  ctx.closePath();
+  ctx.fill();
+
+  // 6. 雪山阴影（主峰左下深色三角，增强立体感）
+  ctx.fillStyle = "rgba(30, 41, 59, 0.4)";
+  ctx.beginPath();
+  ctx.moveTo(peakX - 120, h * 0.5);
+  ctx.lineTo(peakX - 60, h * 0.35);
+  ctx.lineTo(peakX - 30, h * 0.5);
+  ctx.closePath();
+  ctx.fill();
+
+  // 7. 沙地（前景底部，米黄/棕）
+  const sand = ctx.createLinearGradient(0, h * 0.65, 0, h);
+  sand.addColorStop(0, "#c2a679");
+  sand.addColorStop(0.5, "#a88862");
+  sand.addColorStop(1, "#806248");
+  ctx.fillStyle = sand;
+  ctx.fillRect(0, h * 0.65, w, h * 0.35);
+
+  // 8. 沙地纹理小点
+  for (let i = 0; i < 800; i++) {
+    ctx.fillStyle = `rgba(${80 + Math.random() * 60}, ${
+      60 + Math.random() * 40
+    }, ${30 + Math.random() * 30}, ${0.1 + Math.random() * 0.2})`;
+    ctx.fillRect(
+      Math.random() * w,
+      h * 0.65 + Math.random() * h * 0.35,
+      Math.random() * 2 + 0.5,
+      Math.random() * 2 + 0.5,
+    );
+  }
+
+  const tex = new CanvasTexture(c);
+  tex.wrapS = tex.wrapT = ClampToEdgeWrapping;
+  tex.colorSpace = SRGBColorSpace;
+  tex.anisotropy = 16;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/**
+ * 喜马拉雅主题 backdrop：银幕后墙贴一张雪山图片（CanvasTexture）
+ * 配合 3D 影院环境（座椅、银幕、地板）
+ */
+function HimalayaBackdrop({ auditorium }: { auditorium: Auditorium }) {
+  const baseZ = auditorium.screenZ;
+  const roomHeight = Math.max(
+    14,
+    auditorium.screenBottom + auditorium.screenHeight + 2.5,
+  );
+  const roomWidth = Math.max(34, auditorium.seatingWidth + 6);
+
+  const himalayaTex = useMemo(() => {
+    if (typeof document === "undefined") return null;
+    return createHimalayaBackdropTexture();
+  }, []);
+
+  return (
+    <group>
+      {/* 银幕后墙：贴雪山图片（图片作为背景，不是 3D 模型） */}
+      {himalayaTex && (
+        <mesh position={[0, roomHeight / 2, baseZ - 0.3]} receiveShadow>
+          <planeGeometry args={[roomWidth + 4, roomHeight + 4]} />
+          <meshStandardMaterial
+            map={himalayaTex}
+            color="#ffffff"
+            roughness={1}
+            metalness={0}
+            side={2}
+          />
+        </mesh>
+      )}
+
+      {/* 银幕（遮住雪山图片的一部分） */}
+      <mesh position={[0, auditorium.screenBottom + auditorium.screenHeight / 2, baseZ]}>
+        <planeGeometry args={[auditorium.screenWidth, auditorium.screenHeight]} />
+        <meshStandardMaterial color="#ffffff" roughness={0.95} />
+      </mesh>
+
+      {/* 沙地地板（米黄色调与图片一致） */}
+      <mesh position={[0, 0.005, auditorium.screenZ + 5]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[roomWidth, auditorium.seatingWidth * 1.5]} />
+        <meshStandardMaterial color="#a88862" roughness={0.95} />
+      </mesh>
+
+      {/* 户外强日光 */}
+      <directionalLight
+        position={[20, 30, baseZ - 20]}
+        intensity={1.2}
+        color="#fff8e1"
+        castShadow={false}
+      />
+      <hemisphereLight args={["#bae6fd", "#a88862", 1.4]} position={[0, 30, baseZ]} />
+    </group>
+  );
+}
+
 function SkySphere({
   sceneStyle,
   filmMode,
@@ -3548,51 +3251,6 @@ function SkySphere({
 
     if (!filmMode) {
       // === DAYTIME / LIGHTS ON SKY ===
-      if (sceneStyle === "snowy_greek") {
-        // Clear Alpine Azure Sky
-        const grad = ctx.createLinearGradient(0, 0, 0, h);
-        grad.addColorStop(0, "#0284c7");
-        grad.addColorStop(0.4, "#38bdf8");
-        grad.addColorStop(0.8, "#bae6fd");
-        grad.addColorStop(1, "#f0f9ff");
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, w, h);
-
-        // Sun disc
-        const sun = ctx.createRadialGradient(w * 0.7, h * 0.25, 5, w * 0.7, h * 0.25, 120);
-        sun.addColorStop(0, "#ffffff");
-        sun.addColorStop(0.25, "#fef08a");
-        sun.addColorStop(1, "rgba(254, 240, 138, 0)");
-        ctx.fillStyle = sun;
-        ctx.fillRect(0, 0, w, h);
-      } else if (sceneStyle === "space_station") {
-        // Space Orbit Curve
-        const grad = ctx.createLinearGradient(0, 0, 0, h);
-        grad.addColorStop(0, "#020617");
-        grad.addColorStop(0.45, "#0f172a");
-        grad.addColorStop(0.75, "#0284c7");
-        grad.addColorStop(1, "#7dd3fc");
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, w, h);
-      } else if (sceneStyle === "suzhou_garden") {
-        // Jiangnan soft overcast sky
-        const grad = ctx.createLinearGradient(0, 0, 0, h);
-        grad.addColorStop(0, "#78909c");
-        grad.addColorStop(0.35, "#b0bec5");
-        grad.addColorStop(0.7, "#d7dee2");
-        grad.addColorStop(1, "#eceff1");
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, w, h);
-      } else {
-        // General Day Sky (urban_plaza)
-        const grad = ctx.createLinearGradient(0, 0, 0, h);
-        grad.addColorStop(0, "#0369a1");
-        grad.addColorStop(0.45, "#38bdf8");
-        grad.addColorStop(0.8, "#fef08a");
-        grad.addColorStop(1, "#f97316");
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, w, h);
-      }
 
       // Fluffy clouds wrapped 360 degrees
       ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
@@ -3607,19 +3265,6 @@ function SkySphere({
     } else {
       // === NIGHTTIME STARRY SKY DOME (360 DEGREES) ===
       const grad = ctx.createLinearGradient(0, 0, 0, h);
-      if (sceneStyle === "space_station") {
-        grad.addColorStop(0, "#010206");
-        grad.addColorStop(0.6, "#030712");
-        grad.addColorStop(1, "#0369a1");
-      } else if (sceneStyle === "suzhou_garden") {
-        grad.addColorStop(0, "#0d1117");
-        grad.addColorStop(0.5, "#161b22");
-        grad.addColorStop(1, "#21262d");
-      } else {
-        grad.addColorStop(0, "#020617");
-        grad.addColorStop(0.6, "#0b132b");
-        grad.addColorStop(1, "#1e293b");
-      }
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, w, h);
 
@@ -3723,11 +3368,7 @@ function AuditoriumArchitecture({
     if (sceneStyle === "minimalist_cream") return "#222428";
     if (sceneStyle === "imax_giant") return "#111318";
     if (sceneStyle === "warm_wood_lounge") return "#8c5e34";
-    if (sceneStyle === "snowy_greek") return "#f1f5f9";
-    if (sceneStyle === "alpine_desert") return "#b89874";
     if (sceneStyle === "baroque_opera") return "#881337";
-    if (sceneStyle === "space_station") return "#1e293b";
-    if (sceneStyle === "urban_plaza") return "#475569";
     if (sceneStyle === "suzhou_garden") return "#5d6d5e";
     if (sceneStyle === "par_cinema") return "#ededed";
     if (sceneStyle === "white_tile_cinema") return "#f5f4ee";
@@ -3738,9 +3379,6 @@ function AuditoriumArchitecture({
     if (sceneStyle === "minimalist_cream") return 0.92;
     if (sceneStyle === "imax_giant") return 0.85;
     if (sceneStyle === "warm_wood_lounge") return 0.45;
-    if (sceneStyle === "snowy_greek") return 0.4;
-    if (sceneStyle === "alpine_desert") return 0.92;
-    if (sceneStyle === "space_station") return 0.3;
     if (sceneStyle === "suzhou_garden") return 0.8;
     if (sceneStyle === "par_cinema") return 0.7;
     if (sceneStyle === "white_tile_cinema") return 0.45;
@@ -3751,11 +3389,7 @@ function AuditoriumArchitecture({
     if (sceneStyle === "minimalist_cream") return "#222428";
     if (sceneStyle === "imax_giant") return "#090a0e";
     if (sceneStyle === "warm_wood_lounge") return "#784e2a";
-    if (sceneStyle === "snowy_greek") return "#cbd5e1";
-    if (sceneStyle === "alpine_desert") return "#9c7c5c";
     if (sceneStyle === "baroque_opera") return "#451a03";
-    if (sceneStyle === "space_station") return "#0f172a";
-    if (sceneStyle === "urban_plaza") return "#1e293b";
     if (sceneStyle === "suzhou_garden") return "#4a5a4b";
     if (sceneStyle === "par_cinema") return "#ededed";
     if (sceneStyle === "white_tile_cinema") return "#f4f3ed";
@@ -3770,14 +3404,11 @@ function AuditoriumArchitecture({
       {sceneStyle === "minimalist_cream" && <MinimalistCreamBackdrop auditorium={auditorium} />}
       {sceneStyle === "imax_giant" && <ImaxGiantBackdrop auditorium={auditorium} />}
       {sceneStyle === "warm_wood_lounge" && <WarmWoodLoungeBackdrop auditorium={auditorium} />}
-      {sceneStyle === "urban_plaza" && <UrbanPlazaBackdrop auditorium={auditorium} />}
-      {sceneStyle === "snowy_greek" && <SnowMountainBackdrop auditorium={auditorium} />}
-      {sceneStyle === "space_station" && <SpaceStationBackdrop auditorium={auditorium} />}
-      {sceneStyle === "alpine_desert" && <AlpineDesertBackdrop auditorium={auditorium} />}
       {sceneStyle === "baroque_opera" && <BaroqueOperaBackdrop auditorium={auditorium} />}
       {sceneStyle === "suzhou_garden" && <SuzhouGardenBackdrop auditorium={auditorium} />}
       {sceneStyle === "par_cinema" && <ParCinemaBackdrop auditorium={auditorium} />}
       {sceneStyle === "white_tile_cinema" && <WhiteTileCinemaBackdrop auditorium={auditorium} />}
+      {sceneStyle === "himalaya" && <HimalayaBackdrop auditorium={auditorium} />}
 
       {/* Ground plane */}
       <mesh position={[0, -0.5, roomCenterZ]} receiveShadow>
@@ -3795,14 +3426,6 @@ function AuditoriumArchitecture({
               <boxGeometry args={[platformWidth, 0.72, auditorium.rowSpacing + 0.08]} />
               <meshStandardMaterial color={platformColor} roughness={platformRoughness} />
             </mesh>
-
-            {/* Glowing Edge Strips for Space Station */}
-            {sceneStyle === "space_station" && (
-              <mesh position={[0, y - 0.01, z - auditorium.rowSpacing / 2 + 0.05]}>
-                <boxGeometry args={[platformWidth, 0.04, 0.08]} />
-                <meshBasicMaterial color="#38bdf8" toneMapped={false} />
-              </mesh>
-            )}
           </group>
         );
       })}
@@ -3958,63 +3581,6 @@ function Seats({
         },
       };
     }
-    if (sceneStyle === "snowy_greek") {
-      return {
-        available: {
-          upholstery: new Color("#cbd5e1"),
-          shell: new Color("#e2e8f0"),
-          panel: new Color("#94a3b8"),
-        },
-        selected: {
-          upholstery: new Color("#38bdf8"),
-          shell: new Color("#0284c7"),
-          panel: new Color("#7dd3fc"),
-        },
-        occupied: {
-          upholstery: new Color("#64748b"),
-          shell: new Color("#475569"),
-          panel: new Color("#334155"),
-        },
-      };
-    }
-    if (sceneStyle === "space_station") {
-      return {
-        available: {
-          upholstery: new Color("#1e293b"),
-          shell: new Color("#0f172a"),
-          panel: new Color("#38bdf8"),
-        },
-        selected: {
-          upholstery: new Color("#0284c7"),
-          shell: new Color("#0369a1"),
-          panel: new Color("#7dd3fc"),
-        },
-        occupied: {
-          upholstery: new Color("#334155"),
-          shell: new Color("#1e293b"),
-          panel: new Color("#475569"),
-        },
-      };
-    }
-    if (sceneStyle === "alpine_desert") {
-      return {
-        available: {
-          upholstery: new Color("#dc2626"),
-          shell: new Color("#991b1b"),
-          panel: new Color("#7f1d1d"),
-        },
-        selected: {
-          upholstery: new Color("#38bdf8"),
-          shell: new Color("#0284c7"),
-          panel: new Color("#7dd3fc"),
-        },
-        occupied: {
-          upholstery: new Color("#450a0a"),
-          shell: new Color("#290606"),
-          panel: new Color("#1c0404"),
-        },
-      };
-    }
     if (sceneStyle === "baroque_opera") {
       return {
         available: {
@@ -4137,13 +3703,7 @@ function Seats({
       seatObject.updateMatrix();
       matrix.copy(seatObject.matrix);
       mesh.setMatrixAt(instanceIndex, matrix);
-    };
-
-    const isGreek = sceneStyle === "snowy_greek";
-    const isMinimalistCream = sceneStyle === "minimalist_cream";
-    const isFlatFloor = sceneStyle === "urban_plaza";
-
-    seats.forEach((seat, index) => {
+    };    const isMinimalistCream = sceneStyle === "minimalist_cream";    seats.forEach((seat, index) => {
       const actualY = isFlatFloor ? 0 : seat.y;
       if (isGreek) {
         // Ancient Greek Stone Bench Seat Pad
@@ -4623,8 +4183,6 @@ function SceneLighting({
     if (sceneStyle === "minimalist_cream") return new Color("#30281e");
     if (sceneStyle === "imax_giant") return new Color("#0b0d12");
     if (sceneStyle === "warm_wood_lounge") return new Color("#18110a");
-    if (sceneStyle === "snowy_greek") return new Color("#0a1128");
-    if (sceneStyle === "space_station") return new Color("#02040a");
     if (sceneStyle === "par_cinema") return new Color("#0d0f12");
     if (sceneStyle === "white_tile_cinema") return new Color("#fbfaf6");
     return new Color("#111317");
@@ -4634,8 +4192,6 @@ function SceneLighting({
     if (sceneStyle === "minimalist_cream") return new Color("#16120d");
     if (sceneStyle === "imax_giant") return new Color("#040507");
     if (sceneStyle === "warm_wood_lounge") return new Color("#0c0804");
-    if (sceneStyle === "snowy_greek") return new Color("#060b1b");
-    if (sceneStyle === "space_station") return new Color("#010205");
     if (sceneStyle === "par_cinema") return new Color("#05070a");
     if (sceneStyle === "white_tile_cinema") return new Color("#e7e5dc");
     return new Color("#07080a");
@@ -4645,8 +4201,6 @@ function SceneLighting({
     if (sceneStyle === "minimalist_cream") return new Color("#3a3126");
     if (sceneStyle === "imax_giant") return new Color("#0e1118");
     if (sceneStyle === "warm_wood_lounge") return new Color("#21180e");
-    if (sceneStyle === "snowy_greek") return new Color("#0c1535");
-    if (sceneStyle === "space_station") return new Color("#030712");
     if (sceneStyle === "par_cinema") return new Color("#10131a");
     if (sceneStyle === "white_tile_cinema") return new Color("#f0eee5");
     return new Color("#15171b");
@@ -4656,57 +4210,39 @@ function SceneLighting({
     if (sceneStyle === "minimalist_cream") return new Color("#1a1510");
     if (sceneStyle === "imax_giant") return new Color("#050608");
     if (sceneStyle === "warm_wood_lounge") return new Color("#0d0804");
-    if (sceneStyle === "snowy_greek") return new Color("#070d22");
-    if (sceneStyle === "space_station") return new Color("#010308");
     if (sceneStyle === "par_cinema") return new Color("#06080c");
     if (sceneStyle === "white_tile_cinema") return new Color("#dad7cc");
     return new Color("#08090b");
   }, [sceneStyle]);
 
   const litAmbient = useMemo(() => {
-    if (sceneStyle === "alpine_desert") return new Color("#fef3c7");
     if (sceneStyle === "imax_giant") return new Color("#cbd5e1");
     if (sceneStyle === "warm_wood_lounge") return new Color("#fde68a");
-    if (sceneStyle === "snowy_greek") return new Color("#e2e8f0");
-    if (sceneStyle === "space_station") return new Color("#e0f2fe");
-    if (sceneStyle === "urban_plaza") return new Color("#dbeafe");
     if (sceneStyle === "par_cinema") return new Color("#fff8e1");
     if (sceneStyle === "white_tile_cinema") return new Color("#ffffff");
     return new Color("#fef08a");
   }, [sceneStyle]);
 
   const darkAmbient = useMemo(() => {
-    if (sceneStyle === "alpine_desert") return new Color("#2a1210");
     if (sceneStyle === "minimalist_cream") return new Color("#713f12");
     if (sceneStyle === "imax_giant") return new Color("#334155");
     if (sceneStyle === "warm_wood_lounge") return new Color("#78350f");
-    if (sceneStyle === "snowy_greek") return new Color("#1d4ed8");
-    if (sceneStyle === "space_station") return new Color("#0284c7");
-    if (sceneStyle === "urban_plaza") return new Color("#1e3a8a");
     if (sceneStyle === "par_cinema") return new Color("#1f2937");
     if (sceneStyle === "white_tile_cinema") return new Color("#f0eee5");
     return new Color("#881337");
   }, [sceneStyle]);
 
   const skyColor = useMemo(() => {
-    if (sceneStyle === "alpine_desert") return new Color("#38bdf8");
     if (sceneStyle === "minimalist_cream") return new Color("#fde047");
     if (sceneStyle === "warm_wood_lounge") return new Color("#fef08a");
-    if (sceneStyle === "snowy_greek") return new Color("#38bdf8");
-    if (sceneStyle === "space_station") return new Color("#38bdf8");
-    if (sceneStyle === "urban_plaza") return new Color("#60a5fa");
     if (sceneStyle === "par_cinema") return new Color("#e2e8f0");
     if (sceneStyle === "white_tile_cinema") return new Color("#fafaf6");
     return new Color("#fb7185");
   }, [sceneStyle]);
 
   const groundColor = useMemo(() => {
-    if (sceneStyle === "alpine_desert") return new Color("#b89874");
     if (sceneStyle === "minimalist_cream") return new Color("#1f2024");
     if (sceneStyle === "warm_wood_lounge") return new Color("#452b14");
-    if (sceneStyle === "snowy_greek") return new Color("#0f172a");
-    if (sceneStyle === "space_station") return new Color("#0f172a");
-    if (sceneStyle === "urban_plaza") return new Color("#0f172a");
     return new Color("#1c1917");
   }, [sceneStyle]);
 
@@ -4751,12 +4287,8 @@ function SceneLighting({
         attach="background"
         args={[
           initialHouseLights
-            ? sceneStyle === "snowy_greek"
-              ? "#0a1128"
-              : "#111317"
-            : sceneStyle === "snowy_greek"
-              ? "#060b1b"
-              : "#07080a",
+            ? "#111317"
+            : "#07080a",
         ]}
       />
       <fog
@@ -4764,12 +4296,8 @@ function SceneLighting({
         attach="fog"
         args={[
           initialHouseLights
-            ? sceneStyle === "snowy_greek"
-              ? "#0c1535"
-              : "#15171b"
-            : sceneStyle === "snowy_greek"
-              ? "#070d22"
-              : "#08090b",
+            ? "#15171b"
+            : "#08090b",
           sceneStyle === "classic" ? 20 : 150,
           sceneStyle === "classic" ? (isMobile ? 65 : 90) : 480,
         ]}
@@ -4779,12 +4307,8 @@ function SceneLighting({
         intensity={initialHouseLights ? 0.92 : 0.22}
         color={
           initialHouseLights
-            ? sceneStyle === "snowy_greek"
-              ? "#cbd5e1"
-              : "#d7c7b8"
-            : sceneStyle === "snowy_greek"
-              ? "#64748b"
-              : "#75808a"
+            ? "#d7c7b8"
+            : "#75808a"
         }
       />
       <hemisphereLight
@@ -4807,14 +4331,14 @@ function SceneLighting({
           penumbra={0.9}
           intensity={820 * initialHouseLights}
           distance={54}
-          color={sceneStyle === "snowy_greek" ? "#e0f2fe" : "#f0c6a7"}
+          color={"#f0c6a7"}
           castShadow={!isMobile}
         />
       ))}
       <pointLight
         ref={housePointRef}
         position={[0, 12, 12]}
-        color={sceneStyle === "snowy_greek" ? "#bae6fd" : "#f3c7a6"}
+        color={"#f3c7a6"}
         intensity={260 * initialHouseLights}
         distance={48}
         decay={1.7}
@@ -4822,15 +4346,7 @@ function SceneLighting({
       <directionalLight
         position={[20, 55, 30]}
         intensity={filmMode ? 0.3 : 2.2}
-        color={
-          sceneStyle === "snowy_greek"
-            ? "#e0f2fe"
-            : sceneStyle === "space_station"
-            ? "#bae6fd"
-            : sceneStyle === "urban_plaza"
-            ? "#bfdbfe"
-            : "#fef08a"
-        }
+        color="#fef08a"
         castShadow={!isMobile}
       />
     </>
@@ -4849,15 +4365,6 @@ function SceneContents(
         isMobile={isMobile}
         sceneStyle={sceneStyle}
       />
-      {sceneStyle === "urban_plaza" && (
-        <UrbanPlazaBackdrop auditorium={auditorium} />
-      )}
-      {sceneStyle === "snowy_greek" && (
-        <SnowMountainBackdrop auditorium={auditorium} />
-      )}
-      {sceneStyle === "alpine_desert" && (
-        <AlpineDesertBackdrop auditorium={auditorium} />
-      )}
       {sceneStyle === "baroque_opera" && (
         <BaroqueOperaBackdrop auditorium={auditorium} />
       )}

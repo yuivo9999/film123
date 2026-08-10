@@ -1359,11 +1359,7 @@ export function CinemaExperience({
                 toggleTopbar();
               }}
             >
-              {isTopbarVisible ? (
-                <CaretUp size={16} weight="bold" />
-              ) : (
-                <CaretDown size={16} weight="bold" />
-              )}
+              {isTopbarVisible ? "顶部" : "顶部"}
             </button>
             <button
               className="mobile-sheet-toggle"

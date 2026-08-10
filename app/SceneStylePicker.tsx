@@ -5,17 +5,14 @@ import { Check, CaretDown, Sparkle } from "@phosphor-icons/react";
 
 export type SceneStyle =
   | "classic"
-  | "urban_plaza"
-  | "snowy_greek"
-  | "space_station"
   | "warm_wood_lounge"
   | "imax_giant"
   | "minimalist_cream"
-  | "alpine_desert"
   | "baroque_opera"
   | "suzhou_garden"
   | "par_cinema"
-  | "white_tile_cinema";
+  | "white_tile_cinema"
+  | "himalaya";
 
 export interface SceneStyleOption {
   id: SceneStyle;
@@ -60,38 +57,6 @@ export const SCENE_STYLES: SceneStyleOption[] = [
     themeColor: "#d97706",
   },
   {
-    id: "urban_plaza",
-    icon: "🏙️",
-    name: "都市露天广场影院",
-    subtitle: "高楼公寓夜景环绕 · 金属桁架独立银幕 · 广场平整座席",
-    badge: "都市摩天",
-    themeColor: "#3b82f6",
-  },
-  {
-    id: "snowy_greek",
-    icon: "❄️",
-    name: "古希腊雪山露天影院",
-    subtitle: "欧洲最高雪山阿尔卑斯 · 千年大理石阶梯长凳",
-    badge: "雪山史诗",
-    themeColor: "#38bdf8",
-  },
-  {
-    id: "space_station",
-    icon: "🚀",
-    name: "空间站无重力影厅",
-    subtitle: "地球轨道穹顶 · 浩瀚宇宙全景观测台",
-    badge: "科幻极致",
-    themeColor: "#f59e0b",
-  },
-  {
-    id: "alpine_desert",
-    icon: "🏔️",
-    name: "雪山荒野露天影院",
-    subtitle: "巍峨雪山连绵荒漠 · 经典红色绒面剧院排椅 · 露天巨幕",
-    badge: "雪漠巨幕",
-    themeColor: "#ef4444",
-  },
-  {
     id: "baroque_opera",
     icon: "👑",
     name: "巴洛克皇家歌剧院影厅",
@@ -122,6 +87,14 @@ export const SCENE_STYLES: SceneStyleOption[] = [
     subtitle: "纯白弧形圆角吊顶 · 程序化 PBR 瓷砖贴图墙面 · 鲜红剧院椅 · ACES 高质感光",
     badge: "白瓷砖",
     themeColor: "#475569",
+  },
+  {
+    id: "himalaya",
+    icon: "🏔️",
+    name: "喜马拉雅雪山影厅",
+    subtitle: "雪山图片背景 · 雪峰映衬银幕 · 户外红色剧院椅 · 蓝天沙地",
+    badge: "喜马拉雅",
+    themeColor: "#0369a1",
   },
 ];
 
@@ -182,7 +155,7 @@ export function SceneStylePicker({
         <div className="style-picker-header">
           <span className="style-picker-label">
             <Sparkle size={18} className="text-amber-400 inline mr-1" />
-            切换 3D 影院主题（12大实景风格）：
+            切换 3D 影院主题（9大实景风格）：
           </span>
           {toastMessage && (
             <span className="style-picker-toast-badge animate-bounce">
@@ -247,7 +220,7 @@ export function SceneStylePicker({
       {isOpen && (
         <div className="style-picker-dropdown-menu" role="menu">
           <div className="dropdown-menu-header">
-            <span>选择 3D 影厅视觉风格 (12种)</span>
+            <span>选择 3D 影厅视觉风格 (9种)</span>
           </div>
           <div className="dropdown-menu-list">
             {SCENE_STYLES.map((option) => {
