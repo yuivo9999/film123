@@ -2973,6 +2973,119 @@ a:focus-visible {
   font-size: 14px;
 }
 
+/* Free View Directional Pads */
+.free-view-pads {
+  position: absolute;
+  right: 16px;
+  bottom: 120px;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.free-pad-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.free-pad-caption {
+  padding: 3px 10px;
+  background: rgba(10, 14, 20, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.free-pad-cross {
+  display: grid;
+  grid-template-columns: repeat(3, 52px);
+  grid-template-rows: repeat(3, 52px);
+  gap: 4px;
+  padding: 6px;
+  background: rgba(10, 14, 20, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.free-pad-height-cross {
+  grid-template-columns: repeat(1, 52px);
+  grid-template-rows: repeat(2, 52px);
+}
+
+.free-pad-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.free-pad-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.free-pad-btn:active,
+.free-pad-btn.is-active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.45), rgba(217, 119, 6, 0.55));
+  border-color: rgba(245, 158, 11, 0.9);
+  color: #fff;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.4);
+}
+
+.free-pad-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 640px) {
+  .free-view-pads {
+    right: 10px;
+    bottom: 96px;
+    gap: 10px;
+  }
+  .free-pad-cross {
+    grid-template-columns: repeat(3, 46px);
+    grid-template-rows: repeat(3, 46px);
+    padding: 5px;
+    gap: 3px;
+    border-radius: 14px;
+  }
+  .free-pad-height-cross {
+    grid-template-columns: repeat(1, 46px);
+    grid-template-rows: repeat(2, 46px);
+  }
+  .free-pad-btn {
+    width: 46px;
+    height: 46px;
+    border-radius: 11px;
+  }
+}
+
 @media (max-width: 640px) {
   .camera-perspective-toolbar {
     top: 10px;

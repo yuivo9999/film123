@@ -55,6 +55,24 @@ type ViewCommand = {
   token: number;
 };
 
+export type FreeMoveCommand = {
+  forward: boolean;
+  back: boolean;
+  left: boolean;
+  right: boolean;
+  up: boolean;
+  down: boolean;
+};
+
+const idleFreeMove: FreeMoveCommand = {
+  forward: false,
+  back: false,
+  left: false,
+  right: false,
+  up: false,
+  down: false,
+};
+
 type FitMode =
   | "fit_screen"
   | "original"
@@ -77,7 +95,8 @@ export type CameraPreset =
   | "front_row"
   | "stage_view"
   | "birds_eye"
-  | "side_angle";
+  | "side_angle"
+  | "free";
 
 type CinemaSceneProps = {
   auditorium: Auditorium;
@@ -99,6 +118,7 @@ type CinemaSceneProps = {
   playing: boolean;
   playbackToken: number;
   viewCommand: ViewCommand;
+  freeMove?: FreeMoveCommand;
   isMobile: boolean;
   videoSrc?: string;
   playbackRate?: number;
@@ -455,9 +475,14 @@ function CameraRig({
   selectedSeat,
   viewCommand,
   cameraPreset = "seat",
+  freeMove = idleFreeMove,
 }: Pick<
   CinemaSceneProps,
-  "auditorium" | "selectedSeat" | "viewCommand" | "cameraPreset"
+  | "auditorium"
+  | "selectedSeat"
+  | "viewCommand"
+  | "cameraPreset"
+  | "freeMove"
 >) {
   const { camera, gl, size } = useThree();
   const desiredPosition = useRef(new Vector3());
@@ -465,6 +490,7 @@ function CameraRig({
   const desiredQuaternion = useRef(new Quaternion());
   const lastPointer = useRef({ x: 0, y: 0 });
   const dragging = useRef(false);
+  const wasFreeMode = useRef(false);
 
   useEffect(() => {
     const lastRowZ =
@@ -512,6 +538,22 @@ function CameraRig({
         target.set(0, screenCenterY * 0.8, (auditorium.screenZ + auditorium.firstRowZ) / 2);
         break;
 
+      case "free": {
+        // 自由视角：保持当前视线，仅当首次进入时锚定座位附近
+        if (!wasFreeMode.current) {
+          position.set(
+            selectedSeat.x,
+            getSeatEyeY(selectedSeat),
+            selectedSeat.z + 3,
+          );
+          target.set(0, screenCenterY, auditorium.screenZ);
+        } else {
+          position.copy(camera.position);
+          target.copy(camera.position).add(new Vector3(0, 0, -4));
+        }
+        break;
+      }
+
       case "seat":
       default:
         // 第一人称当前选择座位视角
@@ -534,6 +576,8 @@ function CameraRig({
       camera.fov = verticalFovForAspect(size.width / size.height);
       camera.updateProjectionMatrix();
     }
+
+    wasFreeMode.current = cameraPreset === "free";
   }, [auditorium, camera, selectedSeat, size.height, size.width, cameraPreset]);
 
   useEffect(() => {
@@ -611,6 +655,60 @@ function CameraRig({
 
   useFrame((_, delta) => {
     const transitionFactor = 1 - Math.exp(-5.3 * delta);
+
+    if (cameraPreset === "free") {
+      const moveSpeed = 6.5;
+      const yaw = desiredEuler.current.y;
+      const sin = Math.sin(yaw);
+      const cos = Math.cos(yaw);
+      const forward = new Vector3(-sin, 0, -cos);
+      const right = new Vector3(cos, 0, -sin);
+
+      if (freeMove.forward) {
+        desiredPosition.current.addScaledVector(forward, moveSpeed * delta);
+      }
+      if (freeMove.back) {
+        desiredPosition.current.addScaledVector(forward, -moveSpeed * delta);
+      }
+      if (freeMove.left) {
+        desiredPosition.current.addScaledVector(right, -moveSpeed * delta);
+      }
+      if (freeMove.right) {
+        desiredPosition.current.addScaledVector(right, moveSpeed * delta);
+      }
+      if (freeMove.up) {
+        desiredPosition.current.y += moveSpeed * delta;
+      }
+      if (freeMove.down) {
+        desiredPosition.current.y -= moveSpeed * delta;
+      }
+
+      // Clamp free camera inside the room bounds
+      const lastRowZ =
+        auditorium.firstRowZ + (auditorium.rowCount - 1) * auditorium.rowSpacing;
+      const maxX = Math.max(auditorium.seatingWidth / 2 + 6, 22);
+      const minY = 0.8;
+      const maxY = Math.max(
+        16,
+        auditorium.screenBottom + auditorium.screenHeight + 3,
+      );
+      const minZ = auditorium.screenZ + 2;
+      const maxZ = lastRowZ + 10;
+
+      desiredPosition.current.x = Math.max(
+        -maxX,
+        Math.min(maxX, desiredPosition.current.x),
+      );
+      desiredPosition.current.y = Math.max(
+        minY,
+        Math.min(maxY, desiredPosition.current.y),
+      );
+      desiredPosition.current.z = Math.max(
+        minZ,
+        Math.min(maxZ, desiredPosition.current.z),
+      );
+    }
+
     camera.position.lerp(desiredPosition.current, transitionFactor);
 
     if (dragging.current) {
@@ -4085,6 +4183,7 @@ function SceneContents(
         selectedSeat={props.selectedSeat}
         viewCommand={props.viewCommand}
         cameraPreset={props.cameraPreset}
+        freeMove={props.freeMove}
       />
     </>
   );

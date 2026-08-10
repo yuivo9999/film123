@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CinemaScene, type CameraPreset } from "./CinemaScene";
+import { CinemaScene, type CameraPreset, type FreeMoveCommand } from "./CinemaScene";
 import { SceneStylePicker, type SceneStyle } from "./SceneStylePicker";
 import {
   ScreenCustomizerControl,
@@ -103,6 +103,12 @@ export const CAMERA_PRESETS: {
     icon: "📐",
     name: "侧翼斜角",
     desc: "侧向45度透视，全面展示影厅坡度与壁侧结构",
+  },
+  {
+    id: "free",
+    icon: "🧭",
+    name: "自由视角",
+    desc: "自由漫游，十字键前后左右移动，上下键升降高度",
   },
 ];
 type MobilePanelTab = "seats" | "info";
@@ -304,6 +310,18 @@ export function CinemaExperience({
     getDefaultSeatId(initialAuditorium.id),
   );
   const [cameraPreset, setCameraPreset] = useState<CameraPreset>("seat");
+  const [freeMove, setFreeMove] = useState<FreeMoveCommand>({
+    forward: false,
+    back: false,
+    left: false,
+    right: false,
+    up: false,
+    down: false,
+  });
+  const [isFreePadVisible, setIsFreePadVisible] = useState(false);
+  const freePadHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const [filmMode, setFilmMode] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [playbackToken, setPlaybackToken] = useState(0);
@@ -414,6 +432,30 @@ export function CinemaExperience({
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
+  // Hide free-view pads whenever leaving free camera mode
+  useEffect(() => {
+    if (cameraPreset !== "free") {
+      setIsFreePadVisible(false);
+      setFreeMove({
+        forward: false,
+        back: false,
+        left: false,
+        right: false,
+        up: false,
+        down: false,
+      });
+    }
+  }, [cameraPreset]);
+
+  // Clean up free-pad auto-hide timer on unmount
+  useEffect(() => {
+    return () => {
+      if (freePadHideTimerRef.current) {
+        clearTimeout(freePadHideTimerRef.current);
+      }
     };
   }, []);
 
@@ -568,9 +610,66 @@ export function CinemaExperience({
     if (nextPlaying) setPlaybackToken((current) => current + 1);
   };
 
+  const resetFreePadTimer = useCallback(() => {
+    if (freePadHideTimerRef.current) {
+      clearTimeout(freePadHideTimerRef.current);
+    }
+    freePadHideTimerRef.current = setTimeout(() => {
+      setIsFreePadVisible(false);
+    }, 5000);
+  }, []);
+
+  const setFreeAxis = useCallback(
+    (axis: keyof FreeMoveCommand, value: boolean) => {
+      setFreeMove((current) => ({ ...current, [axis]: value }));
+    },
+    [],
+  );
+
+  const selectCameraPreset = useCallback(
+    (presetId: CameraPreset) => {
+      if (presetId === "free") {
+        if (cameraPreset === "free") {
+          // 再次点击自由视角：切换方向键显示/隐藏
+          setIsFreePadVisible((visible) => !visible);
+          if (freePadHideTimerRef.current) {
+            clearTimeout(freePadHideTimerRef.current);
+            freePadHideTimerRef.current = null;
+          }
+          if (!isFreePadVisible) {
+            resetFreePadTimer();
+          }
+          return;
+        }
+        setCameraPreset("free");
+        setIsFreePadVisible(true);
+        resetFreePadTimer();
+      } else {
+        setCameraPreset(presetId);
+        setIsFreePadVisible(false);
+        setFreeMove({
+          forward: false,
+          back: false,
+          left: false,
+          right: false,
+          up: false,
+          down: false,
+        });
+      }
+    },
+    [cameraPreset, isFreePadVisible, resetFreePadTimer],
+  );
+
   const showMobilePanelTab = (tab: MobilePanelTab) => {
     setMobilePanelTab(tab);
     setIsMobilePanelOpen(true);
+  };
+
+  const handleCustomScreenChange = (nextConfig: CustomScreenConfig) => {
+    setCustomScreen(nextConfig);
+    if (nextConfig.enabled) {
+      setIsCustomMode(true);
+    }
   };
 
   return (
@@ -588,6 +687,13 @@ export function CinemaExperience({
         </Link>
 
         <div className="flex items-center gap-2">
+          <ScreenCustomizerControl
+            config={customScreen}
+            onChange={handleCustomScreenChange}
+            variant="topbar"
+            defaultWidth={rawAuditorium.screenWidth}
+            defaultHeight={rawAuditorium.screenHeight}
+          />
           <SceneStylePicker
             currentStyle={sceneStyle}
             onSelectStyle={handleSelectSceneStyle}
@@ -644,7 +750,7 @@ export function CinemaExperience({
                   className={`perspective-btn ${
                     cameraPreset === preset.id ? "is-active" : ""
                   }`}
-                  onClick={() => setCameraPreset(preset.id)}
+                  onClick={() => selectCameraPreset(preset.id)}
                   title={`${preset.name} - ${preset.desc}`}
                 >
                   <span className="perspective-icon">{preset.icon}</span>
@@ -661,6 +767,7 @@ export function CinemaExperience({
               selectedSeat={selectedSeat}
               filmMode={filmMode}
               cameraPreset={cameraPreset}
+              freeMove={freeMove}
               sceneStyle={sceneStyle}
               playing={playing}
               playbackToken={playbackToken}
@@ -1019,6 +1126,160 @@ export function CinemaExperience({
             </div>
           </div>
         </div>
+
+        {cameraPreset === "free" && isFreePadVisible && (
+          <div
+            className="free-view-pads"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <div className="free-pad-group free-pad-move">
+              <span className="free-pad-caption">移动</span>
+              <div className="free-pad-cross">
+                <button
+                  type="button"
+                  className={`free-pad-btn ${freeMove.forward ? "is-active" : ""}`}
+                  aria-label="向前移动"
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    setFreeAxis("forward", true);
+                    resetFreePadTimer();
+                  }}
+                  onPointerUp={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setFreeAxis("forward", false);
+                  }}
+                  onPointerCancel={() => setFreeAxis("forward", false)}
+                  onPointerLeave={() => setFreeAxis("forward", false)}
+                  onContextMenu={(e) => e.preventDefault()}
+                >
+                  <CaretUp size={20} weight="bold" />
+                </button>
+                <button
+                  type="button"
+                  className={`free-pad-btn ${freeMove.left ? "is-active" : ""}`}
+                  aria-label="向左移动"
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    setFreeAxis("left", true);
+                    resetFreePadTimer();
+                  }}
+                  onPointerUp={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setFreeAxis("left", false);
+                  }}
+                  onPointerCancel={() => setFreeAxis("left", false)}
+                  onPointerLeave={() => setFreeAxis("left", false)}
+                  onContextMenu={(e) => e.preventDefault()}
+                >
+                  <CaretLeft size={20} weight="bold" />
+                </button>
+                <span className="free-pad-center" aria-hidden="true" />
+                <button
+                  type="button"
+                  className={`free-pad-btn ${freeMove.right ? "is-active" : ""}`}
+                  aria-label="向右移动"
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    setFreeAxis("right", true);
+                    resetFreePadTimer();
+                  }}
+                  onPointerUp={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setFreeAxis("right", false);
+                  }}
+                  onPointerCancel={() => setFreeAxis("right", false)}
+                  onPointerLeave={() => setFreeAxis("right", false)}
+                  onContextMenu={(e) => e.preventDefault()}
+                >
+                  <CaretRight size={20} weight="bold" />
+                </button>
+                <button
+                  type="button"
+                  className={`free-pad-btn ${freeMove.back ? "is-active" : ""}`}
+                  aria-label="向后移动"
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    setFreeAxis("back", true);
+                    resetFreePadTimer();
+                  }}
+                  onPointerUp={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setFreeAxis("back", false);
+                  }}
+                  onPointerCancel={() => setFreeAxis("back", false)}
+                  onPointerLeave={() => setFreeAxis("back", false)}
+                  onContextMenu={(e) => e.preventDefault()}
+                >
+                  <CaretDown size={20} weight="bold" />
+                </button>
+              </div>
+            </div>
+
+            <div className="free-pad-group free-pad-height">
+              <span className="free-pad-caption">升降</span>
+              <div className="free-pad-cross free-pad-height-cross">
+                <button
+                  type="button"
+                  className={`free-pad-btn ${freeMove.up ? "is-active" : ""}`}
+                  aria-label="升高视角"
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    setFreeAxis("up", true);
+                    resetFreePadTimer();
+                  }}
+                  onPointerUp={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setFreeAxis("up", false);
+                  }}
+                  onPointerCancel={() => setFreeAxis("up", false)}
+                  onPointerLeave={() => setFreeAxis("up", false)}
+                  onContextMenu={(e) => e.preventDefault()}
+                >
+                  <CaretUp size={20} weight="bold" />
+                </button>
+                <span className="free-pad-center" aria-hidden="true" />
+                <button
+                  type="button"
+                  className={`free-pad-btn ${freeMove.down ? "is-active" : ""}`}
+                  aria-label="降低视角"
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    setFreeAxis("down", true);
+                    resetFreePadTimer();
+                  }}
+                  onPointerUp={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setFreeAxis("down", false);
+                  }}
+                  onPointerCancel={() => setFreeAxis("down", false)}
+                  onPointerLeave={() => setFreeAxis("down", false)}
+                  onContextMenu={(e) => e.preventDefault()}
+                >
+                  <CaretDown size={20} weight="bold" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {isMobilePanelOpen ? (
           <button
