@@ -687,13 +687,17 @@ export function CinemaExperience({
         </Link>
 
         <div className="flex items-center gap-2">
-          <ScreenCustomizerControl
-            config={customScreen}
-            onChange={handleCustomScreenChange}
-            variant="topbar"
-            defaultWidth={rawAuditorium.screenWidth}
-            defaultHeight={rawAuditorium.screenHeight}
-          />
+          {!isFullscreen && (
+            <div className="topbar-custom-screen-wrap">
+              <ScreenCustomizerControl
+                config={customScreen}
+                onChange={handleCustomScreenChange}
+                variant="topbar"
+                defaultWidth={rawAuditorium.screenWidth}
+                defaultHeight={rawAuditorium.screenHeight}
+              />
+            </div>
+          )}
           <SceneStylePicker
             currentStyle={sceneStyle}
             onSelectStyle={handleSelectSceneStyle}
@@ -1138,6 +1142,7 @@ export function CinemaExperience({
               <div className="free-pad-cross">
                 <button
                   type="button"
+                  data-pad-area="forward"
                   className={`free-pad-btn ${freeMove.forward ? "is-active" : ""}`}
                   aria-label="向前移动"
                   onPointerDown={(e) => {
@@ -1160,6 +1165,7 @@ export function CinemaExperience({
                 </button>
                 <button
                   type="button"
+                  data-pad-area="left"
                   className={`free-pad-btn ${freeMove.left ? "is-active" : ""}`}
                   aria-label="向左移动"
                   onPointerDown={(e) => {
@@ -1180,9 +1186,10 @@ export function CinemaExperience({
                 >
                   <CaretLeft size={20} weight="bold" />
                 </button>
-                <span className="free-pad-center" aria-hidden="true" />
+                <span data-pad-area="center" className="free-pad-center" aria-hidden="true" />
                 <button
                   type="button"
+                  data-pad-area="right"
                   className={`free-pad-btn ${freeMove.right ? "is-active" : ""}`}
                   aria-label="向右移动"
                   onPointerDown={(e) => {
@@ -1205,6 +1212,7 @@ export function CinemaExperience({
                 </button>
                 <button
                   type="button"
+                  data-pad-area="back"
                   className={`free-pad-btn ${freeMove.back ? "is-active" : ""}`}
                   aria-label="向后移动"
                   onPointerDown={(e) => {

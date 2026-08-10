@@ -14,6 +14,7 @@ import {
   Fog,
   HemisphereLight,
   InstancedMesh,
+  LatheGeometry,
   Matrix4,
   MeshBasicMaterial,
   MeshPhysicalMaterial,
@@ -338,6 +339,139 @@ function createCinemaSeatBackGeometry() {
   geometry.center();
   geometry.computeVertexNormals();
   return geometry;
+}
+
+/**
+ * 白瓷砖影城专用：程序化生成 PBR 多层瓷砖贴图
+ * 通过 HTML5 Canvas 离屏绘制，输出 baseColor / bumpMap / roughnessMap 三层纹理，
+ * 用 PBR 材质贴到单面墙上即可获得精细瓷砖质感，无需堆叠 box/plane 几何体。
+ */
+function createWhiteTileTextures() {
+  const size = 1024;
+  const tilesPerSide = 24;
+  const gapPx = 3;
+  const cell = size / tilesPerSide;
+
+  function makeCanvas() {
+    const c = document.createElement("canvas");
+    c.width = c.height = size;
+    const ctx = c.getContext("2d");
+    if (!ctx) throw new Error("CanvasTexture context unavailable");
+    return { c, ctx };
+  }
+
+  // 1. Base Color - 米白瓷砖
+  const { c: baseCanvas, ctx: baseCtx } = makeCanvas();
+  baseCtx.fillStyle = "#f7f6f1";
+  baseCtx.fillRect(0, 0, size, size);
+  // 极淡的石材云纹
+  for (let i = 0; i < 600; i++) {
+    baseCtx.fillStyle = `rgba(60, 70, 80, ${0.02 + Math.random() * 0.04})`;
+    baseCtx.fillRect(
+      Math.random() * size,
+      Math.random() * size,
+      1 + Math.random() * 2,
+      1 + Math.random() * 2,
+    );
+  }
+  // 勾缝 (深灰)
+  baseCtx.fillStyle = "#a3a8b0";
+  for (let i = 0; i < tilesPerSide; i++) {
+    baseCtx.fillRect(Math.round(i * cell) - gapPx / 2, 0, gapPx, size);
+    baseCtx.fillRect(0, Math.round(i * cell) - gapPx / 2, size, gapPx);
+  }
+  const baseMap = new CanvasTexture(baseCanvas);
+  baseMap.wrapS = baseMap.wrapT = RepeatWrapping;
+  baseMap.colorSpace = SRGBColorSpace;
+  baseMap.anisotropy = 16;
+  baseMap.needsUpdate = true;
+
+  // 2. Bump Map - 瓷砖面凸/勾缝凹
+  const { c: bumpCanvas, ctx: bumpCtx } = makeCanvas();
+  // 瓷砖主体（亮）= 高 = 凸
+  bumpCtx.fillStyle = "#f0f0f0";
+  bumpCtx.fillRect(0, 0, size, size);
+  // 每块瓷砖上加微妙反光梯度
+  for (let i = 0; i < tilesPerSide; i++) {
+    for (let j = 0; j < tilesPerSide; j++) {
+      const x = Math.round(i * cell) + gapPx;
+      const y = Math.round(j * cell) + gapPx;
+      const w = cell - gapPx;
+      const g = bumpCtx.createLinearGradient(x, y, x + w, y + w);
+      g.addColorStop(0, "#fafafa");
+      g.addColorStop(0.5, "#e8e8e8");
+      g.addColorStop(1, "#f4f4f4");
+      bumpCtx.fillStyle = g;
+      bumpCtx.fillRect(x, y, w, w);
+    }
+  }
+  // 勾缝（暗）= 低 = 凹
+  bumpCtx.fillStyle = "#7a7a7a";
+  for (let i = 0; i < tilesPerSide; i++) {
+    bumpCtx.fillRect(Math.round(i * cell) - gapPx / 2, 0, gapPx, size);
+    bumpCtx.fillRect(0, Math.round(i * cell) - gapPx / 2, size, gapPx);
+  }
+  // 边缘微凸白条 (瓷砖面包边感)
+  bumpCtx.strokeStyle = "#ffffff";
+  bumpCtx.lineWidth = 1;
+  for (let i = 0; i < tilesPerSide; i++) {
+    for (let j = 0; j < tilesPerSide; j++) {
+      const x = Math.round(i * cell) + gapPx;
+      const y = Math.round(j * cell) + gapPx;
+      const w = cell - gapPx;
+      bumpCtx.strokeRect(x + 0.5, y + 0.5, w - 1, w - 1);
+    }
+  }
+  const bumpMap = new CanvasTexture(bumpCanvas);
+  bumpMap.wrapS = bumpMap.wrapT = RepeatWrapping;
+  bumpMap.anisotropy = 16;
+  bumpMap.needsUpdate = true;
+
+  // 3. Roughness Map - 瓷砖面光滑 / 勾缝粗糙
+  const { c: roughCanvas, ctx: roughCtx } = makeCanvas();
+  // 瓷砖主体（暗=光滑，roughness ~ 0.27）
+  roughCtx.fillStyle = "#444";
+  roughCtx.fillRect(0, 0, size, size);
+  // 勾缝（亮=粗糙，roughness ~ 0.7）
+  roughCtx.fillStyle = "#b0b0b0";
+  for (let i = 0; i < tilesPerSide; i++) {
+    roughCtx.fillRect(Math.round(i * cell) - gapPx / 2, 0, gapPx, size);
+    roughCtx.fillRect(0, Math.round(i * cell) - gapPx / 2, size, gapPx);
+  }
+  const roughnessMap = new CanvasTexture(roughCanvas);
+  roughnessMap.wrapS = roughnessMap.wrapT = RepeatWrapping;
+  roughnessMap.anisotropy = 16;
+  roughnessMap.needsUpdate = true;
+
+  return { baseMap, bumpMap, roughnessMap };
+}
+
+/**
+ * 程序化生成长方形天花板纹理（纯白微纹理）
+ */
+function createWhiteCeilingTexture() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 512;
+  const ctx = c.getContext("2d");
+  if (!ctx) throw new Error("CanvasTexture context unavailable");
+  ctx.fillStyle = "#fbfaf6";
+  ctx.fillRect(0, 0, 512, 512);
+  // 极淡噪点
+  for (let i = 0; i < 300; i++) {
+    ctx.fillStyle = `rgba(80, 80, 80, ${0.02 + Math.random() * 0.03})`;
+    ctx.fillRect(
+      Math.random() * 512,
+      Math.random() * 512,
+      1 + Math.random() * 1.5,
+      1 + Math.random() * 1.5,
+    );
+  }
+  const tex = new CanvasTexture(c);
+  tex.wrapS = tex.wrapT = RepeatWrapping;
+  tex.colorSpace = SRGBColorSpace;
+  tex.anisotropy = 8;
+  tex.needsUpdate = true;
+  return tex;
 }
 
 type ScreenPoint = { x: number; y: number };
@@ -2871,6 +3005,473 @@ function ImaxGiantBackdrop({ auditorium }: { auditorium: Auditorium }) {
   );
 }
 
+function ParCinemaBackdrop({ auditorium }: { auditorium: Auditorium }) {
+  const lastRowZ =
+    auditorium.firstRowZ + (auditorium.rowCount - 1) * auditorium.rowSpacing;
+  const roomDepth = lastRowZ - auditorium.screenZ + 12;
+  const roomCenterZ = auditorium.screenZ + roomDepth / 2 - 2;
+  const roomHeight = Math.max(
+    14,
+    auditorium.screenBottom + auditorium.screenHeight + 2.5,
+  );
+  const roomWidth = Math.max(34, auditorium.seatingWidth + 6);
+  const halfRoomWidth = roomWidth / 2;
+  const baseZ = auditorium.screenZ;
+
+  const tileSize = 1.2;
+
+  return (
+    <group>
+      {/* 黑色网格吊顶 + 嵌入式筒灯 */}
+      <group position={[0, roomHeight, roomCenterZ]}>
+        <mesh
+          position={[0, 0, 0]}
+          rotation={[Math.PI / 2, 0, 0]}
+          receiveShadow
+        >
+          <planeGeometry args={[roomWidth + 2, roomDepth + 4]} />
+          <meshStandardMaterial color="#0a0a0a" roughness={0.85} />
+        </mesh>
+
+        {/* 横向白色网格线（沿 X 轴走线） */}
+        {Array.from({ length: 10 }).map((_, i) => (
+          <mesh
+            key={`cx-${i}`}
+            position={[
+              -roomWidth / 2 + (i + 0.5) * (roomWidth / 10),
+              -0.04,
+              0,
+            ]}
+          >
+            <boxGeometry args={[0.04, 0.04, roomDepth + 4]} />
+            <meshStandardMaterial
+              color="#d4d4d8"
+              emissive="#9ca3af"
+              emissiveIntensity={0.18}
+            />
+          </mesh>
+        ))}
+        {/* 纵向白色网格线（沿 Z 轴走线） */}
+        {Array.from({ length: 8 }).map((_, i) => (
+          <mesh
+            key={`cz-${i}`}
+            position={[
+              0,
+              -0.04,
+              -roomDepth / 2 + (i + 0.5) * (roomDepth / 7),
+            ]}
+          >
+            <boxGeometry args={[roomWidth + 2, 0.04, 0.04]} />
+            <meshStandardMaterial
+              color="#d4d4d8"
+              emissive="#9ca3af"
+              emissiveIntensity={0.18}
+            />
+          </mesh>
+        ))}
+
+        {/* 嵌入式筒灯 - 稀疏分布 6 个 */}
+        {[
+          [-roomWidth * 0.35, -roomDepth * 0.25],
+          [0, -roomDepth * 0.25],
+          [roomWidth * 0.35, -roomDepth * 0.25],
+          [-roomWidth * 0.35, roomDepth * 0.2],
+          [0, roomDepth * 0.2],
+          [roomWidth * 0.35, roomDepth * 0.2],
+        ].map(([lx, lz], i) => (
+          <group key={`lt-${i}`} position={[lx, -0.08, lz]}>
+            <mesh>
+              <boxGeometry args={[0.55, 0.03, 0.55]} />
+              <meshBasicMaterial color="#fff8d6" toneMapped={false} />
+            </mesh>
+            <pointLight
+              color="#fff4cc"
+              intensity={22}
+              distance={8}
+              decay={2}
+            />
+          </group>
+        ))}
+      </group>
+
+      {/* 两侧白色方格瓷砖墙 + 黑色勾缝 + 黑色壁挂音箱 */}
+      {[-1, 1].map((dir) => (
+        <group
+          key={`par-side-${dir}`}
+          position={[dir * halfRoomWidth, roomHeight / 2, roomCenterZ]}
+        >
+          {/* 主白墙 */}
+          <mesh receiveShadow>
+            <boxGeometry args={[0.4, roomHeight, roomDepth + 4]} />
+            <meshStandardMaterial color="#f5f5f5" roughness={0.78} />
+          </mesh>
+
+          {/* 黑色横向勾缝 */}
+          {Array.from({ length: 6 }).map((_, i) => (
+            <mesh
+              key={`vy-${dir}-${i}`}
+              position={[
+                dir * 0.22,
+                (i - 2.5) * (roomHeight / 6),
+                0,
+              ]}
+            >
+              <boxGeometry args={[0.03, 0.06, roomDepth + 4]} />
+              <meshStandardMaterial color="#1a1a1a" />
+            </mesh>
+          ))}
+          {/* 黑色纵向勾缝 */}
+          {Array.from({ length: 7 }).map((_, i) => (
+            <mesh
+              key={`vz-${dir}-${i}`}
+              position={[
+                dir * 0.22,
+                0,
+                -roomDepth / 2 + (i + 0.5) * (roomDepth / 6),
+              ]}
+            >
+              <boxGeometry args={[0.03, roomHeight, 0.06]} />
+              <meshStandardMaterial color="#1a1a1a" />
+            </mesh>
+          ))}
+
+          {/* 黑色壁挂音箱 - 每侧 2 个 */}
+          {[-roomDepth * 0.18, roomDepth * 0.2].map((zo, si) => (
+            <group
+              key={`sp-${dir}-${si}`}
+              position={[dir * 0.36, roomHeight * 0.55, zo]}
+            >
+              <mesh castShadow>
+                <boxGeometry args={[0.18, 0.7, 0.5]} />
+                <meshStandardMaterial
+                  color="#0a0a0a"
+                  roughness={0.55}
+                  metalness={0.35}
+                />
+              </mesh>
+              {/* 喇叭格栅圆 */}
+              <mesh position={[0, 0, 0.095]}>
+                <circleGeometry args={[0.085, 18]} />
+                <meshStandardMaterial color="#1a1a1a" roughness={0.7} />
+              </mesh>
+            </group>
+          ))}
+        </group>
+      ))}
+
+      {/* 银幕后墙 - 纯黑 */}
+      <mesh position={[0, roomHeight / 2, baseZ - 0.4]} receiveShadow>
+        <boxGeometry args={[roomWidth + 1, roomHeight + 1, 0.4]} />
+        <meshStandardMaterial color="#0a0a0a" roughness={0.9} />
+      </mesh>
+
+      {/* 地板：白色方格 + 黑色勾缝 */}
+      <group position={[0, 0, roomCenterZ - 1]}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+          <planeGeometry args={[roomWidth, roomDepth + 4]} />
+          <meshStandardMaterial
+            color="#ededed"
+            roughness={0.7}
+            metalness={0.05}
+          />
+        </mesh>
+        {/* 地板 X 方向勾缝 */}
+        {Array.from({ length: 10 }).map((_, i) => (
+          <mesh
+            key={`fx-${i}`}
+            position={[
+              -roomWidth / 2 + (i + 0.5) * (roomWidth / 10),
+              0.005,
+              0,
+            ]}
+            rotation={[-Math.PI / 2, 0, 0]}
+          >
+            <planeGeometry args={[0.04, roomDepth + 4]} />
+            <meshStandardMaterial color="#1a1a1a" />
+          </mesh>
+        ))}
+        {/* 地板 Z 方向勾缝 */}
+        {Array.from({ length: 8 }).map((_, i) => (
+          <mesh
+            key={`fz-${i}`}
+            position={[
+              0,
+              0.005,
+              -roomDepth / 2 + (i + 0.5) * (roomDepth / 7),
+            ]}
+            rotation={[-Math.PI / 2, 0, 0]}
+          >
+            <planeGeometry args={[roomWidth, 0.04]} />
+            <meshStandardMaterial color="#1a1a1a" />
+          </mesh>
+        ))}
+      </group>
+
+      {/* 暖色木格栅舞台区 - 银幕前方 */}
+      <group position={[0, 0.015, baseZ + 3]}>
+        {/* 木地板底色 */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+          <planeGeometry args={[roomWidth * 0.45, 5.5]} />
+          <meshStandardMaterial color="#b8884a" roughness={0.82} />
+        </mesh>
+        {/* 横向木条（沿 Z 方向延伸） */}
+        {Array.from({ length: 12 }).map((_, i) => (
+          <mesh
+            key={`ws-${i}`}
+            position={[
+              (i - 5.5) * (roomWidth * 0.45 / 12),
+              0.008,
+              0,
+            ]}
+            rotation={[-Math.PI / 2, 0, 0]}
+          >
+            <planeGeometry
+              args={[roomWidth * 0.45 / 12 - 0.06, 5.5]}
+            />
+            <meshStandardMaterial
+              color={i % 2 === 0 ? "#c9a567" : "#9c6f3a"}
+              roughness={0.78}
+            />
+          </mesh>
+        ))}
+        {/* 木格栅两端深色边框 */}
+        <mesh position={[0, 0.012, 2.78]}>
+          <boxGeometry args={[roomWidth * 0.46, 0.08, 0.08]} />
+          <meshStandardMaterial color="#4a3014" roughness={0.85} />
+        </mesh>
+        <mesh position={[0, 0.012, -2.78]}>
+          <boxGeometry args={[roomWidth * 0.46, 0.08, 0.08]} />
+          <meshStandardMaterial color="#4a3014" roughness={0.85} />
+        </mesh>
+      </group>
+
+      {/* 应急疏散指示灯 - 银幕下方两侧地面 */}
+      {[-halfRoomWidth + 1.2, halfRoomWidth - 1.2].map((ex, eIdx) => (
+        <group
+          key={`par-exit-${eIdx}`}
+          position={[ex, 0.35, baseZ + 1]}
+        >
+          <mesh>
+            <boxGeometry args={[0.28, 0.45, 0.14]} />
+            <meshStandardMaterial color="#090a0f" />
+          </mesh>
+          <mesh position={[0, 0, 0.075]}>
+            <planeGeometry args={[0.22, 0.36]} />
+            <meshBasicMaterial color="#22c55e" toneMapped={false} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+function WhiteTileCinemaBackdrop({
+  auditorium,
+}: {
+  auditorium: Auditorium;
+}) {
+  const lastRowZ =
+    auditorium.firstRowZ + (auditorium.rowCount - 1) * auditorium.rowSpacing;
+  const roomDepth = lastRowZ - auditorium.screenZ + 12;
+  const roomCenterZ = auditorium.screenZ + roomDepth / 2 - 2;
+  const roomHeight = Math.max(
+    14,
+    auditorium.screenBottom + auditorium.screenHeight + 2.5,
+  );
+  const roomWidth = Math.max(34, auditorium.seatingWidth + 6);
+  const halfRoomWidth = roomWidth / 2;
+  const baseZ = auditorium.screenZ;
+
+  // 程序化生成的 PBR 瓷砖纹理（baseColor + bumpMap + roughnessMap）
+  const tileTextures = useMemo(() => {
+    if (typeof document === "undefined") return null;
+    return createWhiteTileTextures();
+  }, []);
+  const ceilingTex = useMemo(() => {
+    if (typeof document === "undefined") return null;
+    return createWhiteCeilingTexture();
+  }, []);
+
+  // 弯曲一体化墙顶几何：圆角截面沿 Z 拉伸（ExtrudeGeometry）
+  // 截面：从左下 (-w/2, 0) 经圆弧到顶 (0, h) 再圆弧到右下 (w/2, 0)
+  const curvedRoomGeometry = useMemo(() => {
+    const w = roomWidth;
+    const peakY = roomHeight;
+    const shape = new Shape();
+    shape.moveTo(-w / 2, 0);
+    shape.lineTo(-w / 2, 0.05); // 0.05 厚度底边
+    // 左半圆弧
+    shape.quadraticCurveTo(-w / 4, peakY * 0.85, 0, peakY);
+    // 顶面
+    shape.lineTo(0, peakY);
+    // 右半圆弧
+    shape.quadraticCurveTo(w / 4, peakY * 0.85, w / 2, 0.05);
+    shape.lineTo(w / 2, 0);
+    shape.lineTo(-w / 2, 0);
+
+    const geo = new ExtrudeGeometry(shape, {
+      depth: roomDepth + 4,
+      steps: 1,
+      bevelEnabled: false,
+      curveSegments: 32,
+    });
+    // ExtrudeGeometry 默认沿 +Z 拉伸，让房间从 baseZ 向后延展
+    geo.translate(0, 0, baseZ - 2);
+    geo.computeVertexNormals();
+    return geo;
+  }, [roomWidth, roomHeight, roomDepth, baseZ]);
+
+  // 配置瓷砖墙的纹理 repeat (根据尺寸)
+  const wallSideTexture = useMemo(() => {
+    if (!tileTextures) return null;
+    const t = tileTextures.baseMap.clone();
+    const n = tileTextures.bumpMap.clone();
+    const r = tileTextures.roughnessMap.clone();
+    // 一面墙约 30m x 10m，让 1m ≈ 6 块瓷砖
+    t.repeat.set(roomWidth / 4, roomHeight / 4);
+    n.repeat.set(roomWidth / 4, roomHeight / 4);
+    r.repeat.set(roomWidth / 4, roomHeight / 4);
+    t.needsUpdate = n.needsUpdate = r.needsUpdate = true;
+    return { map: t, normalMap: n, roughnessMap: r };
+  }, [tileTextures, roomWidth, roomHeight]);
+
+  const ceilingTexture = useMemo(() => {
+    if (!ceilingTex) return null;
+    const t = ceilingTex.clone();
+    t.repeat.set(roomWidth / 6, (roomDepth + 4) / 6);
+    t.needsUpdate = true;
+    return t;
+  }, [ceilingTex, roomWidth, roomDepth]);
+
+  return (
+    <group>
+      {wallSideTexture && (
+        <>
+          {/* 弯曲一体化墙体+吊顶 (单 mesh，挤出几何) */}
+          <mesh
+            geometry={curvedRoomGeometry}
+            position={[0, 0, 0]}
+            receiveShadow
+          >
+            <meshPhysicalMaterial
+              map={wallSideTexture.map}
+              normalMap={wallSideTexture.normalMap}
+              roughnessMap={wallSideTexture.roughnessMap}
+              color="#ffffff"
+              normalScale={[0.7, 0.7]}
+              roughness={0.85}
+              metalness={0.02}
+              sheen={0.25}
+              sheenColor="#fafaf3"
+              sheenRoughness={0.7}
+              clearcoat={0.18}
+              clearcoatRoughness={0.4}
+              envMapIntensity={0.8}
+            />
+          </mesh>
+        </>
+      )}
+
+      {/* 白瓷砖地板：用 PlaneGeometry + 多层贴图纹理，而非小方块堆叠 */}
+      <mesh
+        position={[0, 0.005, roomCenterZ]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        receiveShadow
+      >
+        <planeGeometry args={[roomWidth, roomDepth + 4, 32, 32]} />
+        {(() => {
+          // 重新为地面生成更大规格的瓷砖纹理 (大格子，类似图片)
+          if (typeof document === "undefined") return null;
+          const c = document.createElement("canvas");
+          c.width = c.height = 512;
+          const ctx = c.getContext("2d");
+          if (!ctx) return null;
+          ctx.fillStyle = "#f4f3ed";
+          ctx.fillRect(0, 0, 512, 512);
+          // 稍大一些的方格
+          const tileSize = 64;
+          ctx.strokeStyle = "#a0a4ab";
+          ctx.lineWidth = 3;
+          for (let i = 0; i < 512; i += tileSize) {
+            ctx.beginPath();
+            ctx.moveTo(i, 0);
+            ctx.lineTo(i, 512);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, i);
+            ctx.lineTo(512, i);
+            ctx.stroke();
+          }
+          // 给个不缝
+          ctx.fillStyle = "#7a7e85";
+          ctx.fillRect(0, 0, 3, 512);
+          ctx.fillRect(0, 0, 512, 3);
+          const t = new CanvasTexture(c);
+          t.wrapS = t.wrapT = RepeatWrapping;
+          t.colorSpace = SRGBColorSpace;
+          t.repeat.set(roomWidth / 5, (roomDepth + 4) / 5);
+          t.anisotropy = 16;
+          t.needsUpdate = true;
+          // 同时生成 bump
+          const cb = document.createElement("canvas");
+          cb.width = cb.height = 512;
+          const cbCtx = cb.getContext("2d")!;
+          cbCtx.fillStyle = "#e0e0e0";
+          cbCtx.fillRect(0, 0, 512, 512);
+          cbCtx.fillStyle = "#787878";
+          for (let i = 0; i < 512; i += tileSize) {
+            cbCtx.fillRect(i - 2, 0, 4, 512);
+            cbCtx.fillRect(0, i - 2, 512, 4);
+          }
+          const n = new CanvasTexture(cb);
+          n.wrapS = n.wrapT = RepeatWrapping;
+          n.repeat.set(roomWidth / 5, (roomDepth + 4) / 5);
+          n.anisotropy = 16;
+          n.needsUpdate = true;
+
+          return (
+            <meshPhysicalMaterial
+              map={t}
+              normalMap={n}
+              normalScale={[0.5, 0.5]}
+              color="#ffffff"
+              roughness={0.45}
+              metalness={0.05}
+              clearcoat={0.35}
+              clearcoatRoughness={0.3}
+              envMapIntensity={0.5}
+              side={1}
+            />
+          );
+        })()}
+      </mesh>
+
+      {/* 黑色饰带 — 银幕底部 (图片中深色横条) */}
+      <mesh position={[0, auditorium.screenBottom + 0.3, baseZ - 0.25]}>
+        <boxGeometry
+          args={[auditorium.screenWidth + 1, 0.7, 0.15]}
+        />
+        <meshStandardMaterial color="#0a0a0a" roughness={0.6} />
+      </mesh>
+
+      {/* 银幕 (留出 placeholder，主体由 Screen 组件渲染) */}
+      {/* 这里仅放一个轻微的框提示，主银幕由其他组件覆盖 */}
+
+      {/* 强白色环境光（半球光 + 顶部定向光）营造纯净光感 */}
+      <hemisphereLight
+        args={["#ffffff", "#e8e6dd", 2.2]}
+        position={[0, roomHeight + 2, roomCenterZ]}
+      />
+      <directionalLight
+        position={[0, roomHeight + 4, baseZ + 2]}
+        intensity={1.0}
+        color="#fffaf0"
+        castShadow={false}
+      />
+    </group>
+  );
+}
+
 function SkySphere({
   sceneStyle,
   filmMode,
@@ -3080,6 +3681,8 @@ function AuditoriumArchitecture({
     if (sceneStyle === "space_station") return "#1e293b";
     if (sceneStyle === "urban_plaza") return "#475569";
     if (sceneStyle === "suzhou_garden") return "#5d6d5e";
+    if (sceneStyle === "par_cinema") return "#ededed";
+    if (sceneStyle === "white_tile_cinema") return "#f5f4ee";
     return "#202329";
   }, [sceneStyle]);
 
@@ -3091,6 +3694,8 @@ function AuditoriumArchitecture({
     if (sceneStyle === "alpine_desert") return 0.92;
     if (sceneStyle === "space_station") return 0.3;
     if (sceneStyle === "suzhou_garden") return 0.8;
+    if (sceneStyle === "par_cinema") return 0.7;
+    if (sceneStyle === "white_tile_cinema") return 0.45;
     return 0.9;
   }, [sceneStyle]);
 
@@ -3104,6 +3709,8 @@ function AuditoriumArchitecture({
     if (sceneStyle === "space_station") return "#0f172a";
     if (sceneStyle === "urban_plaza") return "#1e293b";
     if (sceneStyle === "suzhou_garden") return "#4a5a4b";
+    if (sceneStyle === "par_cinema") return "#ededed";
+    if (sceneStyle === "white_tile_cinema") return "#f4f3ed";
     return "#191b1f";
   }, [sceneStyle]);
 
@@ -3121,6 +3728,8 @@ function AuditoriumArchitecture({
       {sceneStyle === "alpine_desert" && <AlpineDesertBackdrop auditorium={auditorium} />}
       {sceneStyle === "baroque_opera" && <BaroqueOperaBackdrop auditorium={auditorium} />}
       {sceneStyle === "suzhou_garden" && <SuzhouGardenBackdrop auditorium={auditorium} />}
+      {sceneStyle === "par_cinema" && <ParCinemaBackdrop auditorium={auditorium} />}
+      {sceneStyle === "white_tile_cinema" && <WhiteTileCinemaBackdrop auditorium={auditorium} />}
 
       {/* Ground plane */}
       <mesh position={[0, -0.5, roomCenterZ]} receiveShadow>
@@ -3393,6 +4002,44 @@ function Seats({
           upholstery: new Color("#2d3a2e"),
           shell: new Color("#3e2723"),
           panel: new Color("#4e342e"),
+        },
+      };
+    }
+    if (sceneStyle === "par_cinema") {
+      return {
+        available: {
+          upholstery: new Color("#1f2126"),
+          shell: new Color("#0a0b0d"),
+          panel: new Color("#2a2d33"),
+        },
+        selected: {
+          upholstery: new Color("#0ea5e9"),
+          shell: new Color("#0369a1"),
+          panel: new Color("#7dd3fc"),
+        },
+        occupied: {
+          upholstery: new Color("#0a0b0d"),
+          shell: new Color("#050507"),
+          panel: new Color("#15171c"),
+        },
+      };
+    }
+    if (sceneStyle === "white_tile_cinema") {
+      return {
+        available: {
+          upholstery: new Color("#c1272d"),
+          shell: new Color("#1a1a1a"),
+          panel: new Color("#0a0a0a"),
+        },
+        selected: {
+          upholstery: new Color("#ef4444"),
+          shell: new Color("#27272a"),
+          panel: new Color("#3f3f46"),
+        },
+        occupied: {
+          upholstery: new Color("#7f1d1d"),
+          shell: new Color("#0a0a0a"),
+          panel: new Color("#18181b"),
         },
       };
     }
@@ -3930,6 +4577,8 @@ function SceneLighting({
     if (sceneStyle === "warm_wood_lounge") return new Color("#18110a");
     if (sceneStyle === "snowy_greek") return new Color("#0a1128");
     if (sceneStyle === "space_station") return new Color("#02040a");
+    if (sceneStyle === "par_cinema") return new Color("#0d0f12");
+    if (sceneStyle === "white_tile_cinema") return new Color("#fbfaf6");
     return new Color("#111317");
   }, [sceneStyle]);
 
@@ -3939,6 +4588,8 @@ function SceneLighting({
     if (sceneStyle === "warm_wood_lounge") return new Color("#0c0804");
     if (sceneStyle === "snowy_greek") return new Color("#060b1b");
     if (sceneStyle === "space_station") return new Color("#010205");
+    if (sceneStyle === "par_cinema") return new Color("#05070a");
+    if (sceneStyle === "white_tile_cinema") return new Color("#e7e5dc");
     return new Color("#07080a");
   }, [sceneStyle]);
 
@@ -3948,6 +4599,8 @@ function SceneLighting({
     if (sceneStyle === "warm_wood_lounge") return new Color("#21180e");
     if (sceneStyle === "snowy_greek") return new Color("#0c1535");
     if (sceneStyle === "space_station") return new Color("#030712");
+    if (sceneStyle === "par_cinema") return new Color("#10131a");
+    if (sceneStyle === "white_tile_cinema") return new Color("#f0eee5");
     return new Color("#15171b");
   }, [sceneStyle]);
 
@@ -3957,6 +4610,8 @@ function SceneLighting({
     if (sceneStyle === "warm_wood_lounge") return new Color("#0d0804");
     if (sceneStyle === "snowy_greek") return new Color("#070d22");
     if (sceneStyle === "space_station") return new Color("#010308");
+    if (sceneStyle === "par_cinema") return new Color("#06080c");
+    if (sceneStyle === "white_tile_cinema") return new Color("#dad7cc");
     return new Color("#08090b");
   }, [sceneStyle]);
 
@@ -3967,6 +4622,8 @@ function SceneLighting({
     if (sceneStyle === "snowy_greek") return new Color("#e2e8f0");
     if (sceneStyle === "space_station") return new Color("#e0f2fe");
     if (sceneStyle === "urban_plaza") return new Color("#dbeafe");
+    if (sceneStyle === "par_cinema") return new Color("#fff8e1");
+    if (sceneStyle === "white_tile_cinema") return new Color("#ffffff");
     return new Color("#fef08a");
   }, [sceneStyle]);
 
@@ -3978,6 +4635,8 @@ function SceneLighting({
     if (sceneStyle === "snowy_greek") return new Color("#1d4ed8");
     if (sceneStyle === "space_station") return new Color("#0284c7");
     if (sceneStyle === "urban_plaza") return new Color("#1e3a8a");
+    if (sceneStyle === "par_cinema") return new Color("#1f2937");
+    if (sceneStyle === "white_tile_cinema") return new Color("#f0eee5");
     return new Color("#881337");
   }, [sceneStyle]);
 
@@ -3988,6 +4647,8 @@ function SceneLighting({
     if (sceneStyle === "snowy_greek") return new Color("#38bdf8");
     if (sceneStyle === "space_station") return new Color("#38bdf8");
     if (sceneStyle === "urban_plaza") return new Color("#60a5fa");
+    if (sceneStyle === "par_cinema") return new Color("#e2e8f0");
+    if (sceneStyle === "white_tile_cinema") return new Color("#fafaf6");
     return new Color("#fb7185");
   }, [sceneStyle]);
 

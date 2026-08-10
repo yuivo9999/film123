@@ -154,6 +154,13 @@ button {
   white-space: nowrap;
 }
 
+/* 影厅顶栏自定义银幕控件：缩小为 60%，为左上角返回按钮留出空间 */
+.topbar-custom-screen-wrap {
+  zoom: 0.6;
+  transform-origin: left center;
+  line-height: 1;
+}
+
 .experience-layout {
   min-height: calc(100dvh - 56px);
   padding: 0 12px 12px;
@@ -3020,7 +3027,20 @@ a:focus-visible {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  /* 手柄十字键布局：上/左/中/右/下 围成十字 */
+  grid-template-areas:
+    ". up ."
+    "left center right"
+    ". down .";
 }
+
+.free-pad-btn[data-pad-area="up"]    { grid-area: up; }
+.free-pad-btn[data-pad-area="down"]  { grid-area: down; }
+.free-pad-btn[data-pad-area="left"]  { grid-area: left; }
+.free-pad-btn[data-pad-area="right"] { grid-area: right; }
+.free-pad-btn[data-pad-area="forward"]  { grid-area: up; }
+.free-pad-btn[data-pad-area="back"]     { grid-area: down; }
+.free-pad-center                     { grid-area: center; }
 
 .free-pad-height-cross {
   grid-template-columns: repeat(1, 52px);

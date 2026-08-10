@@ -284,7 +284,7 @@ export function ScreenCustomizerControl({
                 <input
                   type="range"
                   min={4}
-                  max={44}
+                  max={80}
                   step={0.5}
                   value={activeHeight}
                   onChange={(e) => handleUpdate({ height: parseFloat(e.target.value) })}
@@ -293,7 +293,7 @@ export function ScreenCustomizerControl({
                 <div className="flex justify-between text-[10px] text-slate-500 mt-0.5">
                   <span>低矮 (4m)</span>
                   <span>标准 (12m)</span>
-                  <span>IMAX 70mm (44m)</span>
+                  <span>超巨幕 (80m)</span>
                 </div>
               </div>
 
