@@ -3187,9 +3187,13 @@ a:focus-visible {
 
 .cinema-lock-hotzone {
   position: absolute;
-  inset: 0;
+  left: 12px;
+  top: 86px;
+  width: 46px;
+  height: 46px;
   z-index: 45;
   background: transparent;
+  border-radius: 50%;
   cursor: pointer;
   touch-action: manipulation;
 }

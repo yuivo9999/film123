@@ -462,10 +462,11 @@ function createWhiteFloorTexture() {
   const ctx = c.getContext("2d");
   if (!ctx) throw new Error("CanvasTexture context unavailable");
 
-  ctx.fillStyle = "#ecdcbe";
+  // 白色大格瓷砖（用作第十二主题墙面）
+  ctx.fillStyle = "#f6f5ef";
   ctx.fillRect(0, 0, size, size);
-  for (let i = 0; i < 300; i++) {
-    ctx.fillStyle = `rgba(120, 100, 70, ${0.02 + Math.random() * 0.04})`;
+  for (let i = 0; i < 200; i++) {
+    ctx.fillStyle = `rgba(70, 80, 90, ${0.02 + Math.random() * 0.03})`;
     ctx.fillRect(
       Math.random() * size,
       Math.random() * size,
@@ -473,7 +474,7 @@ function createWhiteFloorTexture() {
       1 + Math.random() * 2,
     );
   }
-  ctx.fillStyle = "#a08e6c";
+  ctx.fillStyle = "#8a8d95";
   for (let i = 0; i < tilesPerSide; i++) {
     ctx.fillRect(Math.round(i * cell) - gapPx / 2, 0, gapPx, size);
     ctx.fillRect(0, Math.round(i * cell) - gapPx / 2, size, gapPx);
@@ -485,22 +486,50 @@ function createWhiteFloorTexture() {
   baseMap.anisotropy = 16;
   baseMap.needsUpdate = true;
 
-  const cb = document.createElement("canvas");
-  cb.width = cb.height = size;
-  const cbCtx = cb.getContext("2d")!;
-  cbCtx.fillStyle = "#e0e0e0";
-  cbCtx.fillRect(0, 0, size, size);
-  cbCtx.fillStyle = "#666";
-  for (let i = 0; i < tilesPerSide; i++) {
-    cbCtx.fillRect(Math.round(i * cell) - gapPx / 2, 0, gapPx, size);
-    cbCtx.fillRect(0, Math.round(i * cell) - gapPx / 2, size, gapPx);
-  }
-  const bumpMap = new CanvasTexture(cb);
-  bumpMap.wrapS = bumpMap.wrapT = RepeatWrapping;
-  bumpMap.anisotropy = 16;
-  bumpMap.needsUpdate = true;
+  return { baseMap };
+}
 
-  return { baseMap, bumpMap };
+/**
+ * 白色细密方格纹理（仿帕尔影城地板视觉，CanvasTexture 绘制）
+ */
+function createWhiteFineGridTexture() {
+  const size = 1024;
+  const tilesPerSide = 16;
+  const gapPx = 4;
+  const cell = size / tilesPerSide;
+
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const ctx = c.getContext("2d");
+  if (!ctx) throw new Error("CanvasTexture context unavailable");
+
+  // 白色细密方格
+  ctx.fillStyle = "#fafaf6";
+  ctx.fillRect(0, 0, size, size);
+  // 极淡纹理
+  for (let i = 0; i < 250; i++) {
+    ctx.fillStyle = `rgba(70, 70, 70, ${0.015 + Math.random() * 0.025})`;
+    ctx.fillRect(
+      Math.random() * size,
+      Math.random() * size,
+      1 + Math.random() * 1.5,
+      1 + Math.random() * 1.5,
+    );
+  }
+  // 深色细勾缝
+  ctx.fillStyle = "#5d6168";
+  for (let i = 0; i < tilesPerSide; i++) {
+    ctx.fillRect(Math.round(i * cell) - gapPx / 2, 0, gapPx, size);
+    ctx.fillRect(0, Math.round(i * cell) - gapPx / 2, size, gapPx);
+  }
+
+  const baseMap = new CanvasTexture(c);
+  baseMap.wrapS = baseMap.wrapT = RepeatWrapping;
+  baseMap.colorSpace = SRGBColorSpace;
+  baseMap.anisotropy = 16;
+  baseMap.needsUpdate = true;
+
+  return { baseMap };
 }
 
 /**
@@ -3338,11 +3367,7 @@ function WhiteTileCinemaBackdrop({
   const halfRoomWidth = roomWidth / 2;
   const baseZ = auditorium.screenZ;
 
-  // 程序化生成的 PBR 纹理（墙白色小瓷砖 / 地板米色 / 天花板米色）
-  const tileTextures = useMemo(() => {
-    if (typeof document === "undefined") return null;
-    return createWhiteTileTextures();
-  }, []);
+  // 白色大格瓷砖纹理（用于左右侧墙 + 银幕后墙）：复用 createWhiteFloorTexture 改色为白
   const floorTextures = useMemo(() => {
     if (typeof document === "undefined") return null;
     return createWhiteFloorTexture();
@@ -3352,31 +3377,21 @@ function WhiteTileCinemaBackdrop({
     return createWhiteCeilingTexture();
   }, []);
 
-  // 白色小瓷砖纹理（用于左右侧墙）
-  const wallSideTexture = useMemo(() => {
-    if (!tileTextures) return null;
-    const t = tileTextures.baseMap.clone();
-    const n = tileTextures.bumpMap.clone();
-    const r = tileTextures.roughnessMap.clone();
-    t.repeat.set(roomDepth / 2.5, roomHeight / 2.5);
-    n.repeat.set(roomDepth / 2.5, roomHeight / 2.5);
-    r.repeat.set(roomDepth / 2.5, roomHeight / 2.5);
-    t.needsUpdate = n.needsUpdate = r.needsUpdate = true;
-    return { map: t, normalMap: n, roughnessMap: r };
-  }, [tileTextures, roomDepth, roomHeight]);
+  const wallTexture = useMemo(() => {
+    if (!floorTextures) return null;
+    const t = floorTextures.baseMap.clone();
+    t.repeat.set(roomDepth / 6, roomHeight / 6);
+    t.needsUpdate = true;
+    return { map: t };
+  }, [floorTextures, roomDepth, roomHeight]);
 
-  // 银幕后墙纹理（与侧墙同纹理，repeat 按 roomWidth）
   const wallBackTexture = useMemo(() => {
-    if (!tileTextures) return null;
-    const t = tileTextures.baseMap.clone();
-    const n = tileTextures.bumpMap.clone();
-    const r = tileTextures.roughnessMap.clone();
-    t.repeat.set(roomWidth / 2.5, roomHeight / 2.5);
-    n.repeat.set(roomWidth / 2.5, roomHeight / 2.5);
-    r.repeat.set(roomWidth / 2.5, roomHeight / 2.5);
-    t.needsUpdate = n.needsUpdate = r.needsUpdate = true;
-    return { map: t, normalMap: n, roughnessMap: r };
-  }, [tileTextures, roomWidth, roomHeight]);
+    if (!floorTextures) return null;
+    const t = floorTextures.baseMap.clone();
+    t.repeat.set(roomWidth / 6, roomHeight / 6);
+    t.needsUpdate = true;
+    return { map: t };
+  }, [floorTextures, roomWidth, roomHeight]);
 
   const ceilingMaterialTexture = useMemo(() => {
     if (!ceilingTex) return null;
@@ -3386,21 +3401,20 @@ function WhiteTileCinemaBackdrop({
     return t;
   }, [ceilingTex, roomWidth, roomDepth]);
 
-  // 地板米色大格子（中等密度）
-  const floorMaterialTextures = useMemo(() => {
-    if (!floorTextures) return null;
-    const t = floorTextures.baseMap.clone();
-    const n = floorTextures.bumpMap.clone();
-    t.repeat.set(roomWidth / 6, (roomDepth + 4) / 6);
-    n.repeat.set(roomWidth / 6, (roomDepth + 4) / 6);
-    t.needsUpdate = n.needsUpdate = true;
-    return { map: t, normalMap: n };
-  }, [floorTextures, roomWidth, roomDepth]);
+  // 白色细密方格地板纹理（仿帕尔影城视觉）
+  const floorFineTexture = useMemo(() => {
+    if (typeof document === "undefined") return null;
+    const tex = createWhiteFineGridTexture();
+    const t = tex.baseMap.clone();
+    t.repeat.set(roomWidth / 5, (roomDepth + 4) / 5);
+    t.needsUpdate = true;
+    return { map: t };
+  }, [roomWidth, roomDepth]);
 
   return (
     <group>
-      {/* 左墙 - 白色小瓷砖（planeGeometry 立面，UV 正确，无反射） */}
-      {wallSideTexture && (
+      {/* 左墙 - 白色大格瓷砖（复用 createWhiteFloorTexture 改色为白） */}
+      {wallTexture && (
         <mesh
           position={[-halfRoomWidth, roomHeight / 2, roomCenterZ]}
           rotation={[0, Math.PI / 2, 0]}
@@ -3408,7 +3422,7 @@ function WhiteTileCinemaBackdrop({
         >
           <planeGeometry args={[roomDepth + 4, roomHeight]} />
           <meshStandardMaterial
-            map={wallSideTexture.map}
+            map={wallTexture.map}
             color="#ffffff"
             roughness={1}
             metalness={0}
@@ -3417,8 +3431,8 @@ function WhiteTileCinemaBackdrop({
         </mesh>
       )}
 
-      {/* 右墙 - 白色小瓷砖 */}
-      {wallSideTexture && (
+      {/* 右墙 - 白色大格瓷砖 */}
+      {wallTexture && (
         <mesh
           position={[halfRoomWidth, roomHeight / 2, roomCenterZ]}
           rotation={[0, -Math.PI / 2, 0]}
@@ -3426,7 +3440,7 @@ function WhiteTileCinemaBackdrop({
         >
           <planeGeometry args={[roomDepth + 4, roomHeight]} />
           <meshStandardMaterial
-            map={wallSideTexture.map}
+            map={wallTexture.map}
             color="#ffffff"
             roughness={1}
             metalness={0}
@@ -3435,7 +3449,7 @@ function WhiteTileCinemaBackdrop({
         </mesh>
       )}
 
-      {/* 银幕后墙 - 白色小瓷砖 */}
+      {/* 银幕后墙 - 白色大格瓷砖 */}
       {wallBackTexture && (
         <mesh position={[0, roomHeight / 2, baseZ - 0.3]} receiveShadow>
           <planeGeometry args={[roomWidth + 2, roomHeight]} />
@@ -3467,8 +3481,8 @@ function WhiteTileCinemaBackdrop({
         </mesh>
       )}
 
-      {/* 地板 - 米色大格子瓷砖（无反射） */}
-      {floorMaterialTextures && (
+      {/* 地板 - 白色细密方格瓷砖（仿帕尔影城视觉） */}
+      {floorFineTexture && (
         <mesh
           position={[0, 0.005, roomCenterZ]}
           rotation={[-Math.PI / 2, 0, 0]}
@@ -3476,7 +3490,7 @@ function WhiteTileCinemaBackdrop({
         >
           <planeGeometry args={[roomWidth, roomDepth + 4, 32, 32]} />
           <meshStandardMaterial
-            map={floorMaterialTextures.map}
+            map={floorFineTexture.map}
             color="#ffffff"
             roughness={1}
             metalness={0}

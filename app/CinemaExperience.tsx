@@ -832,6 +832,36 @@ export function CinemaExperience({
             </div>
           )}
 
+          {/* Floating Camera Perspective Toolbar */}
+          <div
+            className="camera-perspective-toolbar"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="perspective-title-badge">
+              <Camera size={14} className="text-amber-400" />
+              <span>影厅视角漫游：</span>
+              <span className="current-preset-name">
+                {CAMERA_PRESETS.find((p) => p.id === cameraPreset)?.name || "观影座位"}
+              </span>
+            </div>
+            <div className="perspective-buttons-list">
+              {CAMERA_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className={`perspective-btn ${
+                    cameraPreset === preset.id ? "is-active" : ""
+                  }`}
+                  onClick={() => selectCameraPreset(preset.id)}
+                  title={`${preset.name} - ${preset.desc}`}
+                >
+                  <span className="perspective-icon">{preset.icon}</span>
+                  <span className="perspective-label">{preset.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {isMounted ? (
             <CinemaScene
               auditorium={auditorium}
