@@ -94,7 +94,8 @@ type CinemaSceneProps = {
     | "imax_giant"
     | "minimalist_cream"
     | "alpine_desert"
-    | "baroque_opera";
+    | "baroque_opera"
+    | "suzhou_garden";
   playing: boolean;
   playbackToken: number;
   viewCommand: ViewCommand;
@@ -1979,6 +1980,358 @@ function BaroqueOperaBackdrop({ auditorium }: { auditorium: Auditorium }) {
   );
 }
 
+function SuzhouGardenBackdrop({ auditorium }: { auditorium: Auditorium }) {
+  const baseZ = auditorium.screenZ;
+  const lastRowZ =
+    auditorium.firstRowZ +
+    (auditorium.rowCount - 1) * auditorium.rowSpacing;
+  const roomDepth = lastRowZ - auditorium.screenZ + 14;
+  const roomCenterZ = auditorium.screenZ + roomDepth / 2 - 2;
+  const roomHeight = Math.max(
+    16,
+    auditorium.screenBottom + auditorium.screenHeight + 4,
+  );
+  const roomWidth = Math.max(36, auditorium.seatingWidth + 8);
+  const halfWidth = roomWidth / 2;
+
+  const wallColor = "#ede8e0";
+  const wallRoughness = 0.92;
+  const tileColor = "#3a3a3e";
+  const woodColor = "#6b4226";
+  const stoneColor = "#9e9e9e";
+
+  return (
+    <group>
+      {/* Soft warm ambient for Jiangnan garden atmosphere */}
+      <hemisphereLight color="#d7ccc8" groundColor="#3e2723" intensity={0.45} />
+      <pointLight
+        color="#fff3e0"
+        intensity={30}
+        distance={45}
+        decay={1.6}
+        position={[0, roomHeight - 3, baseZ - 5]}
+      />
+
+      {/* === REAR WHITE COURTYARD WALL (粉墙) === */}
+      <mesh position={[0, roomHeight / 2, baseZ - 6]}>
+        <planeGeometry args={[roomWidth + 6, roomHeight]} />
+        <meshStandardMaterial color={wallColor} roughness={wallRoughness} />
+      </mesh>
+
+      {/* Wall base plinth (青石勒脚) */}
+      <mesh position={[0, 0.6, baseZ - 5.9]}>
+        <boxGeometry args={[roomWidth + 6, 1.2, 0.3]} />
+        <meshStandardMaterial color={stoneColor} roughness={0.85} />
+      </mesh>
+
+      {/* === DARK TILE ROOF CAP (黛瓦坡顶) === */}
+      <group position={[0, roomHeight, baseZ - 6]}>
+        {/* Main roof slope */}
+        <mesh rotation={[0.15, 0, 0]} position={[0, 0.8, 0.6]}>
+          <boxGeometry args={[roomWidth + 6, 0.4, 3]} />
+          <meshStandardMaterial color={tileColor} roughness={0.7} metalness={0.1} />
+        </mesh>
+        {/* Ridge tile */}
+        <mesh position={[0, 1.05, 0]}>
+          <boxGeometry args={[roomWidth + 6, 0.25, 0.4]} />
+          <meshStandardMaterial color="#2a2a2e" roughness={0.6} />
+        </mesh>
+        {/* Upturned eave ends (飞檐翘角) */}
+        {[-(roomWidth / 2 + 2), roomWidth / 2 + 2].map((x, i) => (
+          <mesh
+            key={`eave-${i}`}
+            position={[x, 1.0, 0.5]}
+            rotation={[0.15, 0, i === 0 ? 0.35 : -0.35]}
+          >
+            <boxGeometry args={[2.5, 0.3, 1.8]} />
+            <meshStandardMaterial color={tileColor} roughness={0.7} />
+          </mesh>
+        ))}
+      </group>
+
+      {/* === MOON GATE (月洞门) behind screen === */}
+      <group position={[0, roomHeight * 0.42, baseZ - 5.5]}>
+        {/* Moon gate frame ring */}
+        <mesh rotation={[0, 0, 0]}>
+          <torusGeometry args={[3.2, 0.35, 16, 48]} />
+          <meshStandardMaterial color="#e8e0d4" roughness={0.88} />
+        </mesh>
+        {/* Inner dark reveal suggesting garden beyond */}
+        <mesh position={[0, 0, -0.15]}>
+          <circleGeometry args={[3.05, 48]} />
+          <meshStandardMaterial color="#2d3a2e" roughness={0.95} />
+        </mesh>
+        {/* Decorative inner trim */}
+        <mesh position={[0, 0, 0.05]}>
+          <torusGeometry args={[3.0, 0.08, 12, 48]} />
+          <meshStandardMaterial color="#c0a880" roughness={0.5} metalness={0.3} />
+        </mesh>
+      </group>
+
+      {/* === SIDE COURTYARD WALLS (两侧粉墙) === */}
+      {[-halfWidth - 0.5, halfWidth + 0.5].map((xPos, sideIdx) => {
+        const isRight = sideIdx === 1;
+        return (
+          <group key={`side-wall-${sideIdx}`}>
+            <mesh
+              position={[xPos, roomHeight / 2, roomCenterZ]}
+              rotation={[0, isRight ? -Math.PI / 2 : Math.PI / 2, 0]}
+            >
+              <planeGeometry args={[roomDepth, roomHeight]} />
+              <meshStandardMaterial color={wallColor} roughness={wallRoughness} />
+            </mesh>
+            {/* Wall base */}
+            <mesh
+              position={[xPos, 0.6, roomCenterZ]}
+              rotation={[0, isRight ? -Math.PI / 2 : Math.PI / 2, 0]}
+            >
+              <boxGeometry args={[roomDepth, 1.2, 0.2]} />
+              <meshStandardMaterial color={stoneColor} roughness={0.85} />
+            </mesh>
+            {/* Lattice window (花窗) */}
+            <mesh
+              position={[
+                isRight ? xPos - 0.15 : xPos + 0.15,
+                roomHeight * 0.5,
+                roomCenterZ + 4,
+              ]}
+              rotation={[0, isRight ? -Math.PI / 2 : Math.PI / 2, 0]}
+            >
+              <ringGeometry args={[1.2, 1.5, 6]} />
+              <meshStandardMaterial color="#8d6e63" roughness={0.7} />
+            </mesh>
+          </group>
+        );
+      })}
+
+      {/* === TAIHU ROCKS (太湖石假山) === */}
+      {/* Left rock cluster */}
+      <group position={[-halfWidth + 4, 0, baseZ - 2]}>
+        <mesh position={[0, 1.5, 0]} castShadow>
+          <dodecahedronGeometry args={[1.8, 0]} />
+          <meshStandardMaterial color="#bfbfbf" roughness={0.95} flatShading />
+        </mesh>
+        <mesh position={[1.2, 0.8, 0.5]} castShadow>
+          <icosahedronGeometry args={[1.1, 0]} />
+          <meshStandardMaterial color="#a8a8a8" roughness={0.95} flatShading />
+        </mesh>
+        <mesh position={[-0.8, 2.8, 0.3]} castShadow>
+          <dodecahedronGeometry args={[0.9, 0]} />
+          <meshStandardMaterial color="#c4c4c4" roughness={0.95} flatShading />
+        </mesh>
+      </group>
+
+      {/* Right rock cluster */}
+      <group position={[halfWidth - 4, 0, baseZ - 2]}>
+        <mesh position={[0, 1.8, 0]} castShadow>
+          <dodecahedronGeometry args={[2.0, 0]} />
+          <meshStandardMaterial color="#b0b0b0" roughness={0.95} flatShading />
+        </mesh>
+        <mesh position={[-1.0, 0.7, 0.6]} castShadow>
+          <icosahedronGeometry args={[1.0, 0]} />
+          <meshStandardMaterial color="#a0a0a0" roughness={0.95} flatShading />
+        </mesh>
+        <mesh position={[0.8, 3.0, -0.2]} castShadow>
+          <dodecahedronGeometry args={[0.8, 0]} />
+          <meshStandardMaterial color="#c0c0c0" roughness={0.95} flatShading />
+        </mesh>
+      </group>
+
+      {/* === BAMBOO GROVE (竹林) === */}
+      {/* Left bamboo cluster */}
+      {Array.from({ length: 12 }, (_, i) => {
+        const angle = (i / 12) * Math.PI * 2;
+        const r = 1.2 + pseudoRandom(i * 7) * 1.5;
+        const bx = -halfWidth + 2 + Math.cos(angle) * r;
+        const bz = baseZ - 1 + Math.sin(angle) * r;
+        const bh = 6 + pseudoRandom(i * 11) * 4;
+        return (
+          <group key={`bamboo-l-${i}`} position={[bx, 0, bz]}>
+            <mesh position={[0, bh / 2, 0]} castShadow>
+              <cylinderGeometry args={[0.08, 0.12, bh, 6]} />
+              <meshStandardMaterial color="#7c9c5a" roughness={0.6} />
+            </mesh>
+            {/* Bamboo leaves */}
+            <mesh position={[0, bh, 0]}>
+              <coneGeometry args={[0.6, 1.5, 6]} />
+              <meshStandardMaterial color="#558b2f" roughness={0.7} flatShading />
+            </mesh>
+            {/* Bamboo node lines */}
+            {[0.3, 0.55, 0.8].map((f, j) => (
+              <mesh key={j} position={[0, bh * f, 0]}>
+                <torusGeometry args={[0.1, 0.03, 6, 12]} />
+                <meshStandardMaterial color="#5a7c3a" roughness={0.6} />
+              </mesh>
+            ))}
+          </group>
+        );
+      })}
+
+      {/* Right bamboo cluster */}
+      {Array.from({ length: 12 }, (_, i) => {
+        const angle = (i / 12) * Math.PI * 2;
+        const r = 1.2 + pseudoRandom(i * 13 + 3) * 1.5;
+        const bx = halfWidth - 2 + Math.cos(angle) * r;
+        const bz = baseZ - 1 + Math.sin(angle) * r;
+        const bh = 6 + pseudoRandom(i * 17 + 5) * 4;
+        return (
+          <group key={`bamboo-r-${i}`} position={[bx, 0, bz]}>
+            <mesh position={[0, bh / 2, 0]} castShadow>
+              <cylinderGeometry args={[0.08, 0.12, bh, 6]} />
+              <meshStandardMaterial color="#7c9c5a" roughness={0.6} />
+            </mesh>
+            <mesh position={[0, bh, 0]}>
+              <coneGeometry args={[0.6, 1.5, 6]} />
+              <meshStandardMaterial color="#558b2f" roughness={0.7} flatShading />
+            </mesh>
+            {[0.3, 0.55, 0.8].map((f, j) => (
+              <mesh key={j} position={[0, bh * f, 0]}>
+                <torusGeometry args={[0.1, 0.03, 6, 12]} />
+                <meshStandardMaterial color="#5a7c3a" roughness={0.6} />
+              </mesh>
+            ))}
+          </group>
+        );
+      })}
+
+      {/* === WATER POOL (水池) in front of screen === */}
+      <mesh
+        position={[0, -0.3, baseZ + 3]}
+        rotation={[-Math.PI / 2, 0, 0]}
+      >
+        <planeGeometry args={[roomWidth - 8, 6]} />
+        <meshStandardMaterial
+          color="#1a3a3a"
+          roughness={0.1}
+          metalness={0.6}
+          transparent
+          opacity={0.85}
+        />
+      </mesh>
+      {/* Pool stone rim */}
+      {[-1, 1].map((side) => (
+        <mesh
+          key={`pool-rim-${side}`}
+          position={[(roomWidth / 2 - 4) * side, -0.25, baseZ + 3]}
+        >
+          <boxGeometry args={[0.4, 0.3, 6.2]} />
+          <meshStandardMaterial color={stoneColor} roughness={0.85} />
+        </mesh>
+      ))}
+
+      {/* === STONE PATH (青石板路) === */}
+      <mesh
+        position={[0, -0.35, lastRowZ + 1]}
+        rotation={[-Math.PI / 2, 0, 0]}
+      >
+        <planeGeometry args={[4, 5]} />
+        <meshStandardMaterial color="#8a8a8a" roughness={0.88} />
+      </mesh>
+
+      {/* === RED LANTERNS (红灯笼) === */}
+      {[-halfWidth + 3, halfWidth - 3].map((x, i) => (
+        <group key={`lantern-${i}`} position={[x, roomHeight - 4, baseZ + 2]}>
+          {/* Hanging string */}
+          <mesh position={[0, 1.2, 0]}>
+            <cylinderGeometry args={[0.02, 0.02, 2.4, 6]} />
+            <meshStandardMaterial color="#4a2c2a" roughness={0.8} />
+          </mesh>
+          {/* Lantern body */}
+          <mesh position={[0, -0.2, 0]}>
+            <sphereGeometry args={[0.7, 16, 12]} />
+            <meshStandardMaterial
+              color="#c0392b"
+              emissive="#e74c3c"
+              emissiveIntensity={0.6}
+              roughness={0.5}
+            />
+          </mesh>
+          {/* Lantern top cap */}
+          <mesh position={[0, 0.45, 0]}>
+            <cylinderGeometry args={[0.3, 0.5, 0.2, 12]} />
+            <meshStandardMaterial color="#8b3a2e" roughness={0.6} />
+          </mesh>
+          {/* Lantern bottom tassel */}
+          <mesh position={[0, -0.9, 0]}>
+            <cylinderGeometry args={[0.05, 0.02, 0.5, 6]} />
+            <meshStandardMaterial color="#e74c3c" roughness={0.7} />
+          </mesh>
+          {/* Lantern light glow */}
+          <pointLight
+            position={[0, -0.2, 0]}
+            color="#ff6b35"
+            intensity={5}
+            distance={8}
+            decay={2}
+          />
+        </group>
+      ))}
+
+      {/* === PAVILION CORNER (亭子) — left rear === */}
+      <group position={[-halfWidth + 6, 0, baseZ - 3]}>
+        {/* Stone pillar bases */}
+        {[-1, 1].map((px) => (
+          <mesh key={`pav-pillar-${px}`} position={[px * 0.8, 0.5, 0.5]}>
+            <boxGeometry args={[0.35, 1.0, 0.35]} />
+            <meshStandardMaterial color={stoneColor} roughness={0.85} />
+          </mesh>
+        ))}
+        {/* Wooden pillars */}
+        {[-1, 1].map((px) => (
+          <mesh key={`pav-wood-${px}`} position={[px * 0.8, 2.5, 0.5]}>
+            <cylinderGeometry args={[0.12, 0.14, 4, 8]} />
+            <meshStandardMaterial color={woodColor} roughness={0.7} />
+          </mesh>
+        ))}
+        {/* Pavilion roof */}
+        <mesh position={[0, 5.0, 0.5]} rotation={[0, 0, 0]}>
+          <coneGeometry args={[2.2, 1.5, 4]} />
+          <meshStandardMaterial color={tileColor} roughness={0.7} flatShading />
+        </mesh>
+        {/* Upturned eaves */}
+        {[-1, 1].map((px) => (
+          <mesh
+            key={`pav-eave-${px}`}
+            position={[px * 1.6, 4.8, 0.5]}
+            rotation={[0, 0, px * 0.4]}
+          >
+            <boxGeometry args={[1.0, 0.2, 0.8]} />
+            <meshStandardMaterial color="#2a2a2e" roughness={0.7} />
+          </mesh>
+        ))}
+      </group>
+
+      {/* === SCREEN SUPPORT FRAME (银幕木质支架) === */}
+      {[-auditorium.screenWidth / 2 - 0.6, auditorium.screenWidth / 2 + 0.6].map((x, i) => (
+        <group key={`screen-post-${i}`} position={[x, 0, baseZ]}>
+          {/* Wooden post */}
+          <mesh position={[0, auditorium.screenBottom + auditorium.screenHeight / 2, 0]}>
+            <boxGeometry args={[0.5, auditorium.screenHeight + 3, 0.5]} />
+            <meshStandardMaterial color={woodColor} roughness={0.75} />
+          </mesh>
+          {/* Stone base */}
+          <mesh position={[0, 0.3, 0]}>
+            <boxGeometry args={[0.8, 0.6, 0.8]} />
+            <meshStandardMaterial color={stoneColor} roughness={0.85} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Bottom wooden beam */}
+      <mesh position={[0, auditorium.screenBottom - 0.5, baseZ]}>
+        <boxGeometry args={[auditorium.screenWidth + 1.8, 0.6, 0.6]} />
+        <meshStandardMaterial color={woodColor} roughness={0.75} />
+      </mesh>
+
+      {/* Top wooden lintel */}
+      <mesh position={[0, auditorium.screenBottom + auditorium.screenHeight + 0.3, baseZ]}>
+        <boxGeometry args={[auditorium.screenWidth + 1.8, 0.5, 0.5]} />
+        <meshStandardMaterial color={woodColor} roughness={0.75} />
+      </mesh>
+    </group>
+  );
+}
+
 function WarmWoodLoungeBackdrop({ auditorium }: { auditorium: Auditorium }) {
   const baseZ = auditorium.screenZ;
   const lastRowZ =
@@ -2474,6 +2827,15 @@ function SkySphere({
         grad.addColorStop(1, "#7dd3fc");
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, w, h);
+      } else if (sceneStyle === "suzhou_garden") {
+        // Jiangnan soft overcast sky
+        const grad = ctx.createLinearGradient(0, 0, 0, h);
+        grad.addColorStop(0, "#78909c");
+        grad.addColorStop(0.35, "#b0bec5");
+        grad.addColorStop(0.7, "#d7dee2");
+        grad.addColorStop(1, "#eceff1");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
       } else {
         // General Day Sky (urban_plaza)
         const grad = ctx.createLinearGradient(0, 0, 0, h);
@@ -2502,6 +2864,10 @@ function SkySphere({
         grad.addColorStop(0, "#010206");
         grad.addColorStop(0.6, "#030712");
         grad.addColorStop(1, "#0369a1");
+      } else if (sceneStyle === "suzhou_garden") {
+        grad.addColorStop(0, "#0d1117");
+        grad.addColorStop(0.5, "#161b22");
+        grad.addColorStop(1, "#21262d");
       } else {
         grad.addColorStop(0, "#020617");
         grad.addColorStop(0.6, "#0b132b");
@@ -2615,6 +2981,7 @@ function AuditoriumArchitecture({
     if (sceneStyle === "baroque_opera") return "#881337";
     if (sceneStyle === "space_station") return "#1e293b";
     if (sceneStyle === "urban_plaza") return "#475569";
+    if (sceneStyle === "suzhou_garden") return "#5d6d5e";
     return "#202329";
   }, [sceneStyle]);
 
@@ -2625,6 +2992,7 @@ function AuditoriumArchitecture({
     if (sceneStyle === "snowy_greek") return 0.4;
     if (sceneStyle === "alpine_desert") return 0.92;
     if (sceneStyle === "space_station") return 0.3;
+    if (sceneStyle === "suzhou_garden") return 0.8;
     return 0.9;
   }, [sceneStyle]);
 
@@ -2637,6 +3005,7 @@ function AuditoriumArchitecture({
     if (sceneStyle === "baroque_opera") return "#451a03";
     if (sceneStyle === "space_station") return "#0f172a";
     if (sceneStyle === "urban_plaza") return "#1e293b";
+    if (sceneStyle === "suzhou_garden") return "#4a5a4b";
     return "#191b1f";
   }, [sceneStyle]);
 
@@ -2653,6 +3022,7 @@ function AuditoriumArchitecture({
       {sceneStyle === "space_station" && <SpaceStationBackdrop auditorium={auditorium} />}
       {sceneStyle === "alpine_desert" && <AlpineDesertBackdrop auditorium={auditorium} />}
       {sceneStyle === "baroque_opera" && <BaroqueOperaBackdrop auditorium={auditorium} />}
+      {sceneStyle === "suzhou_garden" && <SuzhouGardenBackdrop auditorium={auditorium} />}
 
       {/* Ground plane */}
       <mesh position={[0, -0.5, roomCenterZ]} receiveShadow>
@@ -2906,6 +3276,25 @@ function Seats({
           upholstery: new Color("#450a0a"),
           shell: new Color("#1a0702"),
           panel: new Color("#854d0e"),
+        },
+      };
+    }
+    if (sceneStyle === "suzhou_garden") {
+      return {
+        available: {
+          upholstery: new Color("#4a5a4b"),
+          shell: new Color("#6b4226"),
+          panel: new Color("#8d6e63"),
+        },
+        selected: {
+          upholstery: new Color("#d4a017"),
+          shell: new Color("#b8860b"),
+          panel: new Color("#ffd700"),
+        },
+        occupied: {
+          upholstery: new Color("#2d3a2e"),
+          shell: new Color("#3e2723"),
+          panel: new Color("#4e342e"),
         },
       };
     }
