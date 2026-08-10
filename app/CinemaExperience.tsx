@@ -742,6 +742,36 @@ export function CinemaExperience({
       className={`cinema-app ${isUiLocked ? "is-ui-locked" : ""}`}
       data-dbd-zone="cinema-shell"
     >
+      {/* 影厅 UI 锁定小锁按钮 + 隐形点击热区（非全屏时，main 顶层固定位置） */}
+      {!isFullscreen && isLockFabVisible && (
+        <button
+          type="button"
+          className="cinema-lock-fab"
+          aria-label={isUiLocked ? "解锁并恢复所有控件" : "锁定并隐藏所有控件"}
+          title={isUiLocked ? "点击恢复所有按钮" : "点击隐藏所有按钮，只剩影厅"}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleUiLock();
+          }}
+        >
+          {isUiLocked ? (
+            <LockOpen size={20} weight="bold" />
+          ) : (
+            <Lock size={20} weight="bold" />
+          )}
+        </button>
+      )}
+      {!isFullscreen && isUiLocked && !isLockFabVisible && (
+        <div
+          className="cinema-lock-hotzone"
+          aria-hidden="true"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleLockHotZoneClick();
+          }}
+        />
+      )}
+
       <header className="topbar" data-dbd-zone="cinema-topbar">
         <Link
           className="back-to-cinemas"
@@ -801,36 +831,6 @@ export function CinemaExperience({
               </div>
             </div>
           )}
-
-          {/* Floating Camera Perspective Toolbar */}
-          <div
-            className="camera-perspective-toolbar"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="perspective-title-badge">
-              <Camera size={14} className="text-amber-400" />
-              <span>影厅视角漫游：</span>
-              <span className="current-preset-name">
-                {CAMERA_PRESETS.find((p) => p.id === cameraPreset)?.name || "观影座位"}
-              </span>
-            </div>
-            <div className="perspective-buttons-list">
-              {CAMERA_PRESETS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  className={`perspective-btn ${
-                    cameraPreset === preset.id ? "is-active" : ""
-                  }`}
-                  onClick={() => selectCameraPreset(preset.id)}
-                  title={`${preset.name} - ${preset.desc}`}
-                >
-                  <span className="perspective-icon">{preset.icon}</span>
-                  <span className="perspective-label">{preset.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
 
           {isMounted ? (
             <CinemaScene
@@ -1309,6 +1309,7 @@ export function CinemaExperience({
               <div className="free-pad-cross free-pad-height-cross">
                 <button
                   type="button"
+                  data-pad-area="up"
                   className={`free-pad-btn ${freeMove.up ? "is-active" : ""}`}
                   aria-label="升高视角"
                   onPointerDown={(e) => {
@@ -1332,6 +1333,7 @@ export function CinemaExperience({
                 <span className="free-pad-center" aria-hidden="true" />
                 <button
                   type="button"
+                  data-pad-area="down"
                   className={`free-pad-btn ${freeMove.down ? "is-active" : ""}`}
                   aria-label="降低视角"
                   onPointerDown={(e) => {
@@ -1357,35 +1359,7 @@ export function CinemaExperience({
           </div>
         )}
 
-        {/* 影厅 UI 锁定小锁按钮 + 隐形点击热区（非全屏时） */}
-        {!isFullscreen && isLockFabVisible && (
-          <button
-            type="button"
-            className="cinema-lock-fab"
-            aria-label={isUiLocked ? "解锁并恢复所有控件" : "锁定并隐藏所有控件"}
-            title={isUiLocked ? "点击恢复所有按钮" : "点击隐藏所有按钮，只剩影厅"}
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleUiLock();
-            }}
-          >
-            {isUiLocked ? (
-              <LockOpen size={20} weight="bold" />
-            ) : (
-              <Lock size={20} weight="bold" />
-            )}
-          </button>
-        )}
-        {!isFullscreen && isUiLocked && !isLockFabVisible && (
-          <div
-            className="cinema-lock-hotzone"
-            aria-hidden="true"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleLockHotZoneClick();
-            }}
-          />
-        )}
+        {/* 影厅 UI 锁定小锁按钮 + 隐形点击热区已移到 main 顶层（避免重复渲染） */}
 
         {isMobilePanelOpen ? (
           <button

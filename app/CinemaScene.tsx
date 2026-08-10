@@ -3352,42 +3352,28 @@ function WhiteTileCinemaBackdrop({
     return createWhiteCeilingTexture();
   }, []);
 
-  // 弯曲一体化墙顶几何：圆角截面沿 Z 拉伸（ExtrudeGeometry）
-  const curvedRoomGeometry = useMemo(() => {
-    const w = roomWidth;
-    const peakY = roomHeight;
-    const shape = new Shape();
-    shape.moveTo(-w / 2, 0);
-    shape.lineTo(-w / 2, 0.05);
-    // 左半圆弧
-    shape.quadraticCurveTo(-w / 4, peakY * 0.85, 0, peakY);
-    shape.lineTo(0, peakY);
-    // 右半圆弧
-    shape.quadraticCurveTo(w / 4, peakY * 0.85, w / 2, 0.05);
-    shape.lineTo(w / 2, 0);
-    shape.lineTo(-w / 2, 0);
-
-    const geo = new ExtrudeGeometry(shape, {
-      depth: roomDepth + 4,
-      steps: 1,
-      bevelEnabled: false,
-      curveSegments: 32,
-    });
-    geo.translate(0, 0, baseZ - 2);
-    geo.computeVertexNormals();
-    return geo;
-  }, [roomWidth, roomHeight, roomDepth, baseZ]);
-
-  // 白色小瓷砖纹理（用于左右侧墙 + 银幕后墙）：每块视觉约 2-3cm
+  // 白色小瓷砖纹理（用于左右侧墙）
   const wallSideTexture = useMemo(() => {
     if (!tileTextures) return null;
     const t = tileTextures.baseMap.clone();
     const n = tileTextures.bumpMap.clone();
     const r = tileTextures.roughnessMap.clone();
-    // 让一面 30m x 10m 的墙上显示约 1000+ 块瓷砖
-    t.repeat.set(roomWidth / 1.2, roomHeight / 1.2);
-    n.repeat.set(roomWidth / 1.2, roomHeight / 1.2);
-    r.repeat.set(roomWidth / 1.2, roomHeight / 1.2);
+    t.repeat.set(roomDepth / 2.5, roomHeight / 2.5);
+    n.repeat.set(roomDepth / 2.5, roomHeight / 2.5);
+    r.repeat.set(roomDepth / 2.5, roomHeight / 2.5);
+    t.needsUpdate = n.needsUpdate = r.needsUpdate = true;
+    return { map: t, normalMap: n, roughnessMap: r };
+  }, [tileTextures, roomDepth, roomHeight]);
+
+  // 银幕后墙纹理（与侧墙同纹理，repeat 按 roomWidth）
+  const wallBackTexture = useMemo(() => {
+    if (!tileTextures) return null;
+    const t = tileTextures.baseMap.clone();
+    const n = tileTextures.bumpMap.clone();
+    const r = tileTextures.roughnessMap.clone();
+    t.repeat.set(roomWidth / 2.5, roomHeight / 2.5);
+    n.repeat.set(roomWidth / 2.5, roomHeight / 2.5);
+    r.repeat.set(roomWidth / 2.5, roomHeight / 2.5);
     t.needsUpdate = n.needsUpdate = r.needsUpdate = true;
     return { map: t, normalMap: n, roughnessMap: r };
   }, [tileTextures, roomWidth, roomHeight]);
@@ -3400,59 +3386,64 @@ function WhiteTileCinemaBackdrop({
     return t;
   }, [ceilingTex, roomWidth, roomDepth]);
 
+  // 地板米色大格子（中等密度）
   const floorMaterialTextures = useMemo(() => {
     if (!floorTextures) return null;
     const t = floorTextures.baseMap.clone();
     const n = floorTextures.bumpMap.clone();
-    // 地板米色中等方格（视觉约 30cm 边长）
-    t.repeat.set(roomWidth / 4, (roomDepth + 4) / 4);
-    n.repeat.set(roomWidth / 4, (roomDepth + 4) / 4);
+    t.repeat.set(roomWidth / 6, (roomDepth + 4) / 6);
+    n.repeat.set(roomWidth / 6, (roomDepth + 4) / 6);
     t.needsUpdate = n.needsUpdate = true;
     return { map: t, normalMap: n };
   }, [floorTextures, roomWidth, roomDepth]);
 
   return (
     <group>
-      {wallSideTexture && (
-        <>
-          {/* 弯曲一体化墙体+吊顶（白瓷砖材质） */}
-          <mesh
-            geometry={curvedRoomGeometry}
-            position={[0, 0, 0]}
-            receiveShadow
-          >
-            <meshPhysicalMaterial
-              map={wallSideTexture.map}
-              normalMap={wallSideTexture.normalMap}
-              roughnessMap={wallSideTexture.roughnessMap}
-              color="#f4f1e3"
-              normalScale={[1.6, 1.6]}
-              roughness={0.88}
-              metalness={0.0}
-              envMapIntensity={0.18}
-              clearcoat={0.0}
-              clearcoatRoughness={1.0}
-            />
-          </mesh>
-        </>
-      )}
-
-      {/* 银幕后墙 - 白瓷砖（独立 planeGeometry，与侧墙同材质） */}
+      {/* 左墙 - 白色小瓷砖（planeGeometry 立面，UV 正确，无反射） */}
       {wallSideTexture && (
         <mesh
-          position={[0, roomHeight / 2, baseZ - 0.3]}
+          position={[-halfRoomWidth, roomHeight / 2, roomCenterZ]}
+          rotation={[0, Math.PI / 2, 0]}
           receiveShadow
         >
-          <planeGeometry args={[roomWidth + 2, roomHeight, 1, 1]} />
-          <meshPhysicalMaterial
+          <planeGeometry args={[roomDepth + 4, roomHeight]} />
+          <meshStandardMaterial
             map={wallSideTexture.map}
-            normalMap={wallSideTexture.normalMap}
-            roughnessMap={wallSideTexture.roughnessMap}
-            color="#f4f1e3"
-            normalScale={[1.6, 1.6]}
-            roughness={0.88}
-            metalness={0.0}
-            envMapIntensity={0.18}
+            color="#ffffff"
+            roughness={1}
+            metalness={0}
+            side={2}
+          />
+        </mesh>
+      )}
+
+      {/* 右墙 - 白色小瓷砖 */}
+      {wallSideTexture && (
+        <mesh
+          position={[halfRoomWidth, roomHeight / 2, roomCenterZ]}
+          rotation={[0, -Math.PI / 2, 0]}
+          receiveShadow
+        >
+          <planeGeometry args={[roomDepth + 4, roomHeight]} />
+          <meshStandardMaterial
+            map={wallSideTexture.map}
+            color="#ffffff"
+            roughness={1}
+            metalness={0}
+            side={2}
+          />
+        </mesh>
+      )}
+
+      {/* 银幕后墙 - 白色小瓷砖 */}
+      {wallBackTexture && (
+        <mesh position={[0, roomHeight / 2, baseZ - 0.3]} receiveShadow>
+          <planeGeometry args={[roomWidth + 2, roomHeight]} />
+          <meshStandardMaterial
+            map={wallBackTexture.map}
+            color="#ffffff"
+            roughness={1}
+            metalness={0}
             side={2}
           />
         </mesh>
@@ -3476,7 +3467,7 @@ function WhiteTileCinemaBackdrop({
         </mesh>
       )}
 
-      {/* 地板 - 米色中等方格 */}
+      {/* 地板 - 米色大格子瓷砖（无反射） */}
       {floorMaterialTextures && (
         <mesh
           position={[0, 0.005, roomCenterZ]}
@@ -3486,17 +3477,15 @@ function WhiteTileCinemaBackdrop({
           <planeGeometry args={[roomWidth, roomDepth + 4, 32, 32]} />
           <meshStandardMaterial
             map={floorMaterialTextures.map}
-            normalMap={floorMaterialTextures.normalMap}
-            normalScale={[0.5, 0.5]}
-            color="#ecdcbe"
-            roughness={0.6}
-            metalness={0.04}
+            color="#ffffff"
+            roughness={1}
+            metalness={0}
             side={2}
           />
         </mesh>
       )}
 
-      {/* 黑色饰带 - 银幕底部 (图片中深色横条) */}
+      {/* 黑色饰带 - 银幕底部 */}
       <mesh position={[0, auditorium.screenBottom + 0.3, baseZ - 0.25]}>
         <boxGeometry args={[auditorium.screenWidth + 1, 0.7, 0.15]} />
         <meshStandardMaterial color="#0a0a0a" roughness={0.6} />
