@@ -371,12 +371,6 @@ export function CinemaExperience({
   const [isControlsVisible, setIsControlsVisible] = useState<boolean>(true);
   const [isLandscapeMode, setIsLandscapeMode] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const [isTopbarVisible, setIsTopbarVisible] = useState<boolean>(true);
-
-  // 收起/恢复顶部 UI（topbar + perspective 工具栏）
-  const toggleTopbar = useCallback(() => {
-    setIsTopbarVisible((v) => !v);
-  }, []);
 
   // Mobile system time and battery for full-screen mode
   const [deviceTimeStr, setDeviceTimeStr] = useState<string>("");
@@ -679,10 +673,7 @@ export function CinemaExperience({
   };
 
   return (
-    <main
-      className={`cinema-app ${!isTopbarVisible ? "is-topbar-hidden" : ""}`}
-      data-dbd-zone="cinema-shell"
-    >
+    <main className="cinema-app" data-dbd-zone="cinema-shell">
       <header className="topbar" data-dbd-zone="cinema-topbar">
         <Link
           className="back-to-cinemas"
@@ -1349,18 +1340,6 @@ export function CinemaExperience({
                 影院信息
               </button>
             </div>
-            <button
-              type="button"
-              className="topbar-collapse-toggle"
-              aria-label={isTopbarVisible ? "收起顶部 UI" : "恢复顶部 UI"}
-              title={isTopbarVisible ? "收起顶部 UI" : "恢复顶部 UI"}
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleTopbar();
-              }}
-            >
-              {isTopbarVisible ? "顶部" : "顶部"}
-            </button>
             <button
               className="mobile-sheet-toggle"
               type="button"

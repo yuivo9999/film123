@@ -496,7 +496,7 @@ function createWhiteFineGridTexture() {
   const size = 1024;
   const tilesPerSide = 4;
   const cell = size / tilesPerSide;
-  const gapPx = 8;
+  const gapPx = 14; // 加宽黑色勾缝
 
   const c = document.createElement("canvas");
   c.width = c.height = size;
@@ -516,8 +516,8 @@ function createWhiteFineGridTexture() {
       1 + Math.random() * 1.5,
     );
   }
-  // 深米色粗勾缝
-  ctx.fillStyle = "#a08e6c";
+  // 纯黑粗勾缝（瓷砖与瓷砖之间清晰分隔）
+  ctx.fillStyle = "#000000";
   for (let i = 1; i < tilesPerSide; i++) {
     ctx.fillRect(i * cell - gapPx / 2, 0, gapPx, size);
     ctx.fillRect(0, i * cell - gapPx / 2, size, gapPx);
@@ -2468,12 +2468,6 @@ function MinimalistCreamBackdrop({ auditorium }: { auditorium: Auditorium }) {
           <meshBasicMaterial color="#fef08a" toneMapped={false} transparent opacity={0.3} />
         </mesh>
       </group>
-
-      {/* Dark Carpet Floor Front Stage Area (贴齐地板 y=0) */}
-      <mesh position={[0, 0.001, baseZ + 3]} receiveShadow>
-        <planeGeometry args={[roomWidth, 8]} rotation={[-Math.PI / 2, 0, 0]} />
-        <meshStandardMaterial color="#222428" roughness={0.92} metalness={0.02} />
-      </mesh>
     </group>
   );
 }
@@ -2589,18 +2583,6 @@ function ImaxGiantBackdrop({ auditorium }: { auditorium: Auditorium }) {
           </group>
         );
       })}
-
-      {/* Front Stage Carpet & Illuminated Logo Plate */}
-      <group position={[0, 0.02, baseZ + 3.5]}>
-        <mesh receiveShadow>
-          <planeGeometry args={[roomWidth - 2, 6]} rotation={[-Math.PI / 2, 0, 0]} />
-          <meshStandardMaterial color="#0d0e12" roughness={0.9} />
-        </mesh>
-        <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[4.2, 1.2]} />
-          <meshBasicMaterial color="#38bdf8" transparent opacity={0.18} />
-        </mesh>
-      </group>
 
       {/* Green Emergency / Exit Floor Indicator Lights */}
       {[-halfRoomWidth + 1.2, halfRoomWidth - 1.2].map((ex, eIdx) => (
