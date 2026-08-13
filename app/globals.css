@@ -2981,6 +2981,54 @@ a:focus-visible {
   font-size: 14px;
 }
 
+/* Reveal button shown at the toolbar's original top-left spot once it
+   auto-hides — tap it to bring the 7-view toolbar back. */
+.perspective-toolbar-reveal {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 12;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(15, 20, 28, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 215, 0, 0.28);
+  border-radius: 20px;
+  color: #f59e0b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  transition: background 0.2s ease, color 0.2s ease, opacity 0.25s ease;
+  animation: perspective-reveal-fade 0.25s ease;
+}
+
+.perspective-toolbar-reveal:hover {
+  background: rgba(15, 20, 28, 0.92);
+  color: #fbbf24;
+}
+
+@keyframes perspective-reveal-fade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* In fullscreen the top status bar covers the very top, so nudge the
+   reveal button below it to stay tappable. */
+.experience-layout.is-fullscreen .perspective-toolbar-reveal {
+  top: 64px;
+}
+
 /* Free View Directional Pads */
 .free-view-pads {
   position: absolute;

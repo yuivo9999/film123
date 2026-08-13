@@ -508,6 +508,42 @@ export function CinemaExperience({
     }
   }, [playing]);
 
+  // Auto-hide logic for the floating "影厅视角漫游" (7-view) toolbar:
+  // it hides after 15s of inactivity and re-appears when the user taps
+  // the top-left reveal button left in its original position.
+  const PERSPECTIVE_HIDE_DELAY = 15000;
+  const perspectiveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isPerspectiveBarVisible, setIsPerspectiveBarVisible] = useState(true);
+  const isPerspectiveBarVisibleRef = useRef(true);
+
+  const armPerspectiveTimer = useCallback(() => {
+    if (perspectiveTimeoutRef.current) clearTimeout(perspectiveTimeoutRef.current);
+    perspectiveTimeoutRef.current = setTimeout(() => {
+      isPerspectiveBarVisibleRef.current = false;
+      setIsPerspectiveBarVisible(false);
+    }, PERSPECTIVE_HIDE_DELAY);
+  }, []);
+
+  const showPerspectiveBar = useCallback(() => {
+    isPerspectiveBarVisibleRef.current = true;
+    setIsPerspectiveBarVisible(true);
+    armPerspectiveTimer();
+  }, [armPerspectiveTimer]);
+
+  // Any user activity re-arms the hide timer, but only while the bar is
+  // already visible — it never re-shows the bar by itself.
+  const pokePerspectiveBar = useCallback(() => {
+    if (!isPerspectiveBarVisibleRef.current) return;
+    armPerspectiveTimer();
+  }, [armPerspectiveTimer]);
+
+  useEffect(() => {
+    armPerspectiveTimer();
+    return () => {
+      if (perspectiveTimeoutRef.current) clearTimeout(perspectiveTimeoutRef.current);
+    };
+  }, [armPerspectiveTimer]);
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -717,7 +753,12 @@ export function CinemaExperience({
         <div
           className="scene-shell"
           data-dbd-zone="cinema-scene"
-          onClick={() => setIsControlsVisible((prev) => !prev)}
+          onClick={() => {
+            setIsControlsVisible((prev) => !prev);
+            pokePerspectiveBar();
+          }}
+          onMouseMove={pokePerspectiveBar}
+          onTouchStart={pokePerspectiveBar}
         >
           {isFullscreen && (
             <div className="fullscreen-top-status-bar">
@@ -734,35 +775,57 @@ export function CinemaExperience({
             </div>
           )}
 
-          {/* Floating Camera Perspective Toolbar */}
-          <div
-            className="camera-perspective-toolbar"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="perspective-title-badge">
-              <Camera size={14} className="text-amber-400" />
-              <span>影厅视角漫游：</span>
-              <span className="current-preset-name">
-                {CAMERA_PRESETS.find((p) => p.id === cameraPreset)?.name || "观影座位"}
-              </span>
+          {/* Floating Camera Perspective Toolbar (auto-hide after 15s, tap top-left to re-show) */}
+          {isPerspectiveBarVisible ? (
+            <div
+              className="camera-perspective-toolbar"
+              onClick={(e) => {
+                e.stopPropagation();
+                pokePerspectiveBar();
+              }}
+            >
+              <div className="perspective-title-badge">
+                <Camera size={14} className="text-amber-400" />
+                <span>影厅视角漫游：</span>
+                <span className="current-preset-name">
+                  {CAMERA_PRESETS.find((p) => p.id === cameraPreset)?.name || "观影座位"}
+                </span>
+              </div>
+              <div className="perspective-buttons-list">
+                {CAMERA_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    className={`perspective-btn ${
+                      cameraPreset === preset.id ? "is-active" : ""
+                    }`}
+                    onClick={() => {
+                      selectCameraPreset(preset.id);
+                      showPerspectiveBar();
+                    }}
+                    title={`${preset.name} - ${preset.desc}`}
+                  >
+                    <span className="perspective-icon">{preset.icon}</span>
+                    <span className="perspective-label">{preset.name}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="perspective-buttons-list">
-              {CAMERA_PRESETS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  className={`perspective-btn ${
-                    cameraPreset === preset.id ? "is-active" : ""
-                  }`}
-                  onClick={() => selectCameraPreset(preset.id)}
-                  title={`${preset.name} - ${preset.desc}`}
-                >
-                  <span className="perspective-icon">{preset.icon}</span>
-                  <span className="perspective-label">{preset.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+          ) : (
+            <button
+              type="button"
+              className="perspective-toolbar-reveal"
+              aria-label="显示影厅视角工具栏"
+              title="点击显示影厅视角工具栏"
+              onClick={(e) => {
+                e.stopPropagation();
+                showPerspectiveBar();
+              }}
+            >
+              <Camera size={16} className="text-amber-400" />
+              <span>视角</span>
+            </button>
+          )}
 
           {isMounted ? (
             <CinemaScene
